@@ -3,12 +3,29 @@
 /**
  * This function is a generic wrapper for cURL requests.
  * 
- * @param string $url The URL to send the request to.
- * @param string $data The data to send, as a JSON string.
- * @param array $headers The headers to send.
- * @return object|string The response from the API or an error message.
+ * @param string $url The URL to send the request to
+ * @param object|array $data Data
+ * @param array $headers (optional) Headers
+ * @param string $file_name (optional) The name of the file
+ * @param string $file_content (optional) The content of the file
+ * @return object|string The response from the API or an error message
  */
-function curl($url, $data, $headers) {
+function curl($url, $data, $headers = array(), $file_name = null, $file_content = null) {
+    if ($file_name != null && $file_content != null) {
+        $boundary = '-------------' . uniqid();
+        $data = build_data_files($boundary, $data, $file_name, $file_content);
+        $headers = array_merge($headers, array(
+            "Content-Type: multipart/form-data; boundary=" . $boundary,
+            "Content-Length: " . strlen($data)
+        ));
+    } else {
+        $data = json_encode($data);
+        $headers = array_merge($headers, array(
+            "Content-Type: application/json",
+            "Content-Length: " . strlen($data)
+        ));
+    }
+
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
@@ -25,6 +42,54 @@ function curl($url, $data, $headers) {
         return 'Error: No response from '.$domain;
     }
     return $response;
+}
+
+// Thanks to https://stackoverflow.com/questions/17862004/send-file-using-multipart-form-data-request-in-php
+function build_data_files($boundary, $fields, $file_name, $file_content){
+    $data = '';
+    $eol = "\r\n";
+
+    foreach ($fields as $name => $content) {
+        $data .= "--" . $boundary . $eol
+            . 'Content-Disposition: form-data; name="' . $name . "\"".$eol.$eol
+            . $content . $eol;
+    }
+
+    $data .= "--" . $boundary . $eol
+        . 'Content-Disposition: form-data; name="' . "document" . '"; filename="' . $file_name . '"' . $eol
+        //. 'Content-Type: image/png'.$eol
+        . 'Content-Transfer-Encoding: binary'.$eol;
+    $data .= $eol;
+    $data .= $file_content . $eol;
+    $data .= "--" . $boundary . "--".$eol;
+
+    return $data;
+}
+
+/**
+ * This function returns the difference between two timestamps in a human readable format.
+ * 
+ * @param int $timeA The first timestamp.
+ * @param int $timeB The second timestamp.
+ * @return string The difference between the two timestamps.
+ */
+function time_diff($timeA, $timeB) {
+    $time = abs($timeB - $timeA);
+    $time = ($time<1)? 1 : $time;
+    $tokens = array (
+        31536000 => 'year',
+        2592000 => 'month',
+        604800 => 'week',
+        86400 => 'day',
+        3600 => 'hour',
+        60 => 'minute',
+        1 => 'second'
+    );
+    foreach ($tokens as $unit => $text) {
+        if ($time < $unit) continue;
+        $numberOfUnits = round($time / $unit);
+        return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
+    }
 }
 
 ?>

@@ -48,14 +48,14 @@ class CommandManager {
         $last_category = $this->categories[count($this->categories) - 1];
         $this->add_command(array("/help", "/h"), function () {
             return $this->print_help();
-        }, $last_category, "Print this help message.");
+        }, $last_category, "Print this help message");
     }
 
     /**
      * Add a command to the manager.
      * 
      * @param array $alternatives An array of alternative commands.
-     * @param callable $function The function to execute. The function must accept two arguments: the command and the arguments.
+     * @param callable $function The function to execute. The function must accept two arguments: the command and the argument.
      * @param string $category The category of the command. Must be one of the categories passed to the constructor.
      * @param string $description The description of the command. Will be shown in the help message.
      */
@@ -84,10 +84,10 @@ class CommandManager {
         $message = trim($message);
         $message = explode(" ", $message, 2);
         $command = $message[0];
-        $arguments = isset($message[1]) ? $message[1] : "";
+        $argument = isset($message[1]) ? $message[1] : "";
         foreach ($this->commands as $command_info) {
             if (in_array($command, $command_info["alternatives"])) {
-                return $command_info["function"]($command, $arguments);
+                return $command_info["function"]($command, $argument);
             }
         }
         return "Command not found. Type /help to see the list of available commands.";
@@ -101,10 +101,10 @@ class CommandManager {
     public function print_help() {
         $help = "Available commands:\n\n";
         foreach ($this->categories as $category) {
-            $help .= "*".$category."*:\n";
+            $help .= "*".$category."*\n";
             foreach ($this->commands as $command_info) {
                 if ($command_info["category"] == $category) {
-                    $help .= "    ".implode(", ", $command_info["alternatives"])." - ".$command_info["description"]."\n";
+                    $help .= implode(", ", $command_info["alternatives"])." - ".$command_info["description"]."\n";
                 }
             }
             $help .= "\n";

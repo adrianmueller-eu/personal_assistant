@@ -1,6 +1,6 @@
 <?php
 
-// Import function "curl"
+require_once __DIR__."/logger.php";
 require_once __DIR__."/utils.php";
 
 /**
@@ -21,7 +21,7 @@ class OpenAI {
     /**
      * Send a request to the OpenAI API to create a chat completion.
      * 
-     * @param string $data The data to send to the OpenAI API, as a JSON string.
+     * @param object|array $data The data to send to the OpenAI API.
      * @return object The response from the OpenAI API.
      */
     public function gpt($data) {
@@ -92,7 +92,6 @@ class OpenAI {
             "n" => 1,
             "size" => "1024x1024",
         );
-        $data = json_encode($data);
         $response = $this->send_request("images/generations", $data);
         if (isset($response->data)) {
             $image_url = $response->data[0]->url;
@@ -105,12 +104,12 @@ class OpenAI {
      * Send a request to the OpenAI API.
      * 
      * @param string $endpoint The endpoint to send the request to.
-     * @param string $data The data to send, as a JSON string.
+     * @param object|array $data The data to send.
      * @return object|string The response from the API or an error message.
      */
     private function send_request($endpoint, $data) {
         $url = "https://api.openai.com/v1/".$endpoint;
-        $headers = array('Authorization: Bearer '.$this->api_key, 'Content-Type: application/json');
+        $headers = array('Authorization: Bearer '.$this->api_key);
         $response = curl($url, $data, $headers);
 
         // {

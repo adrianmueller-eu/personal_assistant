@@ -1,5 +1,6 @@
 <?php
 
+require_once __DIR__."/logger.php";
 require_once __DIR__."/utils.php";
 
 /**
@@ -7,18 +8,18 @@ require_once __DIR__."/utils.php";
  */
 class Telegram {
     
-    private $chat_id;
     private $telegram_token;
+    private $chat_id;
 
     /**
      * Create a new Telegram instance.
      * 
-     * @param string $chat_id The chat ID.
      * @param string $telegram_token The Telegram bot token.
+     * @param string $chat_id The chat ID.
      */
-    public function __construct($chat_id, $telegram_token) {
-        $this->chat_id = $chat_id;
+    public function __construct($telegram_token, $chat_id) {
         $this->telegram_token = $telegram_token;
+        $this->chat_id = $chat_id;
     }
 
     /**
@@ -79,7 +80,7 @@ class Telegram {
         }
 
         // Send the message to Telegram
-        $server_output = curl($url, $data, array());
+        $server_output = curl($url, $data);
         // Error handling
         if (is_string($server_output)) {
             log_error(json_encode(array(
@@ -113,8 +114,7 @@ class Telegram {
             "chat_id" => $this->chat_id,
             "photo" => $image_url,
         );
-        $data = json_encode($data);
-        $server_output = curl($url, $data, array('Content-Type: application/json'));
+        $server_output = curl($url, $data);
         // Error handling
         if (is_string($server_output)) {
             $this->send_message($server_output);
@@ -126,10 +126,49 @@ class Telegram {
         }
         else if (!isset($server_output->ok) || !$server_output->ok) {
             $encoded = json_encode($server_output);
-            $this->send_message("Error sending image: ".$encoded);
+            $data = json_encode($data, JSON_PRETTY_PRINT);
+            $this->send_message("Error sending image: ".$encoded."\n\n"."Data sent: ".$data, null);
             log_error("Error sending image: ".$encoded);
         }
         // echo json_encode($server_output);
+    }
+
+    /**
+     * Send a document to Telegram.
+     * For sending via URL: "In sendDocument, sending by URL will currently only work for GIF, PDF and ZIP files."
+     * 
+     * @param string $file_name The name of the file.
+     * @param string $file_content The content of the file.
+     */
+    public function send_document($file_name, $file_content) {
+        $url = "https://api.telegram.org/bot".$this->telegram_token."/sendDocument";
+
+        // This doesn't work for some reason
+        // $data = array(
+        //     "chat_id" => $this->chat_id,
+        //     "document" => new CURLStringFile($file_content, $file_name, "text/plain"),
+        // );
+        // file_put_contents($file_name, $file_content);
+        // $data = json_encode($data);
+        // $server_output = curl($url, $data, array()); // 'Content-Type: application/json'
+
+        $data = array("chat_id" => $this->chat_id);
+        $server_output = curl($url, $data, array(), $file_name, $file_content);
+        // Error handling
+        if (is_string($server_output)) {
+            $this->send_message($server_output);
+            $encoded = json_encode(array(
+                "timestamp" => time(),
+                "message" => $server_output,
+            ));
+            log_error($encoded);
+        }
+        else if (!isset($server_output->ok) || !$server_output->ok) {
+            $encoded = json_encode($server_output);
+            $data = json_encode($data, JSON_PRETTY_PRINT);
+            $this->send_message("Error sending document: ".$encoded."\n\n"."Data sent: ".$data, null);
+            log_error("Error sending document: ".$encoded);
+        }
     }
 
     /**
@@ -141,5 +180,4 @@ class Telegram {
         return $this->chat_id;
     }
 }
-
 ?>
