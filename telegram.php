@@ -23,6 +23,89 @@ class Telegram {
     }
 
     /**
+     * Generic function to send a request to the Telegram API.
+     * 
+     * @param string $endpoint The endpoint to send the request to.
+     * @param object|array $data The data to send to the Telegram API.
+     * @param array $headers (optional) The headers to send to the Telegram API.
+     * @param string $file_name (optional) The name of the file to send to the Telegram API.
+     * @param string $file_content (optional) The content of the file to send to the Telegram API.
+     * @return object|null The response from the Telegram API or null if there was an error.
+     */
+    private function send($endpoint, $data, $headers = array(), $file_name = null, $file_content = null) {
+        $url = "https://api.telegram.org/bot".$this->telegram_token."/".$endpoint;
+
+        $server_output = curl($url, $data, $headers, $file_name, $file_content);
+        if (isset($server_output->ok) && $server_output->ok) {
+            return $server_output;
+        }
+        // Error handling
+        log_error(json_encode(array(
+            "timestamp" => time(),
+            "endpoint" => $endpoint,
+            "server_response" => $server_output,
+            "data" => $data,
+        )));
+        if ($endpoint == "sendMessage") {
+            // Try again without parse mode
+            if (isset($data->parse_mode)) {
+                $this->send_message($data->text, null);
+            }
+            // else, silently fail
+        } else if (is_string($server_output)) {
+            $this->send_message($server_output, null);
+        } else {
+            $this->send_message("Error: [/".$endpoint."] ".json_encode($server_output, JSON_PRETTY_PRINT), null);
+        }
+        // echo json_encode($server_output);
+        return null;
+    }
+
+    /**
+     * Split a message into multiple messages if it is too long.
+     * 
+     * @param string $message The message to split.
+     * @param int $max_length The maximum length of each message.
+     * @return array The messages of maximum $max_length characters.
+     */
+    private function split_message($message, $max_length = 4096) {
+        if (strlen($message) < $max_length)
+            return array($message);
+
+        // Split message into multiple messages via new lines
+        $messages = explode("\n", $message);
+
+        // If a message is still longer than $max_length characters, split it into multiple messages via hard cuts
+        $new_messages = array();
+        foreach ($messages as $message) {
+            if (strlen($message) > $max_length) {
+                $message_parts = str_split($message, $max_length);
+                foreach ($message_parts as $message_part) {
+                    $new_messages[] = $message_part;
+                }
+            } else {
+                $new_messages[] = $message;
+            }
+        }
+        $messages = $new_messages;
+
+        // Merge messages again as long as the result is shorter than $max_length characters
+        $new_messages = array();
+        $new_message = "";
+        foreach ($messages as $message_part) {
+            if (strlen($new_message."\n".$message_part) > $max_length) {
+                $new_messages[] = $new_message;
+                $new_message = $message_part;
+            } else {
+                $new_message .= "\n".$message_part;
+            }
+        }
+        $new_messages[] = $new_message;
+
+        return $new_messages;
+    }
+
+    /**
      * Send a message to Telegram.
      * 
      * @param string $message The message to send.
@@ -30,75 +113,18 @@ class Telegram {
      * @return void
      */
     public function send_message($message, $parse_mode = "Markdown") {
-        $url = "https://api.telegram.org/bot".$this->telegram_token."/sendMessage";
+        $messages = $this->split_message($message);
 
-        $max_length = 4096;
-
-        // If $message is longer than $max_length characters, split it into multiple messages
-        if (strlen($message) > $max_length) {
-            $messages = explode("
-", $message);
-            // Ensure that each message is less than $max_length characters
-            // If a message is longer than $max_length characters, split it into multiple messages via hard cuts
-            $new_messages = array();
-            foreach ($messages as $message) {
-                if (strlen($message) > $max_length) {
-                    $message_parts = str_split($message, $max_length);
-                    foreach ($message_parts as $message_part) {
-                        $new_messages[] = $message_part;
-                    }
-                } else {
-                    $new_messages[] = $message;
-                }
-            }
-            $messages = $new_messages;
-            // Merge messages as long as they are less than $max_length characters
-            $new_messages = array();
-            $message = "";
-            foreach ($messages as $message_part) {
-                if (strlen($message."\n".$message_part) > $max_length) {
-                    $new_messages[] = $message;
-                    $message = $message_part;
-                } else {
-                    $message .= "\n".$message_part;
-                }
-            }
-            $new_messages[] = $message;
-            $messages = $new_messages;
-            foreach ($messages as $message) {
-                $this->send_message($message);
-            }
-            return;
-        }
-
-        $data = array(
-            "chat_id" => $this->chat_id,
-            "text" => $message,
-        );
-        if ($parse_mode != null) {
-            $data["parse_mode"] = $parse_mode;
-        }
-
-        // Send the message to Telegram
-        $server_output = curl($url, $data);
-        // Error handling
-        if (is_string($server_output)) {
-            log_error(json_encode(array(
-                "timestamp" => time(),
-                "message" => $server_output,
-            )));
-        }
-        else if (!isset($server_output->ok) || !$server_output->ok) {
-            log_error(json_encode(array(
-                "timestamp" => time(),
-                "server_response" => $server_output,
-            )));
-            // Try again with a different parse mode
+        foreach ($messages as $m) {
+            $data = (object) array(
+                "chat_id" => $this->chat_id,
+                "text" => $m,
+            );
             if ($parse_mode != null) {
-                $this->send_message($message, null);
+                $data->parse_mode = $parse_mode;
             }
+            $this->send("sendMessage", $data);
         }
-        // echo json_encode($server_output);
     }
 
     /**
@@ -108,29 +134,10 @@ class Telegram {
      * @return void
      */
     public function send_image($image_url) {
-        $url = "https://api.telegram.org/bot".$this->telegram_token."/sendPhoto";
-
-        $data = array(
+        $this->send("sendPhoto", array(
             "chat_id" => $this->chat_id,
             "photo" => $image_url,
-        );
-        $server_output = curl($url, $data);
-        // Error handling
-        if (is_string($server_output)) {
-            $this->send_message($server_output);
-            $encoded = json_encode(array(
-                "timestamp" => time(),
-                "message" => $server_output,
-            ));
-            log_error($encoded);
-        }
-        else if (!isset($server_output->ok) || !$server_output->ok) {
-            $encoded = json_encode($server_output);
-            $data = json_encode($data, JSON_PRETTY_PRINT);
-            $this->send_message("Error sending image: ".$encoded."\n\n"."Data sent: ".$data, null);
-            log_error("Error sending image: ".$encoded);
-        }
-        // echo json_encode($server_output);
+        ));
     }
 
     /**
@@ -141,34 +148,25 @@ class Telegram {
      * @param string $file_content The content of the file.
      */
     public function send_document($file_name, $file_content) {
-        $url = "https://api.telegram.org/bot".$this->telegram_token."/sendDocument";
+        $this->send("sendDocument", array(
+            "chat_id" => $this->chat_id
+        ), array(), $file_name, $file_content);
+    }
 
-        // This doesn't work for some reason
-        // $data = array(
-        //     "chat_id" => $this->chat_id,
-        //     "document" => new CURLStringFile($file_content, $file_name, "text/plain"),
-        // );
-        // file_put_contents($file_name, $file_content);
-        // $data = json_encode($data);
-        // $server_output = curl($url, $data, array()); // 'Content-Type: application/json'
-
-        $data = array("chat_id" => $this->chat_id);
-        $server_output = curl($url, $data, array(), $file_name, $file_content);
-        // Error handling
-        if (is_string($server_output)) {
-            $this->send_message($server_output);
-            $encoded = json_encode(array(
-                "timestamp" => time(),
-                "message" => $server_output,
-            ));
-            log_error($encoded);
+    /**
+     * Get a file url from a Telegram file ID.
+     * 
+     * @param string $file_id The file ID
+     * @return string|null The file url or null if there was an error.
+     */
+    public function get_file_url($file_id) {
+        $server_output = $this->send("getFile", array(
+            "file_id" => $file_id
+        ));
+        if ($server_output == null) {
+            return null;
         }
-        else if (!isset($server_output->ok) || !$server_output->ok) {
-            $encoded = json_encode($server_output);
-            $data = json_encode($data, JSON_PRETTY_PRINT);
-            $this->send_message("Error sending document: ".$encoded."\n\n"."Data sent: ".$data, null);
-            log_error("Error sending document: ".$encoded);
-        }
+        return "https://api.telegram.org/file/bot".$this->telegram_token."/".$server_output->result->file_path;
     }
 
     /**

@@ -33,14 +33,26 @@ function curl($url, $data, $headers = array(), $file_name = null, $file_content 
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     $server_output = curl_exec($ch);
     curl_close($ch);
+
+    // Error handling
     if (curl_errno($ch)) {
-        return 'Error: ('.curl_errno($ch).')' . curl_error($ch);
+        return 'Error: (curl: '.curl_errno($ch).') ' . curl_error($ch);
     }
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $response = json_decode($server_output, false);
-    if (!$response) {
-        $domain = parse_url($url, PHP_URL_HOST);
-        return 'Error: No response from '.$domain;
+    if ($http_code != 200 || !$response){
+        if (isset($response->description)) {
+            return "Error: (http: ".$http_code.") ".$response->description;
+        }
+        else if (is_string($server_output)) {
+            return "Error: .(http: ".$http_code.") ".$server_output;
+        }
+        else {
+            $domain = parse_url($url, PHP_URL_HOST);
+            return 'Error: No response from '.$domain;
+        }
     }
+
     return $response;
 }
 

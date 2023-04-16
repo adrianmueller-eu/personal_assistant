@@ -63,82 +63,294 @@ require_once __DIR__."/openai.php";
 require_once __DIR__."/storage_manager.php";
 require_once __DIR__."/command_manager.php";
 
-// ###################
-// ### Main script ###
-// ###################
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get the message from the Telegram API
-    $content = file_get_contents("php://input");
+// ######################
+// ### Initialization ###
+// ######################
+$telegram_admin = new Telegram($telegram_token, $chat_id_admin);
 
-    // An incoming message is in the following format:
-    // {
-    //     "update_id": 10000,
-    //     "message": {
-    //         "date": 1441645532,
-    //         "chat": {
-    //             "last_name": "Test Lastname",
-    //             "id": 1111111,
-    //             "first_name": "Test",
-    //             "username": "Test"
-    //         },
-    //         "message_id": 1365,
-    //         "from": {
-    //             "last_name": "Test Lastname",
-    //             "id": 1111111,
-    //             "first_name": "Test",
-    //             "username": "Test"
-    //         },
-    //         "text": "/start"
-    //     }
-    // }
+if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+    // This is just out of curiosity, to see if someone is trying to access the script directly
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $link = "https://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+    $telegram_admin->send_message("Someone (".$ip.") called on ".$link." with a non-POST method!");
+    // echo "There is nothing to see here! :P";
+    // http_response_code(401) // 401 Unauthorized
+    header('Location: '."https://".$_SERVER['HTTP_HOST']);
+    exit;
+}
 
-    // Append the message content to the log file
-    log_info($content);
+// Security check, to know that the request comes from Telegram
+if (!$DEBUG && $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] != $secret_token) {
+    http_response_code(401); // 401 Unauthorized
+    exit;
+}
 
-    $update = json_decode($content, true);
-    if (!$update) {
+// Get the message from the Telegram API
+$content = file_get_contents("php://input");
+
+// An incoming text message is in the following format:
+// {
+//     "update_id": 10000,
+//     "message": {
+//         "date": 1441645532,
+//         "chat": {
+//             "last_name": "Test Lastname",
+//             "id": 1111111,
+//             "first_name": "Test",
+//             "username": "Test"
+//         },
+//         "message_id": 1365,
+//         "from": {
+//             "last_name": "Test Lastname",
+//             "id": 1111111,
+//             "first_name": "Test",
+//             "username": "Test"
+//         },
+//         "text": "/start"
+//     }
+// }
+
+// Append the message content to the log file
+log_info($content);
+
+$update = json_decode($content, false);
+// Ignore non-message updates
+if (!isset($update->message)) {
+    exit;
+}
+
+// Avoid processing the same message twice by checking whether update_id was already processed
+$update_id = $update->update_id;
+// Assume this can't adversarially block future messages
+if (!$DEBUG && already_seen($update_id)) {
+    // $telegram->send_message("Repeated message ignored (update_id: ".$update_id.")");
+    log_info("Repeated message ignored (update_id: ".$update_id.")");
+    exit;
+}
+log_update_id($update_id);
+
+// Initialize
+$chat_id = $update->message->chat->id; // Assume that if $update->message exists, so does $update->message->chat->id
+$username = $update->message->from->username;
+
+$telegram = new Telegram($telegram_token, $chat_id);
+$storage_manager = new StorageManager($chat_id);
+$openai = new OpenAI($openai_api_key);
+
+if ($storage_manager->is_allowed_user($username, "general")) { } // Skip below
+// Check if username is in the list of users for which the mental health chatbot is enabled
+else if ($storage_manager->is_allowed_user($username, "mental_health")) {
+    if (!isset($update->message->text)) {
+        $telegram->send_message("Sorry, I can only read text messages.");
+        exit;
+    }
+    $message = $update->message->text;
+
+    if (substr($message, 0, 1) == "/") {
+        $command_manager = new CommandManager(array("Mental health", "Misc"));
+
+        $command_manager->add_command(array("/start"), function($command, $_) use ($telegram, $storage_manager, $openai, $telegram_admin, $username) {
+            $session_info = $storage_manager->get_session_info("session");
+            // If there is no session info, create one
+            if ($session_info == null) {
+                $session_info = (object) array(
+                    "running" => false,
+                    "this_session_start" => null,
+                    "profile" => "",
+                    "last_session_start" => null,
+                );
+            }
+            // If there is a session running, don't start a new one
+            else if ($session_info->running === true) {
+                $telegram->send_message("You are already in a session. Please type /end to end the session.");
+                return;
+            }
+            $session_info->running = true;
+            $session_info->this_session_start = time();
+            $telegram_admin->send_message("@".$username." (chat_id: ".$telegram->get_chat_id().") started a session!", null);
+
+            $telegram->send_message("Hello! I am a chatbot that can help you with your mental health. "
+                ."I am currently in beta, so please be patient with me.\n\n"
+                ."You can start a session by typing /start and end it by typing /end. "
+                ."If you want to see the list of commands available, type /help.\n\n"
+                ."Please remember to /end the session.");
+            $chat = (object) array(
+                "model" => "gpt-4",
+                "temperature" => 0.5,
+                "messages" => array(
+                    array("role" => "system", "content" => "You are a therapist assisting me to connect to myself and heal. "
+                    ."Show compassion by acknowledging and validating my feelings. Your primary goal is to provide a safe, "
+                    ."nurturing, and supportive environment for me. Your task is to help me explore my thoughts, feelings, "
+                    ."and experiences, while guiding me towards personal growth and emotional healing. You are also familiar "
+                    ."with Internal Family Systems (IFS) therapy and might use it implicitly to guide the process. Keep your "
+                    ."responses very short and compact, but as helpful as possible. And please ask if something is unclear to "
+                    ."you or some important information is missing. The current time is ".date("g:ia")."."),
+                ),
+            );
+            // If there is a previous session, add the profile to the chat history
+            if ($session_info->profile != "") {
+                $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
+                $profile = $session_info->profile;
+                $chat->messages[] = array("role" => "system", "content" => "For your own reference, here is the profile you previously wrote after "
+                ."the last session (".$time_passed." ago) as a basis for this session:\n\n".$profile);
+            }
+            // Request an opening message, because it is nice and invites sharing :)
+            $initial_response = $openai->gpt($chat);
+            // Save gpt's response to the chat history, except if it starts with "Error: "
+            if (substr($initial_response, 0, 7) != "Error: ") {
+                $telegram->send_message($initial_response);
+
+                $chat->messages = array_merge($chat->messages, array(
+                    array("role" => "assistant", "content" => $initial_response)
+                ));
+
+                $storage_manager->save_config($chat);
+                $storage_manager->save_session_info($session_info, "session");
+            } else {
+                $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /start.");
+            }
+        }, "Mental health", "Start a new session");
+
+        // The command /end ends the current session
+        $command_manager->add_command(array("/end"), function($command, $_) use ($telegram, $openai, $storage_manager) {
+            $session_info = $storage_manager->get_session_info("session");
+            // Check if there is a session running
+            if ($session_info == null || $session_info->running == false) {
+                $telegram->send_message("The session isn't started yet. Please start a new session with /start.");
+                exit;
+            }
+            // If there were more than 5 messages (2x system, 2 responses), request a session summary
+            $chat = $storage_manager->get_config();
+            if (count($chat->messages) > 5) {
+                if ($session_info->profile != "") {
+                    $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
+                    $chat->messages = array_merge($chat->messages, array(
+                        array("role" => "system", "content" => "Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
+                        .$session_info->profile."\n\n"."Please update it with the new information you got in this session. Please include only information "
+                        ."that is really necessary for upcoming sessions and avoid removing information from previous sessions that might still be relevant."),
+                    ));
+                } else {
+                    $chat->messages = array_merge($chat->messages, array(
+                        array("role" => "system", "content" => "Please write a short profile that summarizes the information you got in this session. "
+                        ."Please include only information that is really necessary for upcoming sessions."),
+                    ));
+                }
+                $new_profile = $openai->gpt($chat);
+                // Error handling
+                if (substr($new_profile, 0, 7) == "Error: ") {
+                    $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                    exit;
+                }
+                $session_info->profile = $new_profile;
+                $session_info->last_session_start = $session_info->this_session_start;
+                $chat->messages = array();
+                $storage_manager->save_config($chat);
+            }
+            $session_info->running = false;
+            $session_info->this_session_start = null;
+            $storage_manager->save_session_info($session_info, "session");
+            $telegram->send_message("Session ended. Thank you for being with me today.");
+        }, "Mental health", "End the current session");
+
+        // The command /profile shows the profile of the user
+        $command_manager->add_command(array("/profile"), function($command, $_) use ($telegram, $storage_manager) {
+            $session_info = $storage_manager->get_session_info("session");
+            if ($session_info->profile == "") {
+                $telegram->send_message("No profile has been generated yet. Please start a new session with /start.");
+            } else {
+                $telegram->send_message("Here is your current profile:\n\n".$session_info->profile);
+            }
+        }, "Mental health", "Show your profile");
+
+        $response = $command_manager->run_command($message);
+        if ($response != "") {
+            $telegram->send_message($response);
+        }
         exit;
     }
 
-    // Avoid processing the same message twice by checking whether update_id was already processed
-    $update_id = $update["update_id"];
-    $message = $update["message"]["text"];
-    $chat_id = $update["message"]["chat"]["id"];
-
-    // Initialize the telegram manager
-    $telegram = new Telegram($telegram_token, $chat_id);
-    // $telegram->send_message("You said: ".$message); // Debug
-
-    if (already_seen($update_id)) {
-        $telegram->send_message("Repeated message ignored (len: ".strlen($message).", update_id: ".$update_id.")");
+    $session_info = $storage_manager->get_session_info("session");
+    // If there is no session running, don't do anything
+    if ($session_info == null || $session_info->running == false) {
+        $telegram->send_message("The session isn't started yet. Please start a new session with /start.");
         exit;
     }
-    log_update_id($update_id);
+    $storage_manager->add_message("user", $message);
+    // $telegram->send_message("Sending message to OpenAI: ".$message);
+    $chat = $storage_manager->get_config();
+    $response = $openai->gpt($chat);
 
-    // Security checks
-    // 1. Reject message if it's not from $chat_id_admin
-    if ($chat_id != $chat_id_admin) {
-        $telegram->send_message("Sorry, I can't talk to you (chat_id: ".$chat_id.")");
-        // Tell me ($chat_id_admin) that someone tried to talk to me
-        $telegram2 = new Telegram($telegram_token, $chat_id_admin);
-        $username = $update["message"]["from"]["username"];
-        $telegram2->send_message("@".$username." tried to talk to me");
-        exit;
+    // Append GPT's response to the messages array, except if it starts with "Error: "
+    if (substr($response, 0, 7) != "Error: ") {
+        $storage_manager->add_message("assistant", $response);
+        $telegram->send_message($response);
     }
-    // 2. Check if the secret token is correct. It is sent in the header “X-Telegram-Bot-Api-Secret-Token”
-    if (!$DEBUG && $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] != $secret_token) {
-        $telegram->send_message("Sorry, I can't talk to you. Wrong secret token.");
-        exit;
+    else {
+        $storage_manager->delete_messages(1);
+        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please send me your last message again.");
     }
+    exit;
+}
+else if ($chat_id != $chat_id_admin) {
+    $telegram->send_message("Sorry, I can't talk to you (chat_id: ".$chat_id.")");
+    
+    // Tell me ($chat_id_admin) that someone tried to talk to the bot
+    // This could be used to spam the admin
+    if (isset($update->message->from->username)) {
+        $telegram_admin->send_message("@".$username." tried to talk to me");
+    }
+    else {
+        $telegram_admin->send_message("Someone without a username tried to talk to me");
+    }
+    exit;
+}
 
-    // Initialize the storage manager, openai manager and command manager
-    $storage_manager = new StorageManager($chat_id);
-    $openai = new OpenAI($openai_api_key);
-    $command_manager = new CommandManager(array("Presets", "Settings", "Chat history management", "Misc"));
+if (isset($update->message->text)) {
+    $message = $update->message->text;
+}
+else if (isset($update->message->photo)) {
+    $file_id = $update->message->photo[0]->file_id; // This is gonna be useful as soon as GPT-4 accepts images
+    $file_url = $telegram->get_file_url($file_id); // Don't forget to handle this being null
+    $caption = isset($update->message->caption) ? $update->message->caption : "";
+    $telegram->send_message("Sorry, I don't know yet what to do with images. Please send me a text message instead.");
+    exit;
+}
+else {
+    $telegram->send_message("Sorry, I don't know yet what do to this message:\n\n".json_encode($update->message, JSON_PRETTY_PRINT));
+    exit;
+}
 
-    // ###############
-    // ### Presets ###
-    // ###############
+if ($DEBUG) {
+    $telegram->send_message("You said: ".$message);
+    echo "You said: ".$message;
+}
+
+// #######################
+// ### Command parsing ###
+// #######################
+
+// If starts with "." or "\", it's probably a typo for a command
+if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
+    // Shorten the message if it's too long
+    if (strlen($message) > 100) {
+        $message = substr($message, 0, 100)."...";
+    }
+    $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
+    exit;
+}
+
+// If $message starts with /, it's a command
+if (substr($message, 0, 1) == "/") {
+    if ($chat_id == $chat_id_admin) {
+        $categories = array("Presets", "Settings", "Chat history management", "Admin", "Misc");
+    } else {
+        $categories = array("Presets", "Settings", "Chat history management", "Misc");
+    }
+    $command_manager = new CommandManager($categories);
+
+    // #########################
+    // ### Commands: Presets ###
+    // #########################
     // The command is /start or /reset resets the bot and sends a welcome message
     $reset = function($command, $_) {
         global $telegram, $storage_manager;
@@ -146,7 +358,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "model" => "gpt-4",
             "temperature" => 0.9,
             "messages" => array(
-                array("role" => "system", "content" => "You are a helpful and supportive assistant. Feel free to recommend something, but only if it seems very useful and appropriate. Keep your responses concise and compact. You can use Telegram Markdown to format your messages."),
+                array("role" => "system", "content" => "You are a helpful and supportive assistant. Feel free to recommend something, "
+                ."but only if it seems very useful and appropriate. Keep your responses concise and compact. "
+                ."You can use Telegram Markdown to format your messages."),
             )
         ));
         $telegram->send_message("Hello, there! I am your personal assistant ❤️\n\nIf you want to know what I can do, type /help.");
@@ -156,23 +370,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // The command /therapist is a preset for a therapist
     $command_manager->add_command(array("/therapist", "/therapy", "/t"), function($command, $_) use ($telegram, $storage_manager, $openai) {
+        $session_info = $storage_manager->get_session_info("therapy");
+        // If there is no session info, create one
+        if ($session_info == null) {
+            $session_info = (object) array(
+                "running" => false,
+                "this_session_start" => null,
+                "profile" => "",
+                "last_session_start" => null,
+            );
+        }
+        // If there is a session running, don't start a new one
+        else if ($session_info->running === true) {
+            $telegram->send_message("You are already in a session. Please type /end to end the session.");
+            return;
+        }
+        $session_info->running = true;
+        $session_info->this_session_start = time();
+
         $chat = (object) array(
             "model" => "gpt-4",
             "temperature" => 0.5,
             "messages" => array(
-                array("role" => "system", "content" => "You are a therapist assisting me to connect to myself and heal. Show compassion by acknowledging and validating my feelings. Your primary goal is to provide a safe, nurturing, and supportive environment for me. Your task is to help me explore my thoughts, feelings, and experiences, while guiding me towards personal growth and emotional healing. You are also familiar with Internal Family Systems (IFS) therapy and might use it implicitly to guide the process. Keep your responses very short and compact, but as helpful as possible. The current time is ".date("g:ia")."."),
+                array("role" => "system", "content" => "You are a therapist assisting me to connect to myself and heal. "
+                ."Show compassion by acknowledging and validating my feelings. Your primary goal is to provide a safe, "
+                ."nurturing, and supportive environment for me. Your task is to help me explore my thoughts, feelings, "
+                ."and experiences, while guiding me towards personal growth and emotional healing. You are also familiar "
+                ."with Internal Family Systems (IFS) therapy and might use it implicitly to guide the process. Keep your "
+                ."responses very short and compact, but as helpful as possible. And please ask if something is unclear to "
+                ."you or some important information is missing. The current time is ".date("g:ia")."."),
             ),
         );
         $session_info = $storage_manager->get_session_info("therapy");
-        // If there is a previous session ($session info not null), add the profile to the chat history
-        if ($session_info != null) {
-            $time_passed = time_diff(time(), intval($session_info->time));
+        // If there is a previous session, add the profile to the chat history
+        if ($session_info->profile != "") {
+            $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
             $profile = $session_info->profile;
-            if ($profile != "") {
-                $chat->messages[] = array("role" => "system", "content" => "Here is the profile you previously wrote after the last session (".$time_passed." ago) as a basis for this session:\n\n".$profile);
-            }
+            $chat->messages[] = array("role" => "system", "content" => "For your own reference, here is the profile you previously wrote after "
+            ."the last session (".$time_passed." ago) as a basis for this session:\n\n".$profile);
         }
-        // send_message("Chat history reset. I am now a therapist.", $chat_id);
         // Request an opening message, because it is nice and invites sharing :)
         $initial_response = $openai->gpt($chat);
         $telegram->send_message($initial_response);
@@ -181,54 +417,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $chat->messages = array_merge($chat->messages, array(
                 array("role" => "assistant", "content" => $initial_response)
             ));
+
+            $storage_manager->save_config($chat);
+            $storage_manager->save_session_info($session_info, "therapy");
         }
-        $storage_manager->save_config($chat);
     }, "Presets", "Therapist");
 
     // The command /end ends the current session
     $command_manager->add_command(array("/end"), function($command, $_) use ($telegram, $openai, $storage_manager, $reset) {
-        // Check if the current session is a therapy session, by checking if the first message starts with "You are a therapist"
-        $chat = $storage_manager->get_config();
-        // Fail if messages is empty or the first message does not start with "You are a therapist"
-        if (count($chat->messages) == 0 || substr($chat->messages[0]->content, 0, 19) != "You are a therapist") {
-            $telegram->send_message("Non-therapy sessions don't exist yet.");
+        $session_info = $storage_manager->get_session_info("therapy");
+        // Check if there is a session running
+        if ($session_info == null || $session_info->running == false) {
+            $telegram->send_message("The session isn't started yet. Please start a new session with /therapy.");
             exit;
         }
         // If there were more than 7 messages (2x system, 3 responses), request a session summary
+        $chat = $storage_manager->get_config();
         if (count($chat->messages) > 7) {
-            $session_info = $storage_manager->get_session_info("therapy");
-            if ($session_info != null) {
-                $time_passed = time_diff(time(), intval($session_info->time));
+            if ($session_info->profile != "") {
+                $time_passed = time_diff($session_info->this_session_start, intval($session_info->last_session_start));
                 $chat->messages = array_merge($chat->messages, array(
-                    array("role" => "system", "content" => "Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n".$session_info->profile."\n\nPlease update it with the information you got in this session. Please include only information that is really necessary for upcoming sessions."),
+                    array("role" => "system", "content" => "Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
+                    .$session_info->profile."\n\n"."Please update it with the new information you got in this session. Please include only information "
+                    ."that is really necessary for upcoming sessions and avoid removing information from previous sessions that might still be relevant."),
                 ));
             } else {
                 $chat->messages = array_merge($chat->messages, array(
-                    array("role" => "system", "content" => "Please write a short profile that summarizes the information you got in this session. Please include only information that is really necessary for upcoming sessions."),
+                    array("role" => "system", "content" => "Please write a short profile that summarizes the information you got in this session. "
+                    ."Please include only information that is really necessary for upcoming sessions."),
                 ));
             }
             $new_profile = $openai->gpt($chat);
             // Error handling
             if (substr($new_profile, 0, 7) == "Error: ") {
-                $telegram->send_message("Error: ".$new_profile);
+                $telegram->send_message("There was an error while requesting a session summary. Please try again /end.\n\n".$new_profile);
                 exit;
             }
-            $storage_manager->save_session_info(array(
-                "profile" => $new_profile,
-                "time" => time(),
-            ), "therapy");
-            $storage_manager->save_config($chat);
-            $telegram->send_message("Session ended. Thank you for being with me today. Here is the updated profile:\n\n".$new_profile);
+            $session_info->profile = $new_profile;
+            $session_info->last_session_start = $session_info->this_session_start;
+            $telegram->send_message("Session ended. Thank you for being with me today. Here is your updated profile:\n\n".$new_profile);
         }
+        $session_info->running = false;
+        $session_info->this_session_start = null;
+        $storage_manager->save_session_info($session_info, "therapy");
         $reset($command, $_);
     }, "Presets", "End the current session");
+
+    // The command /profile shows the current profile
+    $command_manager->add_command(array("/profile"), function($command, $_) use ($telegram, $storage_manager) {
+        $session_info = $storage_manager->get_session_info("therapy");
+        if ($session_info == null || $session_info->profile == "") {
+            $telegram->send_message("There is no profile yet. Please start a new session with /therapy.");
+            exit;
+        }
+        $telegram->send_message("Here is your current profile:\n\n".$session_info->profile);
+    }, "Presets", "Show the current profile");
 
     // The command /responder writes a response to a given message
     $command_manager->add_command(array("/responder", "/re"), function($command, $_) use ($telegram, $storage_manager, $openai) {
         $storage_manager->save_config(array(
             "model" => "gpt-4",
             "temperature" => 0.7,
-            "messages" => array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me. Use a causal, calm, and kind voice. Keep your responses concise."))
+            "messages" => array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me. "
+            ."Use a causal, calm, and kind voice. Keep your responses concise."))
         ));
         $telegram->send_message("Chat history reset. I am now a message responder.");
     }, "Presets", "Message responder");
@@ -238,7 +489,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $storage_manager->save_config(array(
             "model" => "gpt-4",
             "temperature" => 0.7,
-            "messages" => array(array("role" => "system", "content" => "Your task is to generate a summary of the messages sent to me. Use a causal, calm, and kind voice. Keep your responses concise."))
+            "messages" => array(array("role" => "system", "content" => "Your task is to generate a summary of the messages sent to me. "
+            ."Use a causal, calm, and kind voice. Keep your responses concise."))
         ));
         $telegram->send_message("Chat history reset. I am now a message summarizer.");
     }, "Presets", "Summarizer");
@@ -248,7 +500,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $storage_manager->save_config(array(
             "model" => "gpt-4",
             "temperature" => 0.7,
-            "messages" => array(array("role" => "system", "content" => "Your task is to translate the messages sent to you into English. Say which language or encoding you translate the text from."))
+            "messages" => array(array("role" => "system", "content" => "Your task is to translate the messages sent to you into English. "
+            ."Say which language or encoding you translate the text from."))
         ));
         $telegram->send_message("Chat history reset. I am now a translator.");
     }, "Presets", "Translator");
@@ -258,7 +511,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $storage_manager->save_config(array(
             "model" => "gpt-4",
             "temperature" => 0,
-            "messages" => array(array("role" => "system", "content" => "Extract details about events from the provided text and output an event in iCalendar format. Ensure that the code is valid. Output the code only. The current year is ".date("Y")."."))
+            "messages" => array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
+            ."event in iCalendar format. Ensure that the code is valid. Output the code only. The current year is ".date("Y")."."))
         ));
         $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
     }, "Presets", "Converts to iCalendar format");
@@ -268,7 +522,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $storage_manager->save_config(array(
             "model" => "gpt-4",
             "temperature" => 0.7,
-            "messages" => array(array("role" => "system", "content" => "Your task is to assist me in composing a research-grade paper. I will provide a paragraph containing notes or half-formed sentences. Please formulate it into a simple, well-written academic text. The text is written in LaTeX. Add details and equations wherever you would find them useful."))
+            "messages" => array(array("role" => "system", "content" => "Your task is to assist me in composing a research-grade paper. "
+            ."I will provide a paragraph containing notes or half-formed sentences. Please formulate it into a simple, well-written academic text. "
+            ."The text is written in LaTeX. Add details and equations wherever you would find them useful."))
         ));
         $telegram->send_message("Chat history reset. I will support you in writing academic text.");
     }, "Presets", "Paper writing support");
@@ -278,7 +534,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $storage_manager->save_config(array(
             "model" => "gpt-4",
             "temperature" => 0.7,
-            "messages" => array(array("role" => "system", "content" => "You are a programming and system administration assistant. If there is a lack of details, state your uncertainty and ask for clarification. Do not show any warnings or information regarding your capabilities. Keep your response short and avoid unnecessary explanations. If you provide code, ensure it is valid."))
+            "messages" => array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
+            ."If there is a lack of details, state your uncertainty and ask for clarification. Do not show any warnings or information "
+            ."regarding your capabilities. Keep your response short and avoid unnecessary explanations. If you provide code, ensure it is valid."))
         ));
         $telegram->send_message("Chat history reset. I will support you in writing code.");
     }, "Presets", "Programming assistant");
@@ -289,9 +547,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
 
-    // ###############
-    // ### Settings ###
-    // ###############
+    // ##########################
+    // ### Commands: Settings ###
+    // ##########################
     // The command /model shows the current model and allows to change it
     $command_manager->add_command(array("/model", "/m"), function($command, $_) use ($telegram, $storage_manager) {
         $chat = $storage_manager->get_config();
@@ -398,9 +656,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $telegram->send_message("Added system message to chat history.");
     }, "Chat history management", "Add a message with \"system\" role");
 
-    // ############
-    // ### Misc ###
-    // ############
+    if ($chat_id == $chat_id_admin) {
+        // #######################
+        // ### Commands: Admin ###
+        // #######################
+
+        // The command /addusermh adds a user to the list of authorized users for the mental health assistant
+        $command_manager->add_command(array("/addusermh"), function($command, $username) use ($telegram, $storage_manager) {
+            if ($username == "" || $username[0] != "@") {
+                $telegram->send_message("Please provide a username to add.");
+                return;
+            }
+            $username = substr($username, 1);
+            if ($storage_manager->is_allowed_user($username, "mental_health")) {
+                $telegram->send_message("User @".$username." is already in the list of users authorized for the mental health assistant.");
+                return;
+            }
+            $storage_manager->add_allowed_user($username, "mental_health");
+            $telegram->send_message("Added user @".$username." to the list of users authorized for the mental health assistant.");
+        }, "Admin", "Add a user for mental health assistant");
+
+        // The command /removeusermh removes a user from the list of authorized users for the mental health assistant
+        $command_manager->add_command(array("/removeusermh"), function($command, $username) use ($telegram, $storage_manager) {
+            if ($username == "" || $username[0] != "@") {
+                $telegram->send_message("Please provide a username to remove.");
+                return;
+            }
+            $username = substr($username, 1);
+            try {
+                $storage_manager->remove_allowed_user($username, "mental_health");
+            } catch (Exception $e) {
+                $telegram->send_message("Error: ".json_encode($e));
+                return;
+            }
+            $telegram->send_message("Removed user @".$username." from the list of users authorized for the mental health assistant.");
+        }, "Admin", "Remove a user from mental health assistant");
+
+        // The command /listusers lists all users authorized, by category
+        $command_manager->add_command(array("/listusers"), function($command, $_) use ($telegram, $storage_manager) {
+            $categories = $storage_manager->get_categories();
+            $message = "Lists of authorized users, by category:\n";
+            foreach ($categories as $category) {
+                $message .= "\n*".$category."*:\n";
+                $users = $storage_manager->get_allowed_users($category);
+                if (count($users) == 0) {
+                    $message .= "No users authorized for this category.\n";
+                } else {
+                    foreach ($users as $user) {
+                        $message .= "@".$user."\n";
+                    }
+                }
+            }
+            $telegram->send_message($message);
+        }, "Admin", "List all users authorized, by category");
+    }
+
+    // ######################
+    // ### Commands: Misc ###
+    // ######################
 
     // The command /continue requests a response from the model
     $command_manager->add_command(array("/continue", "/c"), function($command, $_) use ($telegram, $storage_manager, $openai) {
@@ -411,7 +724,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }, "Misc", "Request another response");
 
     // The command /image requests an image from the model
-    // Hint: Use $openai->dalle($prompt) to request an image from DALL·E
     $command_manager->add_command(array("/image", "/img", "/i"), function($command, $prompt) use ($telegram, $openai) {
         if ($prompt == "") {
             $telegram->send_message("Please provide a prompt with command ".$command.".");
@@ -440,57 +752,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // The command /dump outputs the content of the permanent storage
     $command_manager->add_command(array("/dump", "/d"), function($command, $_) use ($telegram, $storage_manager) {
         $file = $storage_manager->get_file();
-        $telegram->send_message(file_get_contents($file));
+        $telegram->send_message(file_get_contents($file), null);
     }, "Misc", "Dump the data saved in the permanent storage");
 
-    // ############
-    // ### Main ###
-    // ############
-
-    // If starts with "." or "\", it's probably typo for a command
-    if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
-        // Shorten the message if it's too long
-        if (strlen($message) > 100) {
-            $message = substr($message, 0, 100)."...";
+    // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
+    $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $_) use ($telegram, $storage_manager) {
+        $messages = $storage_manager->get_config()->messages;
+        // Add the roles in the beginning of each message
+        $messages = array_map(function($message) {
+            return "/".$message->role." ".$message->content;
+        }, $messages);
+        // Send each message as a separate message
+        foreach ($messages as $message) {
+            $telegram->send_message($message);
         }
-        $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
-        exit;
-    }
+    }, "Misc", "Dump the messages in the chat history");
 
-    // If the message starts with "/", it's a command
-    if (substr($message, 0, 1) == "/") {
-        $resp = $command_manager->run_command($message);
-        if ($resp != "") {
-            $telegram->send_message($resp);
-        }
-        exit;
-    }
-
-    $storage_manager->add_message("user", $message);
-    // $telegram->send_message("Sending message to OpenAI: ".$message);
-    $chat = $storage_manager->get_config();
-    $response = $openai->gpt($chat);
-
-    // Append GPT's response to the messages array, except if it starts with "Error: "
-    if (substr($response, 0, 7) != "Error: ") {
-        $storage_manager->add_message("assistant", $response);
-    }
-
-    // If the response starts with "BEGIN:VCALENDAR", it is an iCalendar event
-    if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
-        $file_name = "event.ics";
-        $telegram->send_document($file_name, $response);
-    } else {
-        // Send the response to Telegram
+    // ############################
+    // Actually run the command!
+    $response = $command_manager->run_command($message);
+    if ($response != "") {
         $telegram->send_message($response);
     }
+    exit;
+}
+
+// #############################
+// ### Main interaction loop ###
+// #############################
+
+$storage_manager->add_message("user", $message);
+// $telegram->send_message("Sending message to OpenAI: ".$message);
+$chat = $storage_manager->get_config();
+$response = $openai->gpt($chat);
+
+// Append GPT's response to the messages array, except if it starts with "Error: "
+if (substr($response, 0, 7) != "Error: ") {
+    $storage_manager->add_message("assistant", $response);
+}
+
+// If the response starts with "BEGIN:VCALENDAR", it is an iCalendar event
+if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
+    $file_name = "event.ics";
+    $telegram->send_document($file_name, $response);
 } else {
-    // If this script is not called by the Telegram API, check if the webhook is set up correctly
-    // So, we just need to send a message to the Telegram API
-    $ip = $_SERVER['REMOTE_ADDR'];
-    $telegram = new Telegram($telegram_token, $chat_id_admin);
-    $link = "https://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
-    $telegram->send_message("Someone (".$ip.") called on ".$link." with a non-POST method!");
-    echo "There is nothing to see here! :P";
+    // Send the response to Telegram
+    $telegram->send_message($response);
 }
 ?>
