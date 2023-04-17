@@ -99,6 +99,7 @@ function time_diff($timeA, $timeB) {
     );
     foreach ($tokens as $unit => $text) {
         if ($time < $unit) continue;
+        // echo "1 ".$text." is about ".$unit." seconds, so ".$time." is ".$time / $unit." ".$text."s";
         $numberOfUnits = round($time / $unit);
         return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
     }

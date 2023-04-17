@@ -18,6 +18,14 @@ class Telegram {
      * @param string $chat_id The chat ID.
      */
     public function __construct($telegram_token, $chat_id) {
+        // Check if the Telegram token is valid
+        if (!preg_match("/^[0-9]+:[a-zA-Z0-9_-]+$/", $telegram_token)) {
+            throw new Exception("Invalid Telegram token: ".$telegram_token);
+        }
+        // Check if the chat ID is valid
+        if (!preg_match("/^[0-9]+$/", $chat_id)) {
+            throw new Exception("Invalid chat ID: ".$chat_id);
+        }
         $this->telegram_token = $telegram_token;
         $this->chat_id = $chat_id;
     }

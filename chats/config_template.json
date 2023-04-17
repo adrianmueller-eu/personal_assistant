@@ -1,0 +1,13 @@
+{
+    "config": {
+        "TELEGRAM_BOT_TOKEN": "",
+        "TELEGRAM_BOT_SECRET": "",
+        "TELEGRAM_ADMIN_CHAT_ID": "",
+        "OPENAI_API_KEY": "",
+        "TIME_ZONE": ""
+    },
+    "users": {
+        "general" : [],
+        "mental_health" : []
+    }
+}

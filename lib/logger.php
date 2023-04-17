@@ -1,7 +1,7 @@
 <?php
 
 function _log($log_file, $content, $flags = FILE_APPEND) {
-    $log_dir = __DIR__."/logs";
+    $log_dir = __DIR__."/../logs";
     if (!file_exists($log_dir)) {
         mkdir($log_dir);
     }

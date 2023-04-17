@@ -34,35 +34,26 @@ require_once __DIR__."/utils.php";
  * }
  * ```
  */
-class StorageManager {
-    /**
-     * The path to the storage file.
-     */
-    private $file;
-    private $allowed_users_file;
-    private $allowed_users;
-    private $data = null;
+class UserConfigManager {
+
+    private $user_config_file;
+    private $user_data;
 
     /**
      * @param string $chat_id The chat ID
      */
     public function __construct($chat_id) {
-        $chats_dir = __DIR__."/chats";
+        $chats_dir = __DIR__."/../chats";
         
-        $this->file = $chats_dir."/".$chat_id.".json";
-        $this->allowed_users_file = $chats_dir."/allowed_users.json";
-        // Create the directory if it does not exist
-        if (!file_exists($chats_dir)) {
-            mkdir($chats_dir);
-        }
+        $this->user_config_file = $chats_dir."/".$chat_id.".json";
         $this->load();
     }
 
 
     private function load() {
-        $this->data = json_decode(file_get_contents($this->file), false);
-        if ($this->data == null) {
-            $this->data = (object) array(
+        $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
+        if ($this->user_data == null) {
+            $this->user_data = (object) array(
                 "config" => (object) array(
                     "model" => "gpt-4",
                     "temperature" => 0.7,
@@ -71,31 +62,17 @@ class StorageManager {
                 "sessions" => (object) array(),
             );
         }
-
-        // Check if the chat is allowed to use the assistant
-        $this->allowed_users = json_decode(file_get_contents($this->allowed_users_file), false);
-        if ($this->allowed_users == null) {
-            $this->allowed_users = (object) array(
-                "general" => array(),
-                "mental_health" => array(),
-            );
-        }
-
     }
 
     private function save() {
-        file_put_contents($this->file, json_encode($this->data, JSON_PRETTY_PRINT));
-    }
-
-    public function get_file() {
-        return $this->file;
+        file_put_contents($this->user_config_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
     }
 
     /**
      * @return object The config object with messages and model parameters.
      */
     public function get_config() {
-        return $this->data->config;
+        return $this->user_data->config;
     }
 
     /**
@@ -105,7 +82,7 @@ class StorageManager {
      * @return void
      */
     public function save_config($config) {
-        $this->data->config = $config;
+        $this->user_data->config = $config;
         $this->save();
     }
 
@@ -154,10 +131,10 @@ class StorageManager {
      * @return object|null The session info object or null if the session does not exist.
      */
     public function get_session_info($key) {
-        if (!isset($this->data->sessions->$key)) {
+        if (!isset($this->user_data->sessions->$key)) {
             return null;
         }
-        return $this->data->sessions->$key;
+        return $this->user_data->sessions->$key;
     }
 
     /**
@@ -167,69 +144,15 @@ class StorageManager {
      * @param string $key The key of the session.
      */
     public function save_session_info($session_info, $key) {
-        $this->data->sessions->$key = $session_info;
+        $this->user_data->sessions->$key = $session_info;
         $this->save();
     }
 
     /**
-     * Check if a user is allowed to use the assistant.
-     * 
-     * @param string $username The username of the user.
-     * @param string $category The category of the user. Currently only "general" and "mental_health" are supported.
-     * @return bool True if the user is allowed to use the assistant.
+     * @return string The path to the user config file.
      */
-    public function is_allowed_user($username, $category = "general") {
-        if ($username == null || $username == "")
-            return false;
-        return in_array($username, $this->allowed_users->$category);
-    }
-
-    /**
-     * Get the list of allowed users.
-     * 
-     * @param string $category The category of the user. Currently only "general" and "mental_health" are supported.
-     * @return array The list of allowed users for the given category.
-     */
-    public function get_allowed_users($category = "general") {
-        return $this->allowed_users->$category;
-    }
-
-    /**
-     * Save the list of allowed users.
-     */
-    private function save_allowed_users() {
-        file_put_contents($this->allowed_users_file, json_encode($this->allowed_users, JSON_PRETTY_PRINT));
-    }
-
-    /**
-     * Add a user to the list of allowed users.
-     * 
-     * @param string $username The username of the user.
-     */
-    public function add_allowed_user($username, $category = "general") {
-        if ($username == null || $username == "") return;
-        if (!isset($this->allowed_users->$category)) return;
-    
-        $this->allowed_users->$category[] = $username;
-        $this->save_allowed_users();
-    }
-
-    /**
-     * Remove a user from the list of allowed users.
-     * 
-     * @param string $username The username of the user.
-     * @param string $category The category of the user. Currently only "general" and "mental_health" are supported.
-     */
-    public function remove_allowed_user($username, $category = "general") {
-        if ($username == null || $username == "") return;
-        if (!isset($this->allowed_users->$category)) return;
-
-        $this->allowed_users->$category = array_diff($this->allowed_users->$category, array($username));
-        $this->save_allowed_users();
-    }
-
-    public function get_categories() {
-        return array_keys((array) $this->allowed_users);
+    public function get_file() {
+        return $this->user_config_file;
     }
 }
 
