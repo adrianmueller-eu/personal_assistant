@@ -65,6 +65,8 @@ class GlobalConfigManager {
      * @return bool True if the user is allowed to use the assistant.
      */
     public function is_allowed_user($username, $category = "general") {
+        if (in_array("all", $this->global_config->users->$category))
+            return true;
         if ($username == null || $username == "")
             return false;
         return in_array($username, $this->global_config->users->$category);
