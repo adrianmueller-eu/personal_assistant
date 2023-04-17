@@ -33,11 +33,11 @@ class GlobalConfigManager {
 
 
     private function load() {
-        // Check if the chat is allowed to use the assistant
-        $this->global_config = json_decode(file_get_contents($this->global_config_file), false);
-        if ($this->global_config == null) {
+        // Check if the file exists
+        if (!file_exists($this->global_config_file)){
             throw new Exception("Global config file not found. Please create it first.");
         }
+        $this->global_config = json_decode(file_get_contents($this->global_config_file), false);
     }
 
     private function save() {

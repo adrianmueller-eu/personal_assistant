@@ -51,8 +51,7 @@ class UserConfigManager {
 
 
     private function load() {
-        $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
-        if ($this->user_data == null) {
+        if (!file_exists($this->user_config_file)) {
             $this->user_data = (object) array(
                 "config" => (object) array(
                     "model" => "gpt-4",
@@ -61,6 +60,9 @@ class UserConfigManager {
                 ),
                 "sessions" => (object) array(),
             );
+            $this->save();
+        } else {
+            $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
         }
     }
 
