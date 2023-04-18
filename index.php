@@ -136,9 +136,10 @@ log_update_id($update_id);
 // Initialize
 $chat_id = $update->message->chat->id; // Assume that if $update->message exists, so does $update->message->chat->id
 $username = $update->message->from->username;
+$name = $update->message->from->first_name ?? $username;
 
 $telegram = new Telegram($telegram_token, $chat_id);
-$user_config_manager = new UserConfigManager($chat_id);
+$user_config_manager = new UserConfigManager($chat_id, $username, $name);
 $openai = new OpenAI($openai_api_key);
 
 $is_admin = $chat_id == $chat_id_admin;

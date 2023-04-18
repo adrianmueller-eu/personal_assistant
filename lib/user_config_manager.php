@@ -8,6 +8,7 @@ require_once __DIR__."/utils.php";
  * The JSON file is named after the chat ID. It has the following format:
  * ```json
  * {
+ *     "username": "test_user",
  *     "config": {
  *         "model": "gpt-4",
  *         "temperature": 0.7,
@@ -38,21 +39,29 @@ class UserConfigManager {
 
     private $user_config_file;
     private $user_data;
+    private $username;
+    private $name;
 
     /**
      * @param string $chat_id The chat ID
      */
-    public function __construct($chat_id) {
+    public function __construct($chat_id, $username, $name) {
         $chats_dir = __DIR__."/../chats";
+        $this->username = $username;
+        if ($name === null || $name === "") {
+            $name = $username;
+        }
+        $this->name = $name;
         
         $this->user_config_file = $chats_dir."/".$chat_id.".json";
         $this->load();
     }
 
-
     private function load() {
         if (!file_exists($this->user_config_file)) {
             $this->user_data = (object) array(
+                "username" => $this->username,
+                "name" => $this->name,
                 "config" => (object) array(
                     "model" => "gpt-4",
                     "temperature" => 0.7,
@@ -63,11 +72,32 @@ class UserConfigManager {
             $this->save();
         } else {
             $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
+            if ($this->user_data === null || $this->user_data === false) {
+                if ($this->user_data === null) {
+                    $error = json_last_error_msg();
+                } else {
+                    $error = "Could not read file: ".$this->user_config_file;
+                }
+                log_error(json_encode(array(
+                    "timestamp" => time(),
+                    "message" => $error,
+                )));
+                http_response_code(500);
+                throw new Exception($error);
+            }
         }
     }
 
     private function save() {
-        file_put_contents($this->user_config_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
+        $res = file_put_contents($this->user_config_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
+        if ($res === false) {
+            log_error(json_encode(array(
+                "timestamp" => time(),
+                "message" => "Could not save user config file: ".$this->user_config_file,
+            )));
+            http_response_code(500);
+            throw new Exception("Could not save user config file: ".$this->user_config_file);
+        }
     }
 
     /**
@@ -142,10 +172,10 @@ class UserConfigManager {
     /**
      * Save the session info object permanently. Its properties can be set arbitrarily for each key.
      * 
-     * @param object|array $session_info The session info object.
      * @param string $key The key of the session.
+     * @param object|array $session_info The session info object.
      */
-    public function save_session_info($session_info, $key) {
+    public function save_session_info($key, $session_info) {
         $this->user_data->sessions->$key = $session_info;
         $this->save();
     }
@@ -155,6 +185,30 @@ class UserConfigManager {
      */
     public function get_file() {
         return $this->user_config_file;
+    }
+
+    /**
+     * @return string The username of the chat.
+     */
+    public function get_username() {
+        return $this->user_data->username;
+    }
+
+    /**
+     * @return string The name of the user.
+     */
+    public function get_name() {
+        return $this->name;
+    }
+
+    /**
+     * Set the name of the user.
+     * 
+     * @param string $name The name of the user.
+     */
+    public function set_name($name) {
+        $this->name = $name;
+        $this->save();
     }
 }
 

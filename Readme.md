@@ -4,7 +4,11 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
 
 1. Put this on a server that is accessible from the Internet
     1. Rename the file `config_template.json` in the `chats/` folder to `config.json`.
-    2. Set your timezone in the `config.json` file, e.g.
+    2. Ensure the root folder, the `chats/` folder, and the file `chats/config.json` are writable by the web server.
+        ```bash
+        chmod +w -R .
+        ```
+    3. Set your timezone in the `config.json` file, e.g.
         ```json
         "TIME_ZONE": "Europe/Rome"
         ```

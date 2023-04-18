@@ -1,5 +1,3 @@
-chats/
-!chats/config_template.json
 test/
 logs/
 .DS_Store

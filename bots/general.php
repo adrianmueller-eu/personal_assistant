@@ -196,6 +196,16 @@ function run_general_bot($update, $user_config_manager, $telegram, $openai, $tel
             }
         }, "Settings", "Show the current temperature or change it");
 
+        // The command /name allows the user to change their name
+        $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {
+            if ($name == "") {
+                $telegram->send_message("Your name is currently set to ".$user_config_manager->get_name().". To set your name, you can provide a name with the command.");
+                return;
+            }
+            $user_config_manager->set_name($name);
+            $telegram->send_message("Your name has been set to ".$name.".");
+        }, "Settings", "Set your name");
+
         // ###############################
         // ### Chat history management ###
         // ###############################
@@ -267,36 +277,42 @@ function run_general_bot($update, $user_config_manager, $telegram, $openai, $tel
             // ### Commands: Admin ###
             // #######################
 
-            // The command /addusermh adds a user to the list of authorized users for the mental health assistant
-            $command_manager->add_command(array("/addusermh"), function($command, $username) use ($telegram, $global_config_manager) {
+            // The command /addusermh adds a user to the list of authorized users
+            $command_manager->add_command(array("/adduser"), function($command, $username) use ($telegram, $global_config_manager) {
                 if ($username == "" || $username[0] != "@") {
                     $telegram->send_message("Please provide a username to add.");
                     return;
                 }
                 $username = substr($username, 1);
-                if ($global_config_manager->is_allowed_user($username, "mental_health")) {
-                    $telegram->send_message("User @".$username." is already in the list of users authorized for the mental health assistant.");
+                if ($global_config_manager->is_allowed_user($username, "general")) {
+                    $telegram->send_message("User @".$username." is already in the list of authorized users.");
                     return;
                 }
-                $global_config_manager->add_allowed_user($username, "mental_health");
-                $telegram->send_message("Added user @".$username." to the list of users authorized for the mental health assistant.");
-            }, "Admin", "Add a user for mental health assistant");
+                $global_config_manager->add_allowed_user($username, "general");
+                $telegram->send_message("Added user @".$username." to the list of authorized users.");
+            }, "Admin", "Add a user to access the bot");
 
-            // The command /removeusermh removes a user from the list of authorized users for the mental health assistant
-            $command_manager->add_command(array("/removeusermh"), function($command, $username) use ($telegram, $global_config_manager) {
-                if ($username == "" || $username[0] != "@") {
+            // The command /removeuser removes a user from the list of authorized users
+            $command_manager->add_command(array("/removeuser"), function($command, $username) use ($telegram, $global_config_manager) {
+                if ($username == "") {
                     $telegram->send_message("Please provide a username to remove.");
                     return;
                 }
-                $username = substr($username, 1);
+                if ($username[0] == "@") {
+                    $username = substr($username, 1);
+                }
+                if (!$global_config_manager->is_allowed_user($username, "general")) {
+                    $telegram->send_message("User @".$username." is not in the list of authorized users.");
+                    return;
+                }
                 try {
-                    $global_config_manager->remove_allowed_user($username, "mental_health");
+                    $global_config_manager->remove_allowed_user($username, "general");
                 } catch (Exception $e) {
                     $telegram->send_message("Error: ".json_encode($e));
                     return;
                 }
-                $telegram->send_message("Removed user @".$username." from the list of users authorized for the mental health assistant.");
-            }, "Admin", "Remove a user from mental health assistant");
+                $telegram->send_message("Removed user @".$username." from the list of authorized users.");
+            }, "Admin", "Remove a user from access to the bot");
 
             // The command /listusers lists all users authorized, by category
             $command_manager->add_command(array("/listusers"), function($command, $_) use ($telegram, $global_config_manager) {
