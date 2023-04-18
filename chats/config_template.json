@@ -7,7 +7,6 @@
         "TIME_ZONE": ""
     },
     "users": {
-        "general" : [],
-        "mental_health" : []
+        "general" : []
     }
 }

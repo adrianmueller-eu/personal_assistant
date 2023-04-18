@@ -54,7 +54,6 @@ require_once __DIR__."/lib/global_config_manager.php";
 require_once __DIR__."/lib/command_manager.php";
 
 require_once __DIR__."/bots/general.php";
-require_once __DIR__."/bots/mental_health.php";
 
 // ######################
 // ### Initialization ###
@@ -147,10 +146,6 @@ $is_admin = $chat_id == $chat_id_admin;
 if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
     run_general_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
                         $global_config_manager, $is_admin, $DEBUG);
-    exit;
-}
-else if ($global_config_manager->is_allowed_user($username, "mental_health")) {
-    run_mental_health_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username);
     exit;
 }
 else {

@@ -61,7 +61,7 @@ class GlobalConfigManager {
      * Check if a user is allowed to use the assistant.
      * 
      * @param string $username The username of the user.
-     * @param string $category The category of the user. Currently only "general" and "mental_health" are supported.
+     * @param string $category The category of the user.
      * @return bool True if the user is allowed to use the assistant.
      */
     public function is_allowed_user($username, $category = "general") {
@@ -75,7 +75,7 @@ class GlobalConfigManager {
     /**
      * Get the list of allowed users.
      * 
-     * @param string $category The category of the user. Currently only "general" and "mental_health" are supported.
+     * @param string $category The category of the user.
      * @return array The list of users registered in the given category.
      */
     public function get_allowed_users($category = "general") {
@@ -86,7 +86,7 @@ class GlobalConfigManager {
      * Add a user to the list of allowed users.
      * 
      * @param string $username The username of the user.
-     * @param string $category The category to add the user to. Currently only "general" and "mental_health" are supported.
+     * @param string $category The category to add the user to.
      */
     public function add_allowed_user($username, $category = "general") {
         if ($username == null || $username == "") return;
@@ -100,7 +100,7 @@ class GlobalConfigManager {
      * Remove a user from the list of allowed users for the given category.
      * 
      * @param string $username The username of the user.
-     * @param string $category The category to remove the user from. Currently only "general" and "mental_health" are supported.
+     * @param string $category The category to remove the user from.
      */
     public function remove_allowed_user($username, $category = "general") {
         if ($username == null || $username == "") return;
