@@ -1,7 +1,7 @@
 <?php
-// This script is a relay between the Telegram Bot API and the OpenAI API.
-// If this script is called from the Telegram webhook, the user has sent a new message in the Telegram chat
-
+// Set here the bot you want to use
+require_once __DIR__."/bots/general.php";
+// require_once __DIR__."/bots/mental_health.php";
 
 // This is for debugging
 $DEBUG=false;
@@ -39,7 +39,6 @@ if ($DEBUG) {
 //         }
 //     }
 // }
-    
 
 // ###############
 // ### Imports ###
@@ -52,8 +51,6 @@ require_once __DIR__."/lib/openai.php";
 require_once __DIR__."/lib/user_config_manager.php";
 require_once __DIR__."/lib/global_config_manager.php";
 require_once __DIR__."/lib/command_manager.php";
-
-require_once __DIR__."/bots/general.php";
 
 // ######################
 // ### Initialization ###
@@ -93,7 +90,7 @@ if (!$DEBUG && $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] != $secret_token
     exit;
 }
 
-// Get the message from the Telegram API
+// If this script is called from the Telegram webhook, the user has sent a new message in the Telegram chat
 $content = file_get_contents("php://input");
 
 // An incoming text message is in the following format:
@@ -143,14 +140,13 @@ $username = $update->message->from->username;
 $name = $update->message->from->first_name ?? $username;
 
 $telegram = new Telegram($telegram_token, $chat_id);
-
 $user_config_manager = new UserConfigManager($chat_id, $username, $name);
 $openai = new OpenAI($openai_api_key);
 
 $is_admin = $chat_id == $chat_id_admin;
 
 if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
-    run_general_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
+    run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
                         $global_config_manager, $is_admin, $DEBUG);
     exit;
 }

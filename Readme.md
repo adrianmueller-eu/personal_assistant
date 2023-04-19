@@ -5,17 +5,30 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
 #### Implemented ✅
 - [x] Connect to Telegram API and OpenAI API
 - [x] Store the chat history of the current session
-- [x] Several presets for different use cases
 - [x] Admin commands for adding and removing users
+- [General bot](bots/general.php)
+  - [x] Several presets for different use cases
+- [Mental health bot](bots/mental_health.php)
+  - [x] System prompt to have the bot interact in an emotionally attuned way
+  - [x] Generate a profile for the user and update it after each session
 
 #### Ideas for the future 🔮
 - [ ] Use a database instead of files (the `chats` folder)
 - [ ] Use abstract classes to connect to different platforms (e.g. [Whatsapp](https://business.whatsapp.com/developers/developer-hub), [Discord](https://discord.com/developers/applications), [Matrix](https://matrix.org/faq/#bots), etc.) or to other AIs (any examples here would be outdated tomorrow)
-- [ ] Enable to search, scrape webpages, and send them back to the AI
 - [ ] Enable sending images to the AI
 - [ ] ASR and TTS
-- [ ] Various calendar integrations
-- [ ] Travel planning and booking
+- [General bot](bots/general.php)
+  - [ ] Enable to search, scrape webpages, and send them back to the AI
+  - [ ] Various calendar integrations
+  - [ ] Travel planning and booking
+- [Mental health bot](bots/mental_health.php)
+  - [ ] Provide different types of sessions (e.g. guided meditation, journaling, CBT, IFS, etc.) and allow the user to choose
+  - [ ] Send reminders to the user to have a session
+  - [ ] Provide a way to schedule sessions
+  - [ ] Find a way to measure and track the user's progress (e.g. mood, stress, etc.)
+  - [ ] Forward to social workers or an actual therapist (e.g. some database (?) that can be searched by location, specializations, etc.)
+  - [ ] Crisis support and intervention (e.g. if the user is in a crisis, the bot can send a message to the user's emergency contacts)
+  - [ ] Privacy and security (e.g. encrypt the user's data, use a VPN, etc.)
 
 ## Setup instructions
 
@@ -33,6 +46,12 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
         "TIME_ZONE": "Europe/Rome"
         ```
         You can find the list of valid timezone identifiers [here](https://www.php.net/manual/en/timezones.php).
+    4. Choose the bot you want to use by (un)commenting the respective line at the beginning of [index.php](index.php). E.g., for the mental health bot change the start of file to
+        ```php
+        // Set here the bot you want to use
+        // require_once __DIR__."/bots/general.php";
+        require_once __DIR__."/bots/mental_health.php";
+        ```
 2. Set up the **Telegram bot**
     1. Create a Telegram bot using [BotFather](https://t.me/botfather)
     2. Get the bot's token from BotFather. In the `chats/config.json`, put the token to the `TELEGRAM_BOT_TOKEN` variable.

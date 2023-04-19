@@ -14,7 +14,7 @@
  * @param bool $DEBUG Whether to enable debug mode
  * @return void
  */
-function run_general_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, $global_config_manager, $is_admin, $DEBUG) {
+function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, $global_config_manager, $is_admin, $DEBUG) {
     if (isset($update->message->text)) {
         $message = $update->message->text;
     }
