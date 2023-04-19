@@ -72,6 +72,10 @@ if ($timezone != null && $timezone != "") {
 }
 $telegram_admin = new Telegram($telegram_token, $chat_id_admin);
 
+// ##### Emergency stop #####
+// $telegram->send_message("This works again.");
+// exit;
+
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     // This is just out of curiosity, to see if someone is trying to access the script directly
     $ip = $_SERVER['REMOTE_ADDR'];
@@ -115,7 +119,7 @@ $content = file_get_contents("php://input");
 // }
 
 // Append the message content to the log file
-log_info($content);
+Log::info($content);
 
 $update = json_decode($content, false);
 // Ignore non-message updates
@@ -126,12 +130,12 @@ if (!isset($update->message)) {
 // Avoid processing the same message twice by checking whether update_id was already processed
 $update_id = $update->update_id;
 // Assume this can't adversarially block future messages
-if (!$DEBUG && already_seen($update_id)) {
+if (!$DEBUG && Log::already_seen($update_id)) {
     // $telegram->send_message("Repeated message ignored (update_id: ".$update_id.")");
-    log_info("Repeated message ignored (update_id: ".$update_id.")");
+    Log::info("Repeated message ignored (update_id: ".$update_id.")");
     exit;
 }
-log_update_id($update_id);
+Log::update_id($update_id);
 
 // Initialize
 $chat_id = $update->message->chat->id; // Assume that if $update->message exists, so does $update->message->chat->id
@@ -139,6 +143,7 @@ $username = $update->message->from->username;
 $name = $update->message->from->first_name ?? $username;
 
 $telegram = new Telegram($telegram_token, $chat_id);
+
 $user_config_manager = new UserConfigManager($chat_id, $username, $name);
 $openai = new OpenAI($openai_api_key);
 
@@ -150,7 +155,7 @@ if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) 
     exit;
 }
 else {
-    $telegram->send_message("Sorry, I can't talk to you (chat_id: ".$chat_id.")");
+    $telegram->send_message("Sorry, I can't talk to you (chat_id: ".$chat_id.")", null);
     
     // Tell me ($chat_id_admin) that someone tried to talk to the bot
     // This could be used to spam the admin

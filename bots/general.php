@@ -361,7 +361,7 @@ function run_general_bot($update, $user_config_manager, $telegram, $openai, $tel
                 $telegram->send_message("WTF-Error: Could not generate an image. Please try again later.");
                 exit;
             }
-            log_image($prompt, $image_url, $telegram->get_chat_id());
+            Log::image($prompt, $image_url, $telegram->get_chat_id());
             // if image_url starts with "Error: "
             if (substr($image_url, 0, 7) == "Error: ") {
                 $error_message = $image_url;

@@ -78,7 +78,7 @@ class UserConfigManager {
                 } else {
                     $error = "Could not read file: ".$this->user_config_file;
                 }
-                log_error(json_encode(array(
+                Log::error(json_encode(array(
                     "timestamp" => time(),
                     "message" => $error,
                 )));
@@ -91,7 +91,7 @@ class UserConfigManager {
     private function save() {
         $res = file_put_contents($this->user_config_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
         if ($res === false) {
-            log_error(json_encode(array(
+            Log::error(json_encode(array(
                 "timestamp" => time(),
                 "message" => "Could not save user config file: ".$this->user_config_file,
             )));

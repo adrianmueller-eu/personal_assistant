@@ -124,7 +124,7 @@ class OpenAI {
             if (is_string($data)) {
                 $data = json_decode($data);
             }
-            log_error(json_encode(array(
+            Log::error(json_encode(array(
                 "timestamp" => time(),
                 "endpoint" => $endpoint,
                 "data" => $data,

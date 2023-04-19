@@ -48,7 +48,7 @@ class Telegram {
             return $server_output;
         }
         // Error handling
-        log_error(json_encode(array(
+        Log::error(json_encode(array(
             "timestamp" => time(),
             "endpoint" => $endpoint,
             "server_response" => $server_output,
