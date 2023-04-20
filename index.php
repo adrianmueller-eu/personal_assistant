@@ -140,19 +140,19 @@ $username = $update->message->from->username;
 $name = $update->message->from->first_name ?? $username;
 
 $telegram = new Telegram($telegram_token, $chat_id);
-$user_config_manager = new UserConfigManager($chat_id, $username, $name);
-$openai = new OpenAI($openai_api_key);
-
 $is_admin = $chat_id == $chat_id_admin;
 
 if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
+    $user_config_manager = new UserConfigManager($chat_id, $username, $name);
+    $openai = new OpenAI($openai_api_key);
+
     run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
                         $global_config_manager, $is_admin, $DEBUG);
     exit;
 }
 else {
     $telegram->send_message("Sorry, I can't talk to you (chat_id: ".$chat_id.")", null);
-    
+
     // Tell me ($chat_id_admin) that someone tried to talk to the bot
     // This could be used to spam the admin
     if ($username != null)
