@@ -9,6 +9,7 @@ require_once __DIR__."/utils.php";
  * ```json
  * {
  *     "username": "test_user",
+ *     "name": "Joe",
  *     "config": {
  *         "model": "gpt-4",
  *         "temperature": 0.7,
@@ -44,6 +45,8 @@ class UserConfigManager {
 
     /**
      * @param string $chat_id The chat ID
+     * @param string $username The username of the user. Will only be used if the config is not yet created.
+     * @param string $name The name of the user. Will only be used if the config is not yet created.
      */
     public function __construct($chat_id, $username, $name) {
         $chats_dir = __DIR__."/../chats";
@@ -69,7 +72,7 @@ class UserConfigManager {
                 ),
                 "sessions" => (object) array(),
             );
-            $this->save();
+            $this->save(); // Keep this
         } else {
             $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
             if ($this->user_data === null || $this->user_data === false) {
@@ -85,6 +88,7 @@ class UserConfigManager {
                 http_response_code(500);
                 throw new Exception($error);
             }
+            $this->name = $this->user_data->name;
         }
     }
 
@@ -187,11 +191,8 @@ class UserConfigManager {
         return $this->user_config_file;
     }
 
-    /**
-     * @return string The username of the chat.
-     */
-    public function get_username() {
-        return $this->user_data->username;
+    public function get_backup_file() {
+        return $this->user_config_file.".backup";
     }
 
     /**

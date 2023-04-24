@@ -55,7 +55,7 @@ class CommandManager {
      * Add a command to the manager.
      * 
      * @param array $alternatives An array of alternative commands.
-     * @param callable $function The function to execute. The function must accept two arguments: the command and the argument.
+     * @param callable $function The function to execute. The function must accept two arguments: the command and the parameter. The parameter is "" if nothing was passed with the command.
      * @param string $category The category of the command. Must be one of the categories passed to the constructor.
      * @param string $description The description of the command. Will be shown in the help message.
      */

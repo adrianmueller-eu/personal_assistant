@@ -36,7 +36,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     if (substr($message, 0, 1) != "/" && ($session_info == null || $session_info->running == false)) {
         // Add message to chat history
         $user_config_manager->add_message("user", $message);
-        $telegram->send_message("Added message to chat history: ".$message);
         $message = "/start";
     }
 
@@ -73,6 +72,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $telegram->send_message("Hello! I am a chatbot that can help you with your mental health. I am currently "
                 ."in beta, so please be patient with me. You can start a session by telling what's on your mind or "
                 ."using /start.\n\n*Please end every session with /end* to update what I know about you.");
+            } else {
+                $telegram->send_message("Starting a new session. You can use /end to end the session.");
             }
             $name_string = $user_config_manager->get_name();
             if ($name_string == "" || $name_string == null) {
@@ -134,6 +135,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $chat = $user_config_manager->get_config();
             if ($_ != "skip" && count($chat->messages) > 7) {
                 $telegram->send_message("Please give me a moment to reflect on our session...");
+                // Create backup before saving by copying the file to the backup file
+                copy($user_config_manager->get_file(), $user_config_manager->get_backup_file());
+
                 if ($session_info->profile != "") {
                     $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
                     $chat->messages = array_merge($chat->messages, array(
@@ -178,7 +182,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             } else if ($session_info == null || $session_info->profile == "") {
                 $telegram->send_message("No profile has been generated yet. Please start a new session with /start.");
             } else {
-                $telegram->send_message("Here is your current profile:\n\n".$session_info->profile);
+                $date = date("d.m.y g:ia", $session_info->last_session_start);
+                $telegram->send_message("Here is your current profile (created ".$date."):\n\n".$session_info->profile);
             }
         }, "Mental health", "Show your profile");
 
@@ -199,11 +204,32 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Settings", "Set your name");
 
         // The command /reset deletes the current configuration
-        $command_manager->add_command(array("/reset"), function($command, $_) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/reset"), function($command, $name) use ($telegram, $user_config_manager, $username) {
             $file_path = $user_config_manager->get_file();
-            unlink($file_path); // Delete the file. Will be recreated on next /start
-            $telegram->send_message("Your configuration has been reset.");
+            // Save in backup before deleting
+            $backup_path = $user_config_manager->get_backup_file();
+            copy($file_path, $backup_path);
+            unlink($file_path); // Delete the file
+
+            // If a name is provided, initialize the configuration with the name
+            if ($name == "") {
+                $name = $user_config_manager->get_name();
+            }
+            $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name);
+            $telegram->send_message("Your configuration has been reset. You can start a new session with /start.");
         }, "Settings", "Reset your configuration");
+
+        // Command /restore restores the config from the backup file
+        $command_manager->add_command(array("/restore"), function($command, $_) use ($telegram, $user_config_manager) {
+            $file_path = $user_config_manager->get_file();
+            $backup_file_path = $user_config_manager->get_backup_file();
+            if (!file_exists($backup_file_path)) {
+                $telegram->send_message("No backup found.");
+                return;
+            }
+            copy($backup_file_path, $file_path);
+            $telegram->send_message("Backup restored.");
+        }, "Settings", "Restore the config from the backup file");
 
         if ($is_admin) {
             // #######################
@@ -270,6 +296,30 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $chat = $user_config_manager->get_config();
                 $telegram->send_message("There are ".count($chat->messages)." messages in the chat history.");
             }, "Admin", "Output the number of messages in the chat history");
+
+            // Command /showcase (with optional parameter $name) let's the admin showcase the bot
+            $command_manager->add_command(array("/showcase"), function($command, $name) use ($telegram, $user_config_manager, $username) {
+                $file_path = $user_config_manager->get_file();
+                $sc_backup_file_path = $user_config_manager->get_backup_file()."_showcase";
+                if ($name == "end") {
+                    if (file_exists($sc_backup_file_path)) {
+                        // Restore the backup
+                        copy($sc_backup_file_path, $file_path);
+                        unlink($sc_backup_file_path);
+                        $telegram->send_message("Showcase ended.");
+                    } else {
+                        $telegram->send_message("Showcase is currently not running.");
+                    }
+                    return;
+                } else if (!file_exists($sc_backup_file_path)){
+                    // Save the current config to a backup file
+                    copy($file_path, $sc_backup_file_path);
+                }
+                // Create a new config file
+                unlink($file_path);
+                $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name);
+                $telegram->send_message("Showcase prepared. Please send /start to start the showcase.");
+            }, "Admin", "Showcase the bot. Use \"/showcase <name>\" to specify a name, and \"/showcase end\" to end it.");
         }
 
         $response = $command_manager->run_command($message);
