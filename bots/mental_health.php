@@ -177,9 +177,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // The command /profile shows the profile of the user
         $command_manager->add_command(array("/profile"), function($command, $_) use ($telegram, $user_config_manager) {
             $session_info = $user_config_manager->get_session_info("session");
-            if (isset($session_info->running) && $session_info->running == true) {
-                $telegram->send_message("Please end the current session with /end before showing your profile.");
-            } else if ($session_info == null || $session_info->profile == "") {
+            if ($session_info == null || $session_info->profile == "") {
                 $telegram->send_message("No profile has been generated yet. Please start a new session with /start.");
             } else {
                 $date = date("d.m.y g:ia", $session_info->last_session_start);
@@ -191,16 +189,14 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {
             // Check if session is running
             $session_info = $user_config_manager->get_session_info("session");
-            if ($session_info != null && $session_info->running == true) {
-                $telegram->send_message("Please end the current session with /end before changing your name.");
-                return;
-            }
             if ($name == "") {
                 $telegram->send_message("Your name is currently set to ".$user_config_manager->get_name().". To set your name, you can provide a name with the command, e.g. \"/name Joe\".");
-                return;
+            } else if ($session_info != null && $session_info->running == true) {
+                $telegram->send_message("Please end the current session with /end before changing your name.");
+            } else {
+                $user_config_manager->set_name($name);
+                $telegram->send_message("Your name has been set to ".$name.".");
             }
-            $user_config_manager->set_name($name);
-            $telegram->send_message("Your name has been set to ".$name.".");
         }, "Settings", "Set your name");
 
         // The command /reset deletes the current configuration
