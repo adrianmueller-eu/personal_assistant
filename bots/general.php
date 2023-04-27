@@ -69,7 +69,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 "temperature" => 0.9,
                 "messages" => array(
                     array("role" => "system", "content" => "You are a helpful and supportive assistant. Feel free to recommend something, "
-                    ."but only if it seems very useful and appropriate. Keep your responses concise and compact. "
+                    ."but only if it seems very useful and appropriate. If you are uncertain or miss information to give a helpful answer, "
+                    ."please ask for what you need to know. Keep your responses concise and compact. "
                     ."You can use Telegram Markdown to format your messages."),
                 )
             ));
@@ -83,8 +84,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $user_config_manager->save_config(array(
                 "model" => "gpt-4",
                 "temperature" => 0.7,
-                "messages" => array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me. "
-                ."Use a causal, calm, and kind voice. Keep your responses concise."))
+                "messages" => array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me, "
+                ."carefully considering the context and my abilities as a human. Use a casual, calm, and kind voice. Keep your responses "
+                ."concise and focus on understanding the message before responding."))
             ));
             $telegram->send_message("Chat history reset. I am now a message responder.");
         }, "Presets", "Message responder");
@@ -105,8 +107,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $user_config_manager->save_config(array(
                 "model" => "gpt-4",
                 "temperature" => 0.7,
-                "messages" => array(array("role" => "system", "content" => "Your task is to translate the messages sent to you into English. "
-                ."Say which language or encoding you translate the text from."))
+                "messages" => array(array("role" => "system", "content" => "Translate the messages sent to you into English, ensuring "
+                ."accuracy in grammar, verb tenses, and context. Identify the language or encoding of the text you translate from."))
             ));
             $telegram->send_message("Chat history reset. I am now a translator.");
         }, "Presets", "Translator");
