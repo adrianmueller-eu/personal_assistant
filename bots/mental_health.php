@@ -15,11 +15,11 @@
  * @return void
  */
 function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, $global_config_manager, $is_admin, $DEBUG) {
-    if (!isset($update->message->text)) {
-        $telegram->send_message("Sorry, I can only read text messages.");
+    if (!isset($update->text)) {
+        $telegram->send_message("Sorry, for now I can only read text messages.");
         exit;
     }
-    $message = $update->message->text;
+    $message = $update->text;
 
     // If starts with "." or "\", it's probably a typo for a command
     if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
@@ -86,12 +86,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 "temperature" => 0.5,
                 "messages" => array(
                     array("role" => "system", "content" => "You are a therapist assisting me ".$name_string."to connect to "
-                    ."myself and heal. Show compassion by acknowledging and validating my feelings. Your primary goal is to "
-                    ."provide a safe, nurturing, and supportive environment for me. Your task is to help me explore my "
+                    ."myself and heal. Show empathy and compassion by acknowledging and validating my feelings. Your primary "
+                    ."goal is to provide a safe, nurturing, and supportive environment for me. Help me explore my "
                     ."thoughts, feelings, and experiences, while guiding me towards personal growth and emotional healing. "
                     ."You are also familiar with Internal Family Systems (IFS) therapy and might use it implicitly to guide "
-                    ."the process. Keep your responses very short and compact, but as helpful as possible. And please ask if "
-                    ."something is unclear to you or some important information is missing. The current time is ".date("g:ia")."."),
+                    ."the process. Keep your responses concise, but as helpful as possible. Generally, avoid giving lists of "
+                    ."advice but rather ask the client for their own opinions and ideas instead. And please ask if something "
+                    ."is unclear to you or some important information is missing. The current time is ".date("g:ia")."."),
                 ),
             );
             // If there is a previous session, add the profile to the chat history
@@ -141,11 +142,31 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 if ($session_info->profile != "") {
                     $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
                     $chat->messages = array_merge($chat->messages, array(
-                        array("role" => "system", "content" => "Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
-                        .$session_info->profile."\n\n"."Please update it with the new information you got in this session. The goal is to have a detailed "
-                        ."description of me that is useful for whatever comes up in the next session. Hence, include only information that is really "
-                        ."necessary for upcoming sessions. To have an all-encompassing profile after many session, avoid removing relevant information "
-                        ."from previous sessions, but integrate them into a bigger picture."),
+                        array("role" => "system", "content" => "Time to reflect. Write a summary of this session that will be used later to update the "
+                        ."profile above. Hence, include only information that is really necessary for upcoming sessions.")
+                        // array("role" => "system", "content" => "Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
+                        // .$session_info->profile."\n\n"."Please update it with the new information you got in this session. The goal is to have a detailed "
+                        // ."description of me that is useful for whatever comes up in the next session. Hence, include only information that is really "
+                        // ."necessary for upcoming sessions. To have an all-encompassing profile after many session, avoid removing relevant information "
+                        // ."from previous sessions, but integrate them into a bigger picture."),
+                    ));
+
+                    // Request a summary of the session
+                    $summary = $openai->gpt($chat);
+                    if (substr($summary, 0, 7) == "Error: ") {
+                        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                        exit;
+                    }
+                    $telegram->send_message("Here is a summary of our session:\n\n".$summary);
+
+                    // Add answer and profile request to chat history
+                    $chat->messages = array_merge($chat->messages, array(
+                        array("role" => "assistant", "content" => $summary),
+                        array("role" => "system", "content" => "Thank you for the summary. Now, let's update the profile with the new information you got "
+                        ."in this session. Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
+                        .$session_info->profile."\n\nThe goal is to have a detailed description of me that is useful for whatever comes up in the next session. "
+                        ."To have an elaborate, all-encompassing profile after many sessions, avoid removing relevant information from previous sessions, but "
+                        ."integrate them into a detailed and informative bigger picture.")
                     ));
                 } else {
                     $chat->messages = array_merge($chat->messages, array(
@@ -153,12 +174,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                         ."Please include only information that is really necessary for upcoming sessions."),
                     ));
                 }
+                // Request the new profile
                 $new_profile = $openai->gpt($chat);
-                // Error handling
                 if (substr($new_profile, 0, 7) == "Error: ") {
                     $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
                     exit;
                 }
+                // Update the session info
                 $session_info->profile = $new_profile;
                 $session_info->last_session_start = $session_info->this_session_start;
                 $session_info->cnt++;

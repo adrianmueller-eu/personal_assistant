@@ -120,8 +120,12 @@ Log::info($content);
 
 $update = json_decode($content, false);
 // Ignore non-message updates
-if (!isset($update->message)) {
+if (!isset($update->message) || !isset($update->update_id)) {
     exit;
+}
+
+if ($DEBUG) {
+    $telegram_admin->send_message(json_encode($update, JSON_PRETTY_PRINT), null);
 }
 
 // Avoid processing the same message twice by checking whether update_id was already processed
@@ -134,10 +138,12 @@ if (!$DEBUG && Log::already_seen($update_id)) {
 }
 Log::update_id($update_id);
 
+$update = $update->message;
+
 // Initialize
-$chat_id = $update->message->chat->id; // Assume that if $update->message exists, so does $update->message->chat->id
-$username = $update->message->from->username;
-$name = $update->message->from->first_name ?? $username;
+$chat_id = $update->chat->id; // Assume that if $update->message exists, so does $update->message->chat->id
+$username = $update->from->username;
+$name = $update->from->first_name ?? $username;
 
 $telegram = new Telegram($telegram_token, $chat_id);
 $is_admin = $chat_id == $chat_id_admin;
@@ -158,7 +164,7 @@ else {
     if ($username != null)
         $telegram_admin->send_message("@".$username." tried to talk to me");
     else
-        $telegram_admin->send_message("Someone without a username tried to talk to me");
+        $telegram_admin->send_message("Someone without a username tried to talk to me (chat_id: ".$chat_id.")");
     exit;
 }
 ?>

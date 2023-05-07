@@ -15,24 +15,29 @@
  * @return void
  */
 function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, $global_config_manager, $is_admin, $DEBUG) {
-    if (isset($update->message->text)) {
-        $message = $update->message->text;
+    if (isset($update->text)) {
+        $message = $update->text;
     }
-    else if (isset($update->message->photo)) {
-        $file_id = $update->message->photo[0]->file_id; // This is gonna be useful as soon as GPT-4 accepts images
+    else if (isset($update->photo)) {
+        $file_id = $update->photo[0]->file_id; // This is gonna be useful as soon as GPT-4 accepts images
         $file_url = $telegram->get_file_url($file_id); // Don't forget to handle this being null
-        $caption = isset($update->message->caption) ? $update->message->caption : "";
+        $caption = isset($update->caption) ? $update->caption : "";
         $telegram->send_message("Sorry, I don't know yet what to do with images. Please send me a text message instead.");
         exit;
     }
     else {
-        $telegram->send_message("Sorry, I don't know yet what do to this message:\n\n".json_encode($update->message, JSON_PRETTY_PRINT));
+        $telegram->send_message("Sorry, I don't know yet what do to this message:\n\n".json_encode($update, JSON_PRETTY_PRINT));
         exit;
     }
 
     if ($DEBUG) {
         $telegram->send_message("You said: ".$message);
         echo "You said: ".$message;
+    }
+
+    // If it is forwarded, put "/re " in front
+    if (isset($update->forward_from)) {
+        $message = "/re ".$message;
     }
 
     // #######################
@@ -62,45 +67,48 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // ### Commands: Presets ###
         // #########################
         // The command is /start or /reset resets the bot and sends a welcome message
-        $reset = function($command, $_) {
+        $reset = function($command, $_, $show_message = true) {
             global $telegram, $user_config_manager;
             $user_config_manager->save_config(array(
                 "model" => "gpt-4",
                 "temperature" => 0.9,
                 "messages" => array(
-                    array("role" => "system", "content" => "You are a helpful and supportive assistant. Feel free to recommend something, "
-                    ."but only if it seems very useful and appropriate. If you are uncertain or miss information to give a helpful answer, "
-                    ."please ask for what you need to know. Keep your responses concise and compact. "
+                    array("role" => "system", "content" => "You are a helpful and supportive assistant. "
+                    ."Keep your responses concise and compact. "
+                    ."If you are missing information that would allow you to give a much more helpful answer, "
+                    ."please don't provide an actual answer, but instead ask for what you'd need to know first. "
+                    ."If you are uncertain, please specify the reasons and your degree of uncertainty. "
+                    ."Additionally, feel free to give related recommendations (actions, books, papers, etc.), if it seems useful and appropriate. "
+                    ."Avoid showing warnings or information regarding your capabilities. "
                     ."You can use Telegram Markdown to format your messages."),
                 )
             ));
-            $telegram->send_message("Hello, there! I am your personal assistant ❤️\n\nIf you want to know what I can do, type /help.");
+            if ($show_message) {
+                $telegram->send_message("Hello, there! I am your personal assistant ❤️\n\nIf you want to know what I can do, type /help.");
+            }
         };
 
         $command_manager->add_command(array("/start", "/reset", "/r"), $reset, "Presets", "Generic personal assistant");
 
         // The command /responder writes a response to a given message
-        $command_manager->add_command(array("/responder", "/re"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
-            $user_config_manager->save_config(array(
+        $command_manager->add_command(array("/responder", "/re"), function($command, $message) use ($telegram, $user_config_manager, $openai) {
+            $chat = array(
                 "model" => "gpt-4",
                 "temperature" => 0.7,
                 "messages" => array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me, "
                 ."carefully considering the context and my abilities as a human. Use a casual, calm, and kind voice. Keep your responses "
                 ."concise and focus on understanding the message before responding."))
-            ));
-            $telegram->send_message("Chat history reset. I am now a message responder.");
+            );
+            // If the message is not empty, process the request one-time without saving the config
+            if ($message != "") {
+                $chat["messages"][] = array("role" => "user", "content" => $message);
+                $response = $openai->gpt($chat);
+                $telegram->send_message($response);
+            } else {
+                $user_config_manager->save_config($chat);
+                $telegram->send_message("Chat history reset. I am now a message responder.");
+            }
         }, "Presets", "Message responder");
-
-        // The command /summarizer summarizes a given text
-        $command_manager->add_command(array("/summarizer", "/sum"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
-            $user_config_manager->save_config(array(
-                "model" => "gpt-4",
-                "temperature" => 0.7,
-                "messages" => array(array("role" => "system", "content" => "Your task is to generate a summary of the messages sent to me. "
-                ."Use a causal, calm, and kind voice. Keep your responses concise."))
-            ));
-            $telegram->send_message("Chat history reset. I am now a message summarizer.");
-        }, "Presets", "Summarizer");
 
         // The command /translator translates a given text
         $command_manager->add_command(array("/translator", "/trans"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
@@ -115,12 +123,16 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
         // The command /calendar converts event descriptions to an iCalendar file
         $command_manager->add_command(array("/calendar", "/cal"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
+            $timezone = date("e");
             $user_config_manager->save_config(array(
                 "model" => "gpt-4",
                 "temperature" => 0,
                 "messages" => array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
-                ."event in iCalendar format. Try to infer the time zone from the location. Ensure that the code is valid. Output the code only. "
-                ."The current year is ".date("Y")."."))
+                ."event in iCalendar format. Try to infer the time zone from the location. Use can use the example for the timezone below as "
+                ."a template. Ensure that the code is valid. Output the code only. The current year is ".date("Y").".\n\n"
+."BEGIN:VTIMEZONE
+TZID:$timezone
+END:VTIMEZONE"))
             ));
             $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
         }, "Presets", "Converts to iCalendar format");

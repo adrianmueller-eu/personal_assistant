@@ -1,4 +1,4 @@
-A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](https://platform.openai.com/docs/api-reference/) to generate a swift interaction experience. There is [another project specifically for mental health](https://github.com/adrianmueller-eu/mental_health_bot).
+A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](https://platform.openai.com/docs/api-reference/) to generate a swift interaction experience.
 
 ## Features
 
@@ -6,29 +6,33 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
 - [x] Connect to Telegram API and OpenAI API
 - [x] Store the chat history of the current session
 - [x] Admin commands for adding and removing users
-- [General bot](bots/general.php)
-  - [x] Several presets for different use cases
-- [Mental health bot](bots/mental_health.php)
-  - [x] System prompt to have the bot interact in an emotionally attuned way
-  - [x] Generate a profile for the user and update it after each session
+
+General bot
+- [x] Several presets for different use cases
+
+Mental health bot
+- [x] System prompt to have the bot interact in an emotionally attuned way
+- [x] Generate a profile for the user and update it after each session
 
 #### Ideas for the future 🔮
 - [ ] Use a database instead of files (the `chats` folder)
 - [ ] Use abstract classes to connect to different platforms (e.g. [Whatsapp](https://business.whatsapp.com/developers/developer-hub), [Discord](https://discord.com/developers/applications), [Matrix](https://matrix.org/faq/#bots), etc.) or to other AIs (any examples here would be outdated tomorrow)
 - [ ] Enable sending images to the AI
 - [ ] ASR and TTS
-- [General bot](bots/general.php)
-  - [ ] Enable to search, scrape webpages, and send them back to the AI
-  - [ ] Various calendar integrations
-  - [ ] Travel planning and booking
-- [Mental health bot](bots/mental_health.php)
-  - [ ] Provide different types of sessions (e.g. guided meditation, journaling, CBT, IFS, etc.) and allow the user to choose
-  - [ ] Send reminders to the user to have a session
-  - [ ] Provide a way to schedule sessions
-  - [ ] Find a way to measure and track the user's progress (e.g. mood, stress, etc.)
-  - [ ] Forward to social workers or an actual therapist (e.g. some database (?) that can be searched by location, specializations, etc.)
-  - [ ] Crisis support and intervention (e.g. if the user is in a crisis, the bot can send a message to the user's emergency contacts)
-  - [ ] Privacy and security (e.g. encrypt the user's data, use a VPN, etc.)
+
+General bot
+- [ ] Enable to search, scrape webpages, and send them back to the AI
+- [ ] Various calendar integrations
+- [ ] Travel planning and booking
+
+Mental health bot
+- [ ] Provide different types of sessions (e.g. guided meditation, journaling, CBT, IFS, etc.) and allow the user to choose
+- [ ] Send reminders to the user to have a session
+- [ ] Provide a way to schedule sessions
+- [ ] Find a way to measure and track the user's progress (e.g. mood, stress, etc.)
+- [ ] Forward to social workers or an actual therapist (e.g. some database (?) that can be searched by location, specializations, etc.)
+- [ ] Crisis support and intervention (e.g. if the user is in a crisis, the bot can send a message to the user's emergency contacts)
+- [ ] Privacy and security (e.g. encrypt the user's data, use a VPN, etc.)
 
 ## Setup instructions
 
@@ -37,7 +41,7 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
         ```bash
         cp chats/config_template.json chats/config.json
         ```
-    2. Ensure the can create new folders and files, and modify `chats/config.json`.
+    2. Ensure the server can create new folders and files, and modify `chats/config.json`.
         ```bash
         chmod +w -R .
         ```
