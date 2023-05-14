@@ -32,8 +32,20 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     }
 
     $session_info = $user_config_manager->get_session_info("session");
+    // Initialize session info if it doesn't exist
+    if ($session_info == null) {
+        $session_info = (object) array(
+            "running" => false,
+            "this_session_start" => null,
+            "profile" => "",
+            "last_session_start" => null,
+            "cnt" => 0,
+            "mode" => "none",
+        );
+        $user_config_manager->save_session_info("session", $session_info);
+    }
     // If there is no session running, start one
-    if (substr($message, 0, 1) != "/" && ($session_info == null || $session_info->running == false)) {
+    if (substr($message, 0, 1) != "/" && ($session_info->running == false)) {
         // Add message to chat history
         $user_config_manager->add_message("user", $message);
         $message = "/start";
@@ -46,21 +58,22 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $command_manager = new CommandManager(array("Mental health", "Settings", "Misc"));
         }
 
-        $command_manager->add_command(array("/start"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
+        // Dictionary of prompts for each mode, e.g. "IFS" => "You are also familiar with Internal Family Systems (IFS) and might use it to guide the process. "
+        $mode_prompts = array(
+            "IFS" => "You are also familiar with Internal Family Systems (IFS) and might use it implicitly to guide the process. ",
+            "CBT" => "You are also familiar with Cognitive Behavioral Therapy (CBT) and use it to guide the process. ",
+            "ACT" => "You are also familiar with Acceptance and Commitment Therapy (ACT) and use it to guide the process. ",
+            "DBT" => "You are also familiar with Dialectical Behavior Therapy (DBT) and use it to guide the process. ",
+            "psychodynamic" => "You are also familiar with psychodynamic therapy and use it to guide the process. ",
+            "somatic" => "You are also familiar with somatic therapy and might use it to guide the process. ",
+            "meditation" => "Your main method is mindfulness meditation to guide the client to a calmer place. ",
+            "none" => "",
+        );
+
+        $command_manager->add_command(array("/start"), function($command, $_) use ($telegram, $user_config_manager, $openai, $mode_prompts) {
             $session_info = $user_config_manager->get_session_info("session");
-            // If there is no session info, create one
-            if ($session_info == null) {
-                $session_info = (object) array(
-                    "running" => false,
-                    "this_session_start" => null,
-                    "profile" => "",
-                    "last_session_start" => null,
-                    "cnt" => 0,
-                );
-                $user_config_manager->save_session_info("session", $session_info);
-            }
             // If there is a session running, don't start a new one
-            else if ($session_info->running === true) {
+            if ($session_info->running === true) {
                 $telegram->send_message("You are already in a session. Please /end the session first to start a new one.");
                 return;
             }
@@ -81,6 +94,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             } else {
                 $name_string = "(my name is ".$name_string.") ";
             }
+            $mode_prompt = $mode_prompts[$session_info->mode ?? "none"];
             $chat = (object) array(
                 "model" => "gpt-4",
                 "temperature" => 0.5,
@@ -89,8 +103,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."myself and heal. Show empathy and compassion by acknowledging and validating my feelings. Your primary "
                     ."goal is to provide a safe, nurturing, and supportive environment for me. Help me explore my "
                     ."thoughts, feelings, and experiences, while guiding me towards personal growth and emotional healing. "
-                    ."You are also familiar with Internal Family Systems (IFS) therapy and might use it implicitly to guide "
-                    ."the process. Keep your responses concise, but as helpful as possible. Generally, avoid giving lists of "
+                    .$mode_prompt
+                    ."Keep your responses concise, but as helpful as possible. Generally, avoid giving lists of "
                     ."advice but rather ask the client for their own opinions and ideas instead. And please ask if something "
                     ."is unclear to you or some important information is missing. The current time is ".date("g:ia")."."),
                 ),
@@ -128,7 +142,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $command_manager->add_command(array("/end"), function($command, $_) use ($telegram, $openai, $user_config_manager) {
             $session_info = $user_config_manager->get_session_info("session");
             // Check if there is a session running
-            if ($session_info == null || $session_info->running == false) {
+            if ($session_info->running == false) {
                 $telegram->send_message("The session isn't started yet. Please write something or use the command /start.");
                 exit;
             }
@@ -199,13 +213,41 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // The command /profile shows the profile of the user
         $command_manager->add_command(array("/profile"), function($command, $_) use ($telegram, $user_config_manager) {
             $session_info = $user_config_manager->get_session_info("session");
-            if ($session_info == null || $session_info->profile == "") {
-                $telegram->send_message("No profile has been generated yet. Please start a new session with /start.");
+            if ($session_info->profile == "") {
+                $message = "No profile has been generated yet. ";
+                if ($session_info->running == true)
+                    $message .= "Please type something or end the current session with /end.";
+                else
+                    $message .= "Please start a new session with /start.";
+                $telegram->send_message($message);
             } else {
                 $date = date("d.m.y g:ia", $session_info->last_session_start);
                 $telegram->send_message("Here is your current profile (created ".$date."):\n\n".$session_info->profile);
             }
         }, "Mental health", "Show your profile");
+
+        // The command /mode allows the user to change the mode
+        $command_manager->add_command(array("/mode"), function($command, $mode) use ($telegram, $user_config_manager, $mode_prompts) {
+            // Check if session is running
+            $session_info = $user_config_manager->get_session_info("session");
+            if ($mode == "") {
+                $mode_keys = array_keys($mode_prompts);
+                $telegram->send_message("The bot currently uses ".$session_info->mode.". To change it, use /mode <mode>. Valid modes are: \"".implode("\", \"", $mode_keys)."\".");
+            } else if ($session_info->running == true) {
+                $telegram->send_message("Please end the current session with /end before changing your mode.");
+            } else {
+                // Get keys from $mode_prompts and check if $mode is a valid key
+                $mode_keys = array_keys($mode_prompts);
+                if (!in_array($mode, $mode_keys)) {
+                    $telegram->send_message("Sorry, I don't know the mode \"".$mode."\". Valid modes are: \"".implode("\", \"", $mode_keys)."\".");
+                    exit;
+                }
+                // Set the mode
+                $session_info->mode = $mode;
+                $user_config_manager->save_session_info("session", $session_info);
+                $telegram->send_message("Your mode has been set to ".$mode.".");
+            }
+        }, "Settings", "Show or set the current method");
 
         // The command /name allows the user to change their name
         $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {
@@ -213,13 +255,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $session_info = $user_config_manager->get_session_info("session");
             if ($name == "") {
                 $telegram->send_message("Your name is currently set to ".$user_config_manager->get_name().". To set your name, you can provide a name with the command, e.g. \"/name Joe\".");
-            } else if ($session_info != null && $session_info->running == true) {
+            } else if ($session_info->running == true) {
                 $telegram->send_message("Please end the current session with /end before changing your name.");
             } else {
                 $user_config_manager->set_name($name);
                 $telegram->send_message("Your name has been set to ".$name.".");
             }
-        }, "Settings", "Set your name");
+        }, "Settings", "Show or set your name");
 
         // The command /reset deletes the current configuration
         $command_manager->add_command(array("/reset"), function($command, $name) use ($telegram, $user_config_manager, $username) {
