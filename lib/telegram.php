@@ -48,12 +48,11 @@ class Telegram {
             return $server_output;
         }
         // Error handling
-        Log::error(json_encode(array(
-            "timestamp" => time(),
+        Log::error(array(
             "endpoint" => $endpoint,
             "server_response" => $server_output,
             "data" => $data,
-        )));
+        ));
         if ($endpoint == "sendMessage") {
             // Try again without parse mode
             if (isset($data->parse_mode)) {
