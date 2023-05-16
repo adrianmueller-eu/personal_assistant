@@ -264,23 +264,30 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Settings", "Show or set your name");
 
         // The command /reset deletes the current configuration
-        $command_manager->add_command(array("/reset"), function($command, $name) use ($telegram, $user_config_manager, $username) {
+        $command_manager->add_command(array("/reset"), function($command, $confirmation) use ($telegram, $user_config_manager) {
+            // Check if $confirmation is "yes"
+            if ($confirmation != "yes") {
+                $telegram->send_message("Please confirm with \"/reset yes\".");
+                return;
+            }
+
             $file_path = $user_config_manager->get_file();
             // Save in backup before deleting
             $backup_path = $user_config_manager->get_backup_file();
             copy($file_path, $backup_path);
             unlink($file_path); // Delete the file
 
-            // If a name is provided, initialize the configuration with the name
-            if ($name == "") {
-                $name = $user_config_manager->get_name();
-            }
-            $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name);
             $telegram->send_message("Your configuration has been reset. You can start a new session with /start.");
         }, "Settings", "Reset your configuration");
 
         // Command /restore restores the config from the backup file
-        $command_manager->add_command(array("/restore"), function($command, $_) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/restore"), function($command, $confirmation) use ($telegram, $user_config_manager) {
+            // Check if $confirmation is "yes"
+            if ($confirmation != "yes") {
+                $telegram->send_message("Please confirm with \"/restore yes\".");
+                return;
+            }
+
             $file_path = $user_config_manager->get_file();
             $backup_file_path = $user_config_manager->get_backup_file();
             if (!file_exists($backup_file_path)) {
