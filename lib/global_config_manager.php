@@ -3,7 +3,7 @@
 require_once __DIR__."/utils.php";
 
 /**
- * This class manages the persistent data for a chat.
+ * This class manages the persistent data for all chats.
  * 
  * The JSON file is located in "chats/config.json". It has the following format:
  * ```json
@@ -30,7 +30,6 @@ class GlobalConfigManager {
         $this->global_config_file = $chats_dir."/config.json";
         $this->load();
     }
-
 
     private function load() {
         // Check if the file exists
