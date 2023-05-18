@@ -34,7 +34,8 @@ class GlobalConfigManager {
     private function load() {
         // Check if the file exists
         if (!file_exists($this->global_config_file)){
-            throw new Exception("Global config file not found. Please create it first.");
+            // Copy the template file
+            copy(dirname($this->global_config_file)."/config_template.json", $this->global_config_file);
         }
         $this->global_config = json_decode(file_get_contents($this->global_config_file), false);
     }
@@ -50,8 +51,16 @@ class GlobalConfigManager {
      * @return mixed The value of the config value.
      */
     public function get($key) {
+        // Check first if the key exists in the config file
         if(isset($this->global_config->config->$key)) {
-            return $this->global_config->config->$key;
+            $value = $this->global_config->config->$key;
+            if ($value !== null && $value !== "")
+                return $value;
+        }
+        // Fall back to getenv()
+        $value = getenv($key);
+        if ($value !== false) {
+            return $value;
         }
         return null;
     }

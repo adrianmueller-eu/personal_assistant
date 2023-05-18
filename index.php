@@ -27,9 +27,29 @@ if ($DEBUG) {
 // Tokens and keys
 $global_config_manager = new GlobalConfigManager();
 $telegram_token = $global_config_manager->get("TELEGRAM_BOT_TOKEN");
+if ($telegram_token == null || $telegram_token == "") {
+    Log::error("TELEGRAM_BOT_TOKEN is not set.");
+    echo "TELEGRAM_BOT_TOKEN is not set.";
+    exit;
+}
 $secret_token = $global_config_manager->get("TELEGRAM_BOT_SECRET");
+if ($secret_token == null || $secret_token == "") {
+    Log::error("TELEGRAM_BOT_SECRET is not set.");
+    echo "TELEGRAM_BOT_SECRET is not set.";
+    exit;
+}
 $chat_id_admin = $global_config_manager->get("TELEGRAM_ADMIN_CHAT_ID");
+if ($chat_id_admin == null || $chat_id_admin == "") {
+    Log::error("TELEGRAM_ADMIN_CHAT_ID is not set.");
+    echo "TELEGRAM_ADMIN_CHAT_ID is not set.";
+    exit;
+}
 $openai_api_key = $global_config_manager->get("OPENAI_API_KEY");
+if ($openai_api_key == null || $openai_api_key == "") {
+    Log::error("OPENAI_API_KEY is not set.");
+    echo "OPENAI_API_KEY is not set.";
+    exit;
+}
 
 // Set the time zone to give the correct time to the model
 $timezone = $global_config_manager->get("TIME_ZONE");
@@ -48,13 +68,6 @@ $telegram_admin = new Telegram($telegram_token, $chat_id_admin);
 
 // Check if the script is called with a POST request
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
-    // This is just out of curiosity, to see if someone is trying to access the script directly
-    $ip = $_SERVER['REMOTE_ADDR'];
-    $link = "https://".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
-    $telegram_admin->send_message("Someone (".$ip.") called on ".$link." with a non-POST method!");
-    // echo "There is nothing to see here! :P";
-    // http_response_code(401) // 401 Unauthorized
-    header('Location: '."https://".$_SERVER['HTTP_HOST']);
     exit;
 }
 

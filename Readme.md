@@ -37,41 +37,37 @@ Mental health bot
 ## Setup instructions
 
 1. Put this on a server that is accessible from the Internet
-    1. Copy the file `chats/config_template.json` to create `chats/config.json`.
-        ```bash
-        cp chats/config_template.json chats/config.json
-        ```
-    2. Ensure the server can create new folders and files, and modify `chats/config.json`.
-        ```bash
-        chmod +w -R .
-        ```
-    3. Set your timezone in the `chats/config.json` file, e.g.
-        ```json
-        "TIME_ZONE": "Europe/Rome"
-        ```
-        You can find the list of valid timezone identifiers [here](https://www.php.net/manual/en/timezones.php).
-    4. Choose the bot you want to use by (un)commenting the respective line at the beginning of [index.php](index.php). E.g., for the mental health bot change the start of file to
+    1. Choose the bot you want to use by (un)commenting the respective line at the beginning of [index.php](index.php). E.g., for the mental health bot change the start of file to
         ```php
         // Set here the bot you want to use
         // require_once __DIR__."/bots/general.php";
         require_once __DIR__."/bots/mental_health.php";
         ```
+    2. Copy the file `chats/config_template.json` to create `chats/config.json`. It is used to manage users and can be used to set variables. Also ensure the server can create new folders and files (e.g. user files, log files), and modify `chats/config.json`.
+        ```bash
+        cp chats/config_template.json chats/config.json && chmod +w -R .
+        ```
+    3. The bot will need access to multiple variables. You can use the `chats/config.json` file to configure the variables or save them as environment variables, e.g. using `SetEnv <KEY> <VALUE>` in the `.htaccess` or using the ["Secrets" function in Replit](https://docs.replit.com/programming-ide/workspace-features/secrets). Let's try it out by setting the `TIME_ZONE` variable (which is used to tell the bot the current time) in your preferred manner. E.g., for Italy you might set:
+        ```json
+        "TIME_ZONE": "Europe/Rome"
+        ```
+        You can find the list of valid timezone identifiers [here](https://www.php.net/manual/en/timezones.php).
 2. Set up the **Telegram bot**
     1. Create a Telegram bot using [BotFather](https://t.me/botfather)
-    2. Get the bot's token from BotFather. In the `chats/config.json`, put the token to the `TELEGRAM_BOT_TOKEN` variable.
+    2. Get the bot's token from BotFather. Put the token into the `TELEGRAM_BOT_TOKEN` variable.
     3. Generate a random secret token that you will use to authenticate requests to this script. You can use the following command to generate a random token:
         ```bash
         head -c 160 /dev/urandom | base64 | tr -d "=+/" | cut -c -128
         ```
-    4. In the `chats/config.json` file, put the secret token to `TELEGRAM_BOT_SECRET`.
+    4. Put the secret token to `TELEGRAM_BOT_SECRET`.
     5. Set up a [webhook](https://core.telegram.org/bots/api#setwebhook) for the bot using
         ```bash
         curl https://api.telegram.org/bot<token>/setWebhook?url=<url>&secret_token=<secret_token>
         ```
     6. Send a message with `chatid` to the bot. It will reply with a message that contains your chat ID.
-    7. In the `chats/config.json` file, put the chat ID to `TELEGRAM_ADMIN_CHAT_ID`.
+    7. Put the chat ID into `TELEGRAM_ADMIN_CHAT_ID`.
 3. Set up the **OpenAI API** connection
     1. Create an [OpenAI account](https://beta.openai.com/signup)
     2. Create an [OpenAI API key](https://beta.openai.com/account/api-keys) (you will have to set up the billing)
-    3. Put the key to `OPENAI_API_KEY` in the `chats/config.json` file.
+    3. Put it into the `OPENAI_API_KEY` variable.
 4. Enjoy :)
