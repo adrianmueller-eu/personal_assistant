@@ -68,8 +68,8 @@ Mental health bot
         ```bash
         curl https://api.telegram.org/bot<token>/setWebhook?url=<url>&secret_token=<secret_token>
         ```
-    6. Create a Telegram chat with the bot and send a message to it.
-    7. It will reply with a message that contains the chat ID. In the `chats/config.json` file, put the chat ID to `TELEGRAM_ADMIN_CHAT_ID`.
+    6. Send a message with `chatid` to the bot. It will reply with a message that contains your chat ID.
+    7. In the `chats/config.json` file, put the chat ID to `TELEGRAM_ADMIN_CHAT_ID`.
 3. Set up the **OpenAI API** connection
     1. Create an [OpenAI account](https://beta.openai.com/signup)
     2. Create an [OpenAI API key](https://beta.openai.com/account/api-keys) (you will have to set up the billing)

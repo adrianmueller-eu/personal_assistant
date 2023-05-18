@@ -137,14 +137,19 @@ if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) 
     exit;
 }
 else {
-    $telegram->send_message("Sorry, I can't talk to you (chat_id: ".$chat_id.")", null);
+    // if $update->text contains "chatid", send the chat_id to the user
+    if (isset($update->text) && strpos($update->text, "chatid") !== false)
+        $telegram->send_message("Your chat_id is: ".$chat_id, null);
+    else
+        $telegram->send_message("I'm sorry, I'm not allowed to talk with you :/", null);
 
     // Tell me ($chat_id_admin) that someone tried to talk to the bot
     // This could be used to spam the admin
-    if ($username != null)
-        $telegram_admin->send_message("@".$username." tried to talk to me");
+    if ($username != null && $username != "")
+        $telegram_admin->send_message("@".$username." tried to talk to me (chat_id: ".$chat_id.")");
+    else if ($name != null && $name != "")
+        $telegram_admin->send_message($name." tried to talk to me (chat_id: ".$chat_id.")");
     else
-        $telegram_admin->send_message("Someone without a username tried to talk to me (chat_id: ".$chat_id.")");
-    exit;
+        $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: ".$chat_id.")");
 }
 ?>
