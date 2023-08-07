@@ -400,11 +400,14 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 } else if (!file_exists($sc_backup_file_path)){
                     // Save the current config to a backup file
                     copy($file_path, $sc_backup_file_path);
+                } else {
+                    $telegram->send_message("Showcase is already running. Please end it first with \"/showcase end\". Afterwards, you can start a new showcase with \"/showcase <name>\".");
+                    return;
                 }
                 // Create a new config file
                 unlink($file_path);
                 $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name);
-                $telegram->send_message("Showcase prepared. Please send /start to start the showcase.");
+                $telegram->send_message("Showcase prepared. Please send /start to start the showcase and \"/showcase end\" to end it.");
             }, "Admin", "Showcase the bot. Use \"/showcase <name>\" to specify a name, and \"/showcase end\" to end it.");
         }
 
