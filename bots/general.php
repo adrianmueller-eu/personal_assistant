@@ -85,6 +85,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."You can use Telegram Markdown and emojis to format and enrich your messages."),
                 )
             ));
+            # If the user config contains an intro message, add it as system message
+            $intro = $user_config_manager->get_intro();
+            if ($intro != "") {
+                $user_config_manager->add_message("system", $intro);
+            }
             if ($show_message) {
                 $telegram->send_message("Hello, there! I am your personal assistant ❤️\n\nIf you want to know what I can do, type /help.");
             }
@@ -221,6 +226,26 @@ END:VTIMEZONE"))
             $user_config_manager->set_name($name);
             $telegram->send_message("Your name has been set to ".$name.".");
         }, "Settings", "Set your name");
+
+        // The command /intro allows to read out or set the intro message
+        $command_manager->add_command(array("/intro"), function($command, $message) use ($telegram, $user_config_manager) {
+            if ($message == "") {
+                $intro = $user_config_manager->get_intro();
+                if ($intro == "") {
+                    $telegram->send_message("You have not set an intro message yet. To set your intro message, you can provide a message with the command.");
+                } else {
+                    $telegram->send_message("Your current intro message is:\n\n\"".$intro."\"\n\nYou can change your intro message by providing the message after the /intro command. Use \"/intro reset\" to have no intro message.");
+                }
+                return;
+            }
+            if ($message == "reset") {
+                $user_config_manager->set_intro("");
+                $telegram->send_message("Your intro message has been reset. You can set a new intro message by providing the message after the /intro command.");
+                return;
+            }
+            $user_config_manager->set_intro($message);
+            $telegram->send_message("Your intro message has been set to:\n\n".$message);
+        }, "Settings", "Set your intro message");
 
         // ###############################
         // ### Chat history management ###

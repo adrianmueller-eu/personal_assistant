@@ -65,6 +65,7 @@ class UserConfigManager {
             $this->user_data = (object) array(
                 "username" => $this->username,
                 "name" => $this->name,
+                "intro" => "",
                 "config" => (object) array(
                     "model" => "gpt-4",
                     "temperature" => 0.7,
@@ -112,7 +113,7 @@ class UserConfigManager {
      * @return void
      */
     public function save_config($config) {
-        $this->user_data->config = $config;
+        $this->user_data->config = (object) $config;
         $this->save();
     }
 
@@ -203,6 +204,25 @@ class UserConfigManager {
      */
     public function set_name($name) {
         $this->name = $name;
+        $this->save();
+    }
+
+    /**
+     * Get the intro text of the user.
+     * 
+     * @return string The intro text of the user.
+     */
+    public function get_intro() {
+        return $this->user_data->intro;
+    }
+
+    /**
+     * Set the intro text of the user.
+     * 
+     * @param string $intro The intro text of the user.
+     */
+    public function set_intro($intro) {
+        $this->user_data->intro = $intro;
         $this->save();
     }
 }
