@@ -462,6 +462,12 @@ END:VTIMEZONE"))
             }
         }, "Misc", "Dump the messages in the chat history");
 
+        // The command /cnt outputs the number of messages in the chat history
+        $command_manager->add_command(array("/cnt"), function($command, $_) use ($telegram, $user_config_manager) {
+            $n_messages = count($user_config_manager->get_config()->messages);
+            $telegram->send_message("There are ".$n_messages." messages in the chat history.");
+        }, "Misc", "Count the number of messages in the chat history");
+
         // ############################
         // Actually run the command!
         $response = $command_manager->run_command($message);
