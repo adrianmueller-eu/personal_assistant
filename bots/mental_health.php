@@ -366,6 +366,23 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $telegram->send_message("There are ".count($chat->messages)." messages in the chat history.");
             }, "Admin", "Output the number of messages in the chat history");
 
+            // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
+            $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $_) use ($telegram, $user_config_manager) {
+                $messages = $user_config_manager->get_config()->messages;
+                // Add the roles in the beginning of each message
+                $messages = array_map(function($message) {
+                    return "/".$message->role." ".$message->content;
+                }, $messages);
+                if (count($messages) == 0) {
+                    $telegram->send_message("There are no messages to dump.");
+                    return;
+                }
+                // Send each message as a separate message
+                foreach ($messages as $message) {
+                    $telegram->send_message($message);
+                }
+            }, "Misc", "Dump the messages in the chat history");
+
             // Command /showcase (with optional parameter $name) let's the admin showcase the bot
             $command_manager->add_command(array("/showcase"), function($command, $name) use ($telegram, $user_config_manager, $username) {
                 $file_path = $user_config_manager->get_file();

@@ -452,6 +452,10 @@ END:VTIMEZONE"))
             $messages = array_map(function($message) {
                 return "/".$message->role." ".$message->content;
             }, $messages);
+            if (count($messages) == 0) {
+                $telegram->send_message("There are no messages to dump.");
+                return;
+            }
             // Send each message as a separate message
             foreach ($messages as $message) {
                 $telegram->send_message($message);
