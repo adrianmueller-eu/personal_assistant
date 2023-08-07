@@ -36,7 +36,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     }
 
     // If it is forwarded, put "/re " in front
-    if (isset($update->forward_from)) {
+    if (isset($update->forward_sender_name) || isset($update->forward_date)) {
         $message = "/re ".$message;
     }
 
