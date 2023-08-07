@@ -69,6 +69,10 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // The command is /start or /reset resets the bot and sends a welcome message
         $reset = function($command, $_, $show_message = true) {
             global $telegram, $user_config_manager;
+
+            # save config intro backup file
+            $user_config_manager->save_backup();
+
             $user_config_manager->save_config(array(
                 "model" => "gpt-4",
                 "temperature" => 0.9,
@@ -312,6 +316,29 @@ END:VTIMEZONE"))
             $user_config_manager->add_message("system", $message);
             $telegram->send_message("Added system message to chat history.");
         }, "Chat history management", "Add a message with \"system\" role");
+
+        // The command /restore restores the chat history from the backup file
+        $command_manager->add_command(array("/restore"), function($command, $confirmation) use ($telegram, $user_config_manager) {
+            // Ask for confirmation with "yes"
+            if ($confirmation != "yes") {
+                $telegram->send_message("Are you sure you want to restore the chat history from the backup file? This will delete the current chat history. If you are sure, please confirm with \"/restore yes\".");
+                return;
+            }
+
+            // Restore the backup
+            try {
+                if(!$user_config_manager->restore_backup()) {
+                    $telegram->send_message("There is no backup file to restore.");
+                    return;
+                }
+            } catch (Exception $e) {
+                $telegram->send_message("Error: ".json_encode($e));
+                return;
+            }
+
+            $n_messages = count($user_config_manager->get_config()->messages);
+            $telegram->send_message("Chat history restored from backup ({$n_messages} messages)");
+        }, "Chat history management", "Restore the chat history from the backup file");
 
         if ($is_admin) {
             // #######################

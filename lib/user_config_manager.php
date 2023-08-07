@@ -186,8 +186,45 @@ class UserConfigManager {
         return $this->user_config_file;
     }
 
+    /**
+     * @return string The path to the backup file.
+     */
     public function get_backup_file() {
         return $this->user_config_file.".backup";
+    }
+
+    /**
+     * Save a backup of the current user config file.
+     */
+    public function save_backup() {
+        $backup_file = $this->get_backup_file();
+        $res = copy($this->user_config_file, $backup_file);
+        if ($res === false) {
+            Log::error("Could not save backup of user config file: ".$this->user_config_file);
+            http_response_code(500);
+            throw new Exception("Could not save backup of user config file: ".$this->user_config_file);
+        }
+    }
+
+    /**
+     * Restore the backup of the user config file.
+     * 
+     * @return bool True if the backup file exists and was restored, false otherwise. Throws an exception if the backup file exists but could not be restored.
+     */
+    public function restore_backup() {
+        $backup_file = $this->get_backup_file();
+        if (!file_exists($backup_file)) {
+            return false;
+        }
+        $res = copy($backup_file, $this->user_config_file);
+        if ($res === false) {
+            Log::error("Could not restore backup of user config file: ".$this->user_config_file);
+            http_response_code(500);
+            throw new Exception("Could not restore backup of user config file: ".$this->user_config_file);
+        }
+        # load the restored file into memory
+        $this->load();
+        return true;
     }
 
     /**

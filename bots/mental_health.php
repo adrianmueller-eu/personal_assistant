@@ -267,34 +267,36 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $command_manager->add_command(array("/reset"), function($command, $confirmation) use ($telegram, $user_config_manager) {
             // Check if $confirmation is "yes"
             if ($confirmation != "yes") {
-                $telegram->send_message("Please confirm with \"/reset yes\".");
+                $telegram->send_message("Please confirm deleting your profile and all other data with \"/reset yes\". Afterwards, this can be undone with /restore unless a new session is started after which the backup is overwritten and the current state can't be recovered.");
                 return;
             }
 
             $file_path = $user_config_manager->get_file();
             // Save in backup before deleting
-            $backup_path = $user_config_manager->get_backup_file();
-            copy($file_path, $backup_path);
-            unlink($file_path); // Delete the file
+            $user_config_manager->save_backup();
+            unlink($file_path); // Delete the file to create the default config on next message
 
-            $telegram->send_message("Your configuration has been reset. You can start a new session with /start.");
+            $telegram->send_message("Your configuration has been reset to the default settings. You can start a new session with /start.");
         }, "Settings", "Reset your configuration");
 
         // Command /restore restores the config from the backup file
         $command_manager->add_command(array("/restore"), function($command, $confirmation) use ($telegram, $user_config_manager) {
             // Check if $confirmation is "yes"
             if ($confirmation != "yes") {
-                $telegram->send_message("Please confirm with \"/restore yes\".");
+                $telegram->send_message("Please confirm with \"/restore yes\". This can't be undone.");
                 return;
             }
 
-            $file_path = $user_config_manager->get_file();
-            $backup_file_path = $user_config_manager->get_backup_file();
-            if (!file_exists($backup_file_path)) {
-                $telegram->send_message("No backup found.");
+            // Restore the backup
+            try {
+                if(!$user_config_manager->restore_backup()) {
+                    $telegram->send_message("There is no backup to restore. Please start a new session with /start.");
+                    return;
+                }
+            } catch (Exception $e) {
+                $telegram->send_message("Error in reading backup file: ".$e->getMessage());
                 return;
             }
-            copy($backup_file_path, $file_path);
             $telegram->send_message("Backup restored.");
         }, "Settings", "Restore the config from the backup file");
 
