@@ -56,7 +56,7 @@ $timezone = $global_config_manager->get("TIME_ZONE");
 if ($timezone != null && $timezone != "") {
     date_default_timezone_set($timezone);
 }
-$telegram_admin = new Telegram($telegram_token, $chat_id_admin);
+$telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
 
 // ##### Emergency stop #####
 // $telegram->send_message("This works again.");
@@ -116,6 +116,7 @@ if (!isset($update->message) || !isset($update->update_id)) {
 }
 
 if ($DEBUG) {
+    Log::debug($update);
     $telegram_admin->send_message(json_encode($update, JSON_PRETTY_PRINT), null);
 }
 
@@ -135,7 +136,7 @@ $chat_id = $update->chat->id; // Assume that if $update->message exists, so does
 $username = $update->from->username;
 $name = $update->from->first_name ?? $username;
 
-$telegram = new Telegram($telegram_token, $chat_id);
+$telegram = new Telegram($telegram_token, $chat_id, $DEBUG);
 $is_admin = $chat_id == $chat_id_admin;
 
 // Run the bots
@@ -143,7 +144,7 @@ $is_admin = $chat_id == $chat_id_admin;
 //       unnecessary database entries
 if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
     $user_config_manager = new UserConfigManager($chat_id, $username, $name);
-    $openai = new OpenAI($openai_api_key);
+    $openai = new OpenAI($openai_api_key, $DEBUG);
 
     run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
                         $global_config_manager, $is_admin, $DEBUG);

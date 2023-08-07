@@ -10,6 +10,7 @@ class Telegram {
     
     private $telegram_token;
     private $chat_id;
+    private $DEBUG;
 
     /**
      * Create a new Telegram instance.
@@ -17,8 +18,7 @@ class Telegram {
      * @param string $telegram_token The Telegram bot token.
      * @param string $chat_id The chat ID.
      */
-    public function __construct($telegram_token, $chat_id) {
-        // Check if the Telegram token is valid
+    public function __construct($telegram_token, $chat_id, $DEBUG = False) {
         if (!preg_match("/^[0-9]+:[a-zA-Z0-9_-]+$/", $telegram_token)) {
             throw new Exception("Invalid Telegram token: ".$telegram_token);
         }
@@ -28,6 +28,7 @@ class Telegram {
         }
         $this->telegram_token = $telegram_token;
         $this->chat_id = $chat_id;
+        $this->DEBUG = $DEBUG;
     }
 
     /**
@@ -44,11 +45,32 @@ class Telegram {
         $url = "https://api.telegram.org/bot".$this->telegram_token."/".$endpoint;
 
         $server_output = curl($url, $data, $headers, $file_name, $file_content);
+        // DEBUG endpoint, data, server_output, and optionally file_name and file_content
+        if ($this->DEBUG) {
+            if ($file_name != null) {
+                Log::debug(array(
+                    "interface" => "telegram",
+                    "endpoint" => $endpoint,
+                    "data" => $data,
+                    "file_name" => $file_name,
+                    "file_content" => $file_content,
+                    "server_response" => $server_output,
+                ));
+            } else {
+                Log::debug(array(
+                    "interface" => "telegram",
+                    "endpoint" => $endpoint,
+                    "data" => $data,
+                    "server_response" => $server_output,
+                ));
+            }
+        }
         if (isset($server_output->ok) && $server_output->ok) {
             return $server_output;
         }
         // Error handling
         Log::error(array(
+            "interface" => "telegram",
             "endpoint" => $endpoint,
             "server_response" => $server_output,
             "data" => $data,

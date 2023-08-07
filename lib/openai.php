@@ -8,14 +8,16 @@ require_once __DIR__."/utils.php";
  */
 class OpenAI {
     public $api_key;
+    public $DEBUG;
 
     /**
      * Create a new OpenAI instance.
      * 
      * @param string $api_key The OpenAI API key.
      */
-    public function __construct($api_key) {
+    public function __construct($api_key, $DEBUG = False) {
         $this->api_key = $api_key;
+        $this->DEBUG = $DEBUG;
     }
 
     /**
@@ -110,7 +112,16 @@ class OpenAI {
     private function send_request($endpoint, $data) {
         $url = "https://api.openai.com/v1/".$endpoint;
         $headers = array('Authorization: Bearer '.$this->api_key);
+
         $response = curl($url, $data, $headers);
+        if ($this->DEBUG) {
+            Log::debug(array(
+                "interface" => "openai",
+                "endpoint" => $endpoint,
+                "data" => $data,
+                "response" => $response,
+            ));
+        }
 
         // {
         //     "error": {
@@ -125,6 +136,7 @@ class OpenAI {
                 $data = json_decode($data);
             }
             Log::error(array(
+                "interface" => "openai",
                 "endpoint" => $endpoint,
                 "data" => $data,
                 "response" => $response,

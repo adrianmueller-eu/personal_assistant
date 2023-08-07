@@ -5,6 +5,7 @@ class Log {
     private static $log_dir = __DIR__."/../logs";
     private static $log_file = "log.txt";
     private static $error_log_file = "log_error.txt";
+    private static $debug_log_file = "log_debug.txt";
     private static $image_log_file = "log_image.txt";
     private static $update_id_log_file = "update_ids.txt";
 
@@ -47,6 +48,15 @@ class Log {
      */
     public static function error($message) {
         self::_log(self::$error_log_file, $message);
+    }
+
+    /**
+     * Append a debug message to the log file.
+     * 
+     * @param string|array $message The debug message to append to the log file.
+     */
+    public static function debug($message) {
+        self::_log(self::$debug_log_file, $message);
     }
 
     /**
