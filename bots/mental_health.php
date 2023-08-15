@@ -150,8 +150,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $chat = $user_config_manager->get_config();
             if ($_ != "skip" && count($chat->messages) > 7) {
                 $telegram->send_message("Please give me a moment to reflect on our session...");
-                // Create backup before saving by copying the file to the backup file
-                copy($user_config_manager->get_file(), $user_config_manager->get_backup_file());
+                $user_config_manager->save_backup();
 
                 if ($session_info->profile != "") {
                     $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
@@ -289,15 +288,14 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
             // Restore the backup
             try {
-                if(!$user_config_manager->restore_backup()) {
+                if($user_config_manager->restore_backup()) {
+                    $telegram->send_message("Backup restored. You can start a new session with /start.");
+                } else {
                     $telegram->send_message("There is no backup to restore. Please start a new session with /start.");
-                    return;
                 }
             } catch (Exception $e) {
                 $telegram->send_message("Error in reading backup file: ".$e->getMessage());
-                return;
             }
-            $telegram->send_message("Backup restored.");
         }, "Settings", "Restore the config from the backup file");
 
         if ($is_admin) {
@@ -386,7 +384,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // Command /showcase (with optional parameter $name) let's the admin showcase the bot
             $command_manager->add_command(array("/showcase"), function($command, $name) use ($telegram, $user_config_manager, $username) {
                 $file_path = $user_config_manager->get_file();
-                $sc_backup_file_path = $user_config_manager->get_backup_file()."_showcase";
+                $sc_backup_file_path = $file_path."_showcase";
                 if ($name == "end") {
                     if (file_exists($sc_backup_file_path)) {
                         // Restore the backup
@@ -396,18 +394,16 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     } else {
                         $telegram->send_message("Showcase is currently not running.");
                     }
-                    return;
-                } else if (!file_exists($sc_backup_file_path)){
+                } else if (file_exists($sc_backup_file_path)){
+                    $telegram->send_message("Showcase is already running. Please end it first with \"/showcase end\". Afterwards, you can start a new showcase with \"/showcase <name>\".");
+                } else {
                     // Save the current config to a backup file
                     copy($file_path, $sc_backup_file_path);
-                } else {
-                    $telegram->send_message("Showcase is already running. Please end it first with \"/showcase end\". Afterwards, you can start a new showcase with \"/showcase <name>\".");
-                    return;
+                    // Create a new config file
+                    unlink($file_path);
+                    $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name);
+                    $telegram->send_message("Showcase prepared. Please send /start to start the showcase and \"/showcase end\" to end it.");
                 }
-                // Create a new config file
-                unlink($file_path);
-                $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name);
-                $telegram->send_message("Showcase prepared. Please send /start to start the showcase and \"/showcase end\" to end it.");
             }, "Admin", "Showcase the bot. Use \"/showcase <name>\" to specify a name, and \"/showcase end\" to end it.");
         }
 

@@ -189,7 +189,7 @@ class UserConfigManager {
     /**
      * @return string The path to the backup file.
      */
-    public function get_backup_file() {
+    private function get_backup_file() {
         return $this->user_config_file.".backup";
     }
 
