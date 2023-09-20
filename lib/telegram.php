@@ -44,7 +44,7 @@ class Telegram {
     private function send($endpoint, $data, $headers = array(), $file_name = null, $file_content = null) {
         $url = "https://api.telegram.org/bot".$this->telegram_token."/".$endpoint;
 
-        $server_output = curl($url, $data, $headers, $file_name, $file_content);
+        $server_output = curl_post($url, $data, $headers, $file_name, $file_content);
         // DEBUG endpoint, data, server_output, and optionally file_name and file_content
         if ($this->DEBUG) {
             if ($file_name != null) {

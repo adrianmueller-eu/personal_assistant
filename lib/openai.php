@@ -113,7 +113,7 @@ class OpenAI {
         $url = "https://api.openai.com/v1/".$endpoint;
         $headers = array('Authorization: Bearer '.$this->api_key);
 
-        $response = curl($url, $data, $headers);
+        $response = curl_post($url, $data, $headers);
         if ($this->DEBUG) {
             Log::debug(array(
                 "interface" => "openai",

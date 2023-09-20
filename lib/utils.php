@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This function is a generic wrapper for cURL requests.
+ * This function is a generic wrapper for cURL POST requests.
  * 
  * @param string $url The URL to send the request to
  * @param object|array $data Data
@@ -10,7 +10,7 @@
  * @param string $file_content (optional) The content of the file
  * @return object|string The response from the API or an error message
  */
-function curl($url, $data, $headers = array(), $file_name = null, $file_content = null) {
+function curl_post($url, $data, $headers = array(), $file_name = null, $file_content = null) {
     if ($file_name != null && $file_content != null) {
         $boundary = '-------------' . uniqid();
         $data = build_data_files($boundary, $data, $file_name, $file_content);
