@@ -190,32 +190,37 @@ END:VTIMEZONE"))
 
 
 
-
         // ##########################
         // ### Commands: Settings ###
         // ##########################
-        // The command /model shows the current model and allows to change it
-        $command_manager->add_command(array("/model", "/m"), function($command, $_) use ($telegram, $user_config_manager) {
-            $chat = $user_config_manager->get_config();
-            $telegram->send_message("You are currently talking to ".($chat->model).".\nAvailable models are /gpt4 and /chatgpt.");
-        }, "Settings", "Show the current model");
+        // Shortcuts for preset commands
+        switch ($message) {
+            case "/gpt4":
+                $message = "/model gpt-4";
+                break;
+            case "/chatgpt":
+                $message = "/model gpt-3.5-turbo-1106";
+                break;
+        }
 
-        // Specific commands /gpt4 and /chatgpt for the respective models
-        $command_manager->add_command(array("/gpt4", "/chatgpt"), function($command, $_) use ($telegram, $user_config_manager) {
-            $models = array(
-                "/gpt4" => "gpt-4",
-                "/chatgpt" => "gpt-3.5-turbo",
-            );
-            $model = $models[$command];
+        // The command /model shows the current model and allows to change it
+        $command_manager->add_command(array("/model", "/m", "/gpt4", "/chatgpt"), function($command, $model) use ($telegram, $user_config_manager) {
             $chat = $user_config_manager->get_config();
-            if ($chat->model != $model) {
+            if ($model == "") {
+                $telegram->send_message("You are currently talking to ".($chat->model).".\n\n"
+                ."You can change the model by providing the model name after the /model command. Some models are:\n"
+                ."- `gpt-4`\n"
+                ."- `gpt-4-1106-preview`\n"
+                ."- `gpt-3.5-turbo-1106`\n"
+                ."- `gpt-3.5-turbo`");
+            } else if ($chat->model == $model) {
+                $telegram->send_message("You are already talking to ".($chat->model).".");
+            } else {
                 $chat->model = $model;
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("You are now talking to ".($chat->model).".");
-            } else {
-                $telegram->send_message("You are already talking to ".($chat->model).".");
             }
-        }, "Settings", "Specific commands for the respective models");
+        }, "Settings", "Model selection");
 
         // The command /temperature shows the current temperature and allows to change it
         $command_manager->add_command(array("/temperature", "/temp"), function($command, $temperature) use ($telegram, $user_config_manager) {
