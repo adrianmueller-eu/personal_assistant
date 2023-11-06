@@ -160,10 +160,10 @@ else {
     // Tell me ($chat_id_admin) that someone tried to talk to the bot
     // This could be used to spam the admin
     if ($username != null && $username != "")
-        $telegram_admin->send_message("@".$username." tried to talk to me (chat_id: ".$chat_id.")");
+        $telegram_admin->send_message("@".$username." tried to talk to me (chat_id: ".$chat_id.")", null);
     else if ($name != null && $name != "")
-        $telegram_admin->send_message($name." tried to talk to me (chat_id: ".$chat_id.")");
+        $telegram_admin->send_message($name." tried to talk to me (chat_id: ".$chat_id.")", null);
     else
-        $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: ".$chat_id.")");
+        $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: ".$chat_id.")", null);
 }
 ?>

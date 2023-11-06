@@ -24,10 +24,12 @@ class GlobalConfigManager {
     private $global_config_file;
     private $global_config;
 
-    public function __construct() {
-        $chats_dir = __DIR__."/../chats";
-
-        $this->global_config_file = $chats_dir."/config.json";
+    public function __construct($global_config_file = null) {
+        if ($global_config_file == null) {
+            $this->global_config_file = dirname(__DIR__)."/chats/config.json";
+        } else {
+            $this->global_config_file = $global_config_file;
+        }
         $this->load();
     }
 
@@ -35,7 +37,13 @@ class GlobalConfigManager {
         // Check if the file exists
         if (!file_exists($this->global_config_file)){
             // Copy the template file
-            copy(dirname($this->global_config_file)."/config_template.json", $this->global_config_file);
+            if (copy(dirname($this->global_config_file)."/config_template.json", $this->global_config_file)) {
+                $error_message = "Global config file not found. A new one has been created at ".$this->global_config_file.". Please edit it and restart the assistant.";
+            } else {
+                $error_message = "Global config file not found. A new one could not be created at ".$this->global_config_file.". Please create it manually and restart the assistant.";
+            }
+            Log::error($error_message);
+            throw new Exception($error_message);
         }
         $this->global_config = json_decode(file_get_contents($this->global_config_file), false);
     }

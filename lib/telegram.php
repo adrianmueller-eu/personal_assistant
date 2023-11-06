@@ -11,6 +11,8 @@ class Telegram {
     private $telegram_token;
     private $chat_id;
     private $DEBUG;
+    private $RETRY_CNT = 0;
+    private $MAX_RETRY = 4;
 
     /**
      * Create a new Telegram instance.
@@ -76,9 +78,17 @@ class Telegram {
             "data" => $data,
         ));
         if ($endpoint == "sendMessage") {
-            // Try again without parse mode
-            if (isset($data->parse_mode)) {
-                $this->send_message($data->text, null);
+            if (is_string($server_output)) {
+                // Try again without parse mode if $server_output is a string that contains "can't parse entities"
+                if (isset($data->parse_mode) && strpos($server_output, "can't parse entities") !== false) {
+                    $this->send_message($data->text, null);
+                }
+                // Try again after a few seconds if $server_output is a string that contains "Too Many Requests"
+                else if ($this->RETRY_CNT < $this->MAX_RETRY && strpos($server_output, "Too Many Requests") !== false) {
+                    $this->RETRY_CNT++;
+                    sleep(5*$this->RETRY_CNT);
+                    $this->send_message("[Retry ".$this->RETRY_CNT."] ".$data->text, $data->parse_mode);
+                }
             }
             // else, silently fail
         } else if (is_string($server_output)) {
