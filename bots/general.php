@@ -85,7 +85,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $user_config_manager->save_backup();
 
             $user_config_manager->save_config(array(
-                "model" => "gpt-4",
+                "model" => "gpt-4-1106-preview",
                 "temperature" => 0.9,
                 "messages" => array(
                     array("role" => "system", "content" => "Your task is to help and support your friend in their life. "
