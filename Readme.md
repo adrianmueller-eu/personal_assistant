@@ -37,7 +37,7 @@ Mental health bot
 ## Setup instructions
 
 1. Put this on a server that is accessible from the Internet
-    1. Choose the bot you want to use by (un)commenting the respective line at the beginning of [index.php](index.php). E.g., for the mental health bot change the start of file to
+    1. Choose the bot you want to use by (un)commenting the respective line at the beginning of [index.php](index.php). E.g., for the mental health bot change it to
         ```php
         // Set here the bot you want to use
         // require_once __DIR__."/bots/general.php";

@@ -1,4 +1,14 @@
 <?php
+
+// This is for debugging
+$DEBUG=false;
+
+if ($DEBUG) {
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    error_reporting(E_ALL);
+}
+
 // Set here the bot you want to use
 require_once __DIR__."/bots/general.php";
 // require_once __DIR__."/bots/mental_health.php";
@@ -10,15 +20,6 @@ require_once __DIR__."/lib/openai.php";
 require_once __DIR__."/lib/user_config_manager.php";
 require_once __DIR__."/lib/global_config_manager.php";
 require_once __DIR__."/lib/command_manager.php";
-
-// This is for debugging
-$DEBUG=false;
-
-if ($DEBUG) {
-    ini_set('display_errors', '1');
-    ini_set('display_startup_errors', '1');
-    error_reporting(E_ALL);
-}
 
 // ######################
 // ### Initialization ###
@@ -59,7 +60,8 @@ if ($timezone != null && $timezone != "") {
 $telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
 
 // ##### Emergency stop #####
-// $telegram->send_message("This works again.");
+// Log::debug("Emergency stop");
+// $telegram_admin->send_message("This works again.");
 // exit;
 
 // #######################
