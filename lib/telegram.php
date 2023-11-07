@@ -158,6 +158,7 @@ class Telegram {
             $data = (object) array(
                 "chat_id" => $this->chat_id,
                 "text" => $m,
+                "disable_web_page_preview" => "true",
             );
             if ($parse_mode != null) {
                 $data->parse_mode = $parse_mode;
