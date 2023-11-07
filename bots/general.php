@@ -449,9 +449,6 @@ END:VTIMEZONE"))
             } else if (substr($prompt, 0, 9) == "dall-e-3 ") {
                 $model = "dall-e-3";
                 $prompt = substr($prompt, 9);
-            } else if (substr($prompt, 0, 12) == "dall-e-3-hd ") {
-                $model = "dall-e-3-hd";
-                $prompt = substr($prompt, 12);
             } else {
                 $model = "dall-e-2";
             }
@@ -467,8 +464,8 @@ END:VTIMEZONE"))
                 $telegram->send_message($error_message);
                 exit;
             }
-            $telegram->send_image($image_url);
-        }, "Misc", "Request an image. If the prompt starts with `dall-e-2`, `dall-e-3`, or `dall-e-3-hd`, use the corresponding model. If the prompt is a URL, directly send the URL back to telegram instead of requesting an image.");
+            $telegram->send_image($image_url, $prompt);
+        }, "Misc", "Request an image. If the prompt starts with `dall-e-2 ` or `dall-e-3 `, use the corresponding model. If the prompt is a URL, directly send the URL back to telegram instead of requesting an image.");
 
         // The command /dump outputs the content of the permanent storage
         $command_manager->add_command(array("/dump", "/d"), function($command, $_) use ($telegram, $user_config_manager) {

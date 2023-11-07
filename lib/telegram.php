@@ -169,13 +169,15 @@ class Telegram {
     /**
      * Send an image to Telegram.
      * 
-     * @param string $image_url The URL of the image to send.
+     * @param string $image The file id or URL of the image to send.
+     * @param string $caption (optional) The caption of the image.
      * @return void
      */
-    public function send_image($image_url) {
+    public function send_image($image, $caption = "") {
         $this->send("sendPhoto", array(
             "chat_id" => $this->chat_id,
-            "photo" => $image_url,
+            "photo" => $image,
+            "caption" => $caption,
         ));
     }
 
