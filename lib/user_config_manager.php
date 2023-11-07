@@ -121,12 +121,12 @@ class UserConfigManager {
      * Add a message to the chat history.
      * 
      * @param string $role The role of the message sender.
-     * @param string $content The message content.
+     * @param string|array $content The message content.
      * @return void
      */
     public function add_message($role, $content) {
         // Ignore empty messages
-        if (trim($content) == "") {
+        if (is_string($content) && trim($content) === "") {
             return;
         }
         $chat = $this->get_config();

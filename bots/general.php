@@ -19,10 +19,35 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $message = $update->text;
     }
     else if (isset($update->photo)) {
-        $file_id = $update->photo[0]->file_id; // This is gonna be useful as soon as GPT-4 accepts images
-        $file_url = $telegram->get_file_url($file_id); // Don't forget to handle this being null
+        $chat = $user_config_manager->get_config();
+        // Check if the model can see
+        if ($chat->model != "gpt-4-vision-preview") {
+            $telegram->send_message("Error: You can only send images if you are talking to `gpt-4-vision-preview`. Try /gpt4v.");
+            exit;
+        }
+        $file_id = end($update->photo)->file_id;
         $caption = isset($update->caption) ? $update->caption : "";
-        $telegram->send_message("Sorry, I don't know yet what to do with images. Please send me a text message instead.");
+        $file_url = $telegram->get_file_url($file_id);
+        if ($file_url == null) {
+            $telegram->send_message("Error: Could not get file URL from Telegram.");
+            exit;
+        }
+
+        $user_config_manager->add_message("user", array(
+            array("type" => "image_url", "image_url" => $file_url),
+            array("type" => "text", "text" => $caption),
+        ));
+
+        $response = $openai->gpt($chat);
+
+        // Append GPT's response to the messages array, except if it starts with "Error: "
+        if ($response == null || $response == "") {
+            $telegram->send_message("WTF-Error: Could not generate a response. Please try again later.");
+        }
+        else if (substr($response, 0, 7) != "Error: ") {
+            $user_config_manager->add_message("assistant", $response);
+        }
+        $telegram->send_message($response);
         exit;
     }
     else {
@@ -196,29 +221,31 @@ END:VTIMEZONE"))
         // Shortcuts for preset commands
         switch ($message) {
             case "/gpt4":
-                $message = "/model gpt-4";
+                $message = "/model gpt-4-vision-preview";
                 break;
-            case "/chatgpt":
+            case "/gpt3":
                 $message = "/model gpt-3.5-turbo-1106";
                 break;
         }
 
         // The command /model shows the current model and allows to change it
-        $command_manager->add_command(array("/model", "/m", "/gpt4", "/chatgpt"), function($command, $model) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/model", "/m", "/gpt4", "/gpt3"), function($command, $model) use ($telegram, $user_config_manager) {
             $chat = $user_config_manager->get_config();
             if ($model == "") {
-                $telegram->send_message("You are currently talking to ".($chat->model).".\n\n"
+                $telegram->send_message("You are currently talking to `".($chat->model)."`.\n\n"
                 ."You can change the model by providing the model name after the /model command. Some models are:\n"
-                ."- `gpt-4`\n"
+                ."- `gpt-4-vision-preview` (default)\n"
                 ."- `gpt-4-1106-preview`\n"
                 ."- `gpt-3.5-turbo-1106`\n"
-                ."- `gpt-3.5-turbo`");
+                ."- `gpt-4`\n"
+                ."- `gpt-3.5-turbo`\n\n"
+                ."For pricing, see https://openai.com/pricing.");
             } else if ($chat->model == $model) {
-                $telegram->send_message("You are already talking to ".($chat->model).".");
+                $telegram->send_message("You are already talking to `".($chat->model)."`.");
             } else {
                 $chat->model = $model;
                 $user_config_manager->save_config($chat);
-                $telegram->send_message("You are now talking to ".($chat->model).".");
+                $telegram->send_message("You are now talking to `".($chat->model)."`.");
             }
         }, "Settings", "Model selection");
 
@@ -476,17 +503,20 @@ END:VTIMEZONE"))
         // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
         $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $_) use ($telegram, $user_config_manager) {
             $messages = $user_config_manager->get_config()->messages;
-            // Add the roles in the beginning of each message
-            $messages = array_map(function($message) {
-                return "/".$message->role." ".$message->content;
-            }, $messages);
+            // Check if there are messages
             if (count($messages) == 0) {
                 $telegram->send_message("There are no messages to dump.");
                 return;
             }
             // Send each message as a separate message
             foreach ($messages as $message) {
-                $telegram->send_message($message);
+                if (is_string($message->content))
+                    $telegram->send_message("/".$message->role." ".$message->content, null);
+                else {
+                    $image_url = $message->content[0]->image_url;
+                    $caption = $message->content[1]->text;
+                    $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, null);
+                }
             }
         }, "Misc", "Dump the messages in the chat history");
 
