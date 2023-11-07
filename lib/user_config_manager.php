@@ -43,6 +43,13 @@ class UserConfigManager {
     private $username;
     private $name;
 
+    static $default_config = array(
+        "model" => "gpt-4-vision-preview",
+        "temperature" => 0.9,
+        "max_tokens" => 4096,
+        "messages" => array(),
+    );
+
     /**
      * @param string $chat_id The chat ID
      * @param string $username The username of the user. Will only be used if the config is not yet created.
@@ -66,11 +73,7 @@ class UserConfigManager {
                 "username" => $this->username,
                 "name" => $this->name,
                 "intro" => "",
-                "config" => (object) array(
-                    "model" => "gpt-4",
-                    "temperature" => 0.7,
-                    "messages" => array(),
-                ),
+                "config" => (object) self::$default_config,
                 "sessions" => (object) array(),
             );
             $this->save(); // Keep this
@@ -113,7 +116,17 @@ class UserConfigManager {
      * @return void
      */
     public function save_config($config) {
-        $this->user_data->config = (object) $config;
+        // convert $config to object if it is an array
+        if (is_array($config)) {
+            $config = (object) $config;
+        }
+        // set default values if missing
+        foreach (self::$default_config as $key => $value) {
+            if (!isset($config->$key)) {
+                $config->$key = $value;
+            }
+        }
+        $this->user_data->config = $config;
         $this->save();
     }
 

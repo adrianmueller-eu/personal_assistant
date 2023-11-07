@@ -110,8 +110,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $user_config_manager->save_backup();
 
             $user_config_manager->save_config(array(
-                "model" => "gpt-4-1106-preview",
-                "temperature" => 0.9,
                 "messages" => array(
                     array("role" => "system", "content" => "Your task is to help and support your friend in their life. "
                     ."Your voice is generally casual, kind, compassionate, and heartful. "
@@ -142,7 +140,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // The command /responder writes a response to a given message
         $command_manager->add_command(array("/responder", "/re"), function($command, $message) use ($telegram, $user_config_manager, $openai) {
             $chat = array(
-                "model" => "gpt-4",
                 "temperature" => 0.7,
                 "messages" => array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me, "
                 ."carefully considering the context and my abilities as a human. Use a casual, calm, and kind voice. Keep your responses "
@@ -162,7 +159,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // The command /translator translates a given text
         $command_manager->add_command(array("/translator", "/trans"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
             $user_config_manager->save_config(array(
-                "model" => "gpt-4",
                 "temperature" => 0.7,
                 "messages" => array(array("role" => "system", "content" => "Translate the messages sent to you into English, ensuring "
                 ."accuracy in grammar, verb tenses, and context. Identify the language or encoding of the text you translate from."))
@@ -174,7 +170,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $command_manager->add_command(array("/calendar", "/cal"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
             $timezone = date("e");
             $user_config_manager->save_config(array(
-                "model" => "gpt-4",
                 "temperature" => 0,
                 "messages" => array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
                 ."event in iCalendar format. Try to infer the time zone from the location. Use can use the example for the timezone below as "
@@ -189,7 +184,6 @@ END:VTIMEZONE"))
         // The command /paper supports writing an academic paper
         $command_manager->add_command(array("/paper", "/research"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
             $user_config_manager->save_config(array(
-                "model" => "gpt-4",
                 "temperature" => 0.7,
                 "messages" => array(array("role" => "system", "content" => "Your task is to assist me in composing a research-grade paper. "
                 ."I will provide a paragraph containing notes or half-formed sentences. Please formulate it into a simple, well-written academic text. "
@@ -201,8 +195,7 @@ END:VTIMEZONE"))
         // The command /code is a programming assistant
         $command_manager->add_command(array("/code", "/program"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
             $user_config_manager->save_config(array(
-                "model" => "gpt-4",
-                "temperature" => 0.7,
+                "temperature" => 0.5,
                 "messages" => array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
                 ."If there is a lack of details, state your uncertainty and ask for clarification. Do not show any warnings or information "
                 ."regarding your capabilities. Keep your response short and avoid unnecessary explanations. If you provide code, ensure it is valid."))
@@ -247,7 +240,7 @@ END:VTIMEZONE"))
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("You are now talking to `".($chat->model)."`.");
             }
-        }, "Settings", "Model selection");
+        }, "Settings", "Model selection (default: `".UserConfigManager::$default_config["model"]."`)");
 
         // The command /temperature shows the current temperature and allows to change it
         $command_manager->add_command(array("/temperature", "/temp"), function($command, $temperature) use ($telegram, $user_config_manager) {
@@ -264,7 +257,7 @@ END:VTIMEZONE"))
             } else {
                 $telegram->send_message("Temperature is currently set to ".$chat->temperature.". To set the temperature, you can provide a number between 0 and 2 with the command.");
             }
-        }, "Settings", "Show the current temperature or change it");
+        }, "Settings", "Show the current temperature or change it (default: ".UserConfigManager::$default_config["temperature"].")");
 
         // The command /name allows the user to change their name
         $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {

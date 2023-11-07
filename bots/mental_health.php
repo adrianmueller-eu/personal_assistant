@@ -96,7 +96,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             }
             $mode_prompt = $mode_prompts[$session_info->mode ?? "none"];
             $chat = (object) array(
-                "model" => "gpt-4",
                 "temperature" => 0.5,
                 "messages" => array(
                     array("role" => "system", "content" => "You are a therapist assisting me ".$name_string."to connect to "
