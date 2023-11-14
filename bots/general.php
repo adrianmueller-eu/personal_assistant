@@ -131,7 +131,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $user_config_manager->add_message("system", $intro);
             }
             if ($show_message) {
-                $telegram->send_message("Hello, there! I am your personal assistant ❤️\n\nIf you want to know what I can do, type /help.");
+                $hello = $user_config_manager->hello();
+                $telegram->send_message($hello);
             }
         };
 

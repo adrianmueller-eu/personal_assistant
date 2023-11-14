@@ -73,6 +73,7 @@ class UserConfigManager {
                 "username" => $this->username,
                 "name" => $this->name,
                 "intro" => "",
+                "hellos" => array(),
                 "config" => (object) self::$default_config,
                 "sessions" => (object) array(),
             );
@@ -274,6 +275,37 @@ class UserConfigManager {
     public function set_intro($intro) {
         $this->user_data->intro = $intro;
         $this->save();
+    }
+
+    /**
+     * Get the hellos of the user.
+     *
+     * @return array The hellos of the user.
+     */
+    public function get_hellos() {
+        return $this->user_data->hellos;
+    }
+
+    /**
+     * Set the hellos of the user.
+     *
+     * @param array $hellos The hellos of the user.
+     */
+    public function set_hellos($hellos) {
+        $this->user_data->hellos = $hellos;
+        $this->save();
+    }
+
+    /**
+     * Return a random hello to the user.
+     */
+    public function hello() {
+        $hellos = $this->get_hellos();
+        if (count($hellos) == 0) {
+            return "Hi there, this is your personal assistant. How can I help you? Type /help to see what I can do.";
+        }
+        $index = rand(0, count($hellos) - 1);
+        return $hellos[$index];
     }
 }
 
