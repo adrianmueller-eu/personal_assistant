@@ -290,6 +290,38 @@ END:VTIMEZONE"))
             $telegram->send_message("Your intro message has been set to:\n\n".$message);
         }, "Settings", "Set your intro message");
 
+        // The command /hellos allows to read out or set the hello messages
+        $command_manager->add_command(array("/hellos"), function($command, $message) use ($telegram, $user_config_manager) {
+            if ($message == "") {
+                $hellos = $user_config_manager->get_hellos();
+                if (count($hellos) == 0) {
+                    $telegram->send_message("You have not set any hello messages yet. To set your hello messages, you can provide a list of messages with the command, from which one is drawn at random at every reset. Use \"/hellos reset\" to have no hello messages.");
+                } else {
+                    $message = "Your current hello messages are:\n\n";
+                    foreach ($hellos as $hello) {
+                        $message .= $hello."\n";
+                    }
+                    $message .= "\nYou can change your hello messages by providing a list of messages after the /hellos command. Use \"/hellos reset\" to have no hello messages.";
+                    $telegram->send_message($message);
+                }
+            }
+            // if message is "reset", reset the hellos
+            else if ($message == "reset") {
+                $user_config_manager->set_hellos(array());
+                $telegram->send_message("Your hello messages have been reset. You can set new hello messages by providing a list of messages after the /hellos command.");
+            }
+            // split $message by newlines and set the hellos
+            else {
+                $hellos = explode("\n", $message);
+                // Filter out empty strings
+                $hellos = array_filter($hellos, function($hello) {
+                    return $hello != "";
+                });
+                $user_config_manager->set_hellos($hellos);
+                $telegram->send_message("Your hello messages have been set to:\n\n".$message);
+            }
+        }, "Settings", "Set your hello messages");
+
         // ###############################
         // ### Chat history management ###
         // ###############################
