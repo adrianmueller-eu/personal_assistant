@@ -551,12 +551,19 @@ END:VTIMEZONE"))
         }, "Misc", "Dump the data saved in the permanent storage");
 
         // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
-        $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $_) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $n) use ($telegram, $user_config_manager) {
             $messages = $user_config_manager->get_config()->messages;
             // Check if there are messages
             if (count($messages) == 0) {
                 $telegram->send_message("There are no messages to dump.");
                 return;
+            }
+            // If a number is provided, only dump the last n messages
+            if (is_numeric($n)) {
+                $n = intval($n);
+                if ($n > 0) {
+                    $messages = array_slice($messages, -$n);
+                }
             }
             // Send each message as a separate message
             foreach ($messages as $message) {
@@ -568,7 +575,7 @@ END:VTIMEZONE"))
                     $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, null);
                 }
             }
-        }, "Misc", "Dump the messages in the chat history");
+        }, "Misc", "Dump all messages in the chat history. You can dump only the last n messages by providing a number with the command.");
 
         // The command /cnt outputs the number of messages in the chat history
         $command_manager->add_command(array("/cnt"), function($command, $_) use ($telegram, $user_config_manager) {
