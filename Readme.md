@@ -6,6 +6,7 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
 - [x] Connect to Telegram API and OpenAI API
 - [x] Store the chat history of the current session
 - [x] Admin commands for adding and removing users
+- [x] Enable sending images to the AI
 
 General bot
 - [x] Several presets for different use cases
@@ -13,11 +14,11 @@ General bot
 Mental health bot
 - [x] System prompt to have the bot interact in an emotionally attuned way
 - [x] Generate a profile for the user and update it after each session
+- [x] Provide different types of sessions (e.g. guided meditation, journaling, CBT, IFS, etc.) and allow the user to choose
 
 #### Ideas for the future 🔮
 - [ ] Use a database instead of files (the `chats` folder)
 - [ ] Use abstract classes to connect to different platforms (e.g. [Whatsapp](https://business.whatsapp.com/developers/developer-hub), [Discord](https://discord.com/developers/applications), [Matrix](https://matrix.org/faq/#bots), etc.) or to other AIs (any examples here would be outdated tomorrow)
-- [ ] Enable sending images to the AI
 - [ ] ASR and TTS
 
 General bot
@@ -26,7 +27,6 @@ General bot
 - [ ] Travel planning and booking
 
 Mental health bot
-- [ ] Provide different types of sessions (e.g. guided meditation, journaling, CBT, IFS, etc.) and allow the user to choose
 - [ ] Send reminders to the user to have a session
 - [ ] Provide a way to schedule sessions
 - [ ] Find a way to measure and track the user's progress (e.g. mood, stress, etc.)
