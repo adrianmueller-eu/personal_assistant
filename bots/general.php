@@ -140,12 +140,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
         // The command /responder writes a response to a given message
         $command_manager->add_command(array("/responder", "/re"), function($command, $message) use ($telegram, $user_config_manager, $openai) {
-            $chat = array(
-                "temperature" => 0.7,
-                "messages" => array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me, "
-                ."carefully considering the context and my abilities as a human. Use a casual, calm, and kind voice. Keep your responses "
-                ."concise and focus on understanding the message before responding."))
-            );
+            $chat = UserConfigManager::$default_config;
+            $chat["temperature"] = 0.7;
+            $chat["messages"] = array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me, "
+                    ."carefully considering the context and my abilities as a human. Use a casual, calm, and kind voice. Keep your responses "
+                    ."concise and focus on understanding the message before responding."));
             // If the message is not empty, process the request one-time without saving the config
             if ($message != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $message);
