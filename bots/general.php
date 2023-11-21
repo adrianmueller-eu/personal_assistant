@@ -203,6 +203,32 @@ END:VTIMEZONE"))
             $telegram->send_message("Chat history reset. I will support you in writing code.");
         }, "Presets", "Programming assistant");
 
+        // The command /anki adds a command to create an Anki flashcard from the previous text
+        $command_manager->add_command(array("/anki"), function($command, $topic) use ($telegram, $user_config_manager, $openai) {
+            // Prompt the model to write an Anki flashcard
+            $prompt = "Your task is to write an Anki flashcard. Provide a concise summary with highlights of key words or phrases. "
+                      ."Use HTML, but write it in one line (since Anki automatically converts newlines into <br> tags) and avoid <div> tags."
+                      ."Use <b> tags for bold text and <i> tags for italic text. Use lists if appropriate.";
+            $user_config_manager->add_message("system", $prompt);
+            // Create a prompt on behalf of the user
+            if ($topic == "") {
+                $user_message = "Please create an Anki card of this.";
+            } else {
+                $user_message = "Please create an Anki card about ".$topic.".";
+            }
+            $user_config_manager->add_message("user", $user_message);
+            $telegram->send_message("/user ".$user_message);
+            // Request a response from the model
+            $response = $openai->gpt($user_config_manager->get_config());
+            $telegram->send_message($response);
+            // // Remove the system prompt from the chat history
+            // $user_config_manager->delete_messages(2);
+            // $user_config_manager->add_message("user", $user_message);
+            if (substr($response, 0, 7) != "Error: ") {
+                $user_config_manager->add_message("assistant", $response);
+            }
+        }, "Presets", "Request an Anki flashcard. You can provide a topic after the command to clarify the topic.");
+
 
         // TODO !!! Add more presets here !!!
 
