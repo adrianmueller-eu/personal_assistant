@@ -82,15 +82,22 @@ class CommandManager {
      */
     public function run_command($message) {
         $message = trim($message);
+        # split at whitespace
         $message = explode(" ", $message, 2);
         $command = $message[0];
         $argument = isset($message[1]) ? $message[1] : "";
+        # split at newline
+        $command = explode("\n", $command, 2);
+        if (isset($command[1])) {
+            $argument = $command[1]." ".$argument;
+        }
+        $command = $command[0];
         foreach ($this->commands as $command_info) {
             if (in_array($command, $command_info["alternatives"])) {
                 return $command_info["function"]($command, $argument);
             }
         }
-        return "Command not found. Type /help to see the list of available commands.";
+        return "Command \"".$command."\" not found. Type /help to see the list of available commands.";
     }
 
     /**
