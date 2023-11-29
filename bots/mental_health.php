@@ -15,11 +15,30 @@
  * @return void
  */
 function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, $global_config_manager, $is_admin, $DEBUG) {
-    if (!isset($update->text)) {
-        $telegram->send_message("Sorry, for now I can only read text messages.");
+    if (isset($update->text)) {
+        $message = $update->text;
+    }
+    else if (isset($update->voice)) {
+        // 1. Get the file content from file_id with $telegram->get_file
+        $file_id = $update->voice->file_id;
+        $file = $telegram->get_file($file_id);
+        if ($file == null) {
+            $telegram->send_message("Error: Could not get the file from Telegram. Please try again.");
+            exit;
+        }
+
+        // 2. Transcribe with $openai->whisper
+        $message = $openai->whisper($file);
+
+        // 3. Add the transcription to the chat history
+        if (substr($message, 0, 7) == "Error: ") {
+            $telegram->send_message($message, null);
+            exit;
+        }
+    } else {
+        $telegram->send_message("Sorry, for now I can only read text messages and listen to voice messages.");
         exit;
     }
-    $message = $update->text;
 
     // If starts with "." or "\", it's probably a typo for a command
     if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
@@ -41,11 +60,12 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             "last_session_start" => null,
             "cnt" => 0,
             "mode" => "none",
+            "voice_mode" => false
         );
         $user_config_manager->save_session_info("session", $session_info);
     }
     // If there is no session running, start one
-    if (substr($message, 0, 1) != "/" && ($session_info->running == false)) {
+    if (substr($message, 0, 1) != "/" && $session_info->running == false) {
         // Add message to chat history
         $user_config_manager->add_message("user", $message);
         $message = "/start";
@@ -64,6 +84,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             "CBT" => "You are also familiar with Cognitive Behavioral Therapy (CBT) and use it to guide the process. ",
             "ACT" => "You are also familiar with Acceptance and Commitment Therapy (ACT) and use it to guide the process. ",
             "DBT" => "You are also familiar with Dialectical Behavior Therapy (DBT) and use it to guide the process. ",
+            "EFT" => "You are also familiar with Emotionally Focused Therapy (EFT) and use it to guide the process. ",
             "psychodynamic" => "You are also familiar with psychodynamic therapy and use it to guide the process. ",
             "somatic" => "You are also familiar with somatic therapy and might use it to guide the process. ",
             "meditation" => "Your main method is mindfulness meditation to guide the client to a calmer place. ",
@@ -75,7 +96,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // If there is a session running, don't start a new one
             if ($session_info->running === true) {
                 $telegram->send_message("You are already in a session. Please /end the session first to start a new one.");
-                return;
+                exit;
             }
             $session_info->running = true;
             $session_info->this_session_start = time();
@@ -96,7 +117,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             }
             $mode_prompt = $mode_prompts[$session_info->mode ?? "none"];
             $chat = (object) array(
+                "model" => "gpt-4-vision-preview",
                 "temperature" => 0.5,
+                "max_tokens" => 4096,
                 "messages" => array(
                     array("role" => "system", "content" => "You are a therapist assisting me ".$name_string."to connect to "
                     ."myself and heal. Show empathy and compassion by acknowledging and validating my feelings. Your primary "
@@ -115,26 +138,16 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $chat->messages[] = array("role" => "system", "content" => "For your own reference, here is the profile you previously wrote after "
                 ."the last session (".$time_passed." ago) as a basis for this session:\n\n".$profile);
             }
-            // If there is already a chat history, append them to the new messages
+            // If there is already a chat history, append them to the new messages (i.e. have the system messages at the beginning)
             $prev_chat = $user_config_manager->get_config();
             if (isset($prev_chat->messages)) {
                 $chat->messages = array_merge($chat->messages, $prev_chat->messages);
             }
-            // Request an opening message, because it is nice and invites sharing :)
-            $initial_response = $openai->gpt($chat);
-            $telegram->send_message($initial_response);
-            // Save gpt's response to the chat history, except if it starts with "Error: "
-            if (substr($initial_response, 0, 7) != "Error: ") {
-                $chat->messages = array_merge($chat->messages, array(
-                    array("role" => "assistant", "content" => $initial_response)
-                ));
-
-                $user_config_manager->save_config($chat);
-                $user_config_manager->save_session_info("session", $session_info);
-            }
-            // else {
-            //     $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /start.");
-            // }
+            // Save the chat history
+            $user_config_manager->save_config($chat);
+            // Save the session info
+            $user_config_manager->save_session_info("session", $session_info);
+            // No exit here to generate an initial response
         }, "Mental health", "Start a new session");
 
         // The command /end ends the current session
@@ -206,6 +219,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $user_config_manager->save_config($chat);
             $user_config_manager->save_session_info("session", $session_info);
             $telegram->send_message("Session ended. Thank you for being with me today.");
+            exit;
         }, "Mental health", "End the current session");
 
         // The command /profile shows the profile of the user
@@ -222,6 +236,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $date = date("d.m.y g:ia", $session_info->last_session_start);
                 $telegram->send_message("Here is your current profile (created ".$date."):\n\n".$session_info->profile);
             }
+            exit;
         }, "Mental health", "Show your profile");
 
         // The command /mode allows the user to change the mode
@@ -245,6 +260,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $user_config_manager->save_session_info("session", $session_info);
                 $telegram->send_message("Your mode has been set to ".$mode.".");
             }
+            exit;
         }, "Settings", "Show or set the current method");
 
         // The command /name allows the user to change their name
@@ -259,6 +275,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $user_config_manager->set_name($name);
                 $telegram->send_message("Your name has been set to ".$name.".");
             }
+            exit;
         }, "Settings", "Show or set your name");
 
         // The command /reset deletes the current configuration
@@ -266,7 +283,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // Check if $confirmation is "yes"
             if ($confirmation != "yes") {
                 $telegram->send_message("Please confirm deleting your profile and all other data with \"/reset yes\". Afterwards, this can be undone with /restore unless a new session is started after which the backup is overwritten and the current state can't be recovered.");
-                return;
+                exit;
             }
 
             $file_path = $user_config_manager->get_file();
@@ -275,6 +292,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             unlink($file_path); // Delete the file to create the default config on next message
 
             $telegram->send_message("Your configuration has been reset to the default settings. You can start a new session with /start.");
+            exit;
         }, "Settings", "Reset your configuration");
 
         // Command /restore restores the config from the backup file
@@ -282,7 +300,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // Check if $confirmation is "yes"
             if ($confirmation != "yes") {
                 $telegram->send_message("Please confirm with \"/restore yes\". This can't be undone.");
-                return;
+                exit;
             }
 
             // Restore the backup
@@ -293,9 +311,42 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $telegram->send_message("There is no backup to restore. Please start a new session with /start.");
                 }
             } catch (Exception $e) {
-                $telegram->send_message("Error in reading backup file: ".$e->getMessage());
+                $telegram->send_message("Error in reading backup file: ".$e->getMessage(), null);
             }
+            exit;
         }, "Settings", "Restore the config from the backup file");
+
+        // The command /voice requests a text-to-speech conversion from the model
+        $command_manager->add_command(array("/voice"), function($command, $arg) use ($telegram, $user_config_manager) {
+            // Check if voice mode is active
+            $session_info = $user_config_manager->get_session_info("session");
+            if (!isset($session_info->voice_mode)) {
+                $session_info->voice_mode = false;
+                $user_config_manager->save_session_info("session", $session_info);
+            }
+            if ($session_info->voice_mode == false) {
+                // Turn on voice mode
+                $session_info->voice_mode = true;
+                $user_config_manager->save_session_info("session", $session_info);
+                $telegram->send_message("Voice mode is now active. I will send my responses as voice messages. To turn it off, simply write /voice again.");
+            } else {
+                // Turn off voice mode
+                $session_info->voice_mode = false;
+                $user_config_manager->save_session_info("session", $session_info);
+                $telegram->send_message("Voice mode is now inactive. I will send my responses as text messages. To turn it on, simply write /voice again.");
+            }
+            exit;
+        }, "Settings", "Toggle voice mode");
+
+        // The command /c allows to request another response from the model
+        $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $openai, $user_config_manager, $DEBUG) {
+            // Check if session is running
+            $session_info = $user_config_manager->get_session_info("session");
+            if ($session_info->running == false) {
+                $telegram->send_message("Please start a new session with /start first.");
+                exit;
+            }
+        }, "Misc", "Request another response from the model");
 
         if ($is_admin) {
             // #######################
@@ -306,37 +357,39 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $command_manager->add_command(array("/adduser"), function($command, $username) use ($telegram, $global_config_manager) {
                 if ($username == "" || $username[0] != "@") {
                     $telegram->send_message("Please provide a username to add.");
-                    return;
+                    exit;
                 }
                 $username = substr($username, 1);
                 if ($global_config_manager->is_allowed_user($username, "general")) {
                     $telegram->send_message("User @".$username." is already in the list of authorized users.");
-                    return;
+                    exit;
                 }
                 $global_config_manager->add_allowed_user($username, "general");
                 $telegram->send_message("Added user @".$username." to the list of authorized users.");
+                exit;
             }, "Admin", "Add a user to access the bot");
 
             // The command /removeuser removes a user from the list of authorized users
             $command_manager->add_command(array("/removeuser"), function($command, $username) use ($telegram, $global_config_manager) {
                 if ($username == "") {
                     $telegram->send_message("Please provide a username to remove.");
-                    return;
+                    exit;
                 }
                 if ($username[0] == "@") {
                     $username = substr($username, 1);
                 }
                 if (!$global_config_manager->is_allowed_user($username, "general")) {
                     $telegram->send_message("User @".$username." is not in the list of authorized users.");
-                    return;
+                    exit;
                 }
                 try {
                     $global_config_manager->remove_allowed_user($username, "general");
                 } catch (Exception $e) {
-                    $telegram->send_message("Error: ".json_encode($e));
-                    return;
+                    $telegram->send_message("Error: ".json_encode($e), null);
+                    exit;
                 }
                 $telegram->send_message("Removed user @".$username." from the list of authorized users.");
+                exit;
             }, "Admin", "Remove a user from access to the bot");
 
             // The command /listusers lists all users authorized, by category
@@ -355,30 +408,43 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     }
                 }
                 $telegram->send_message($message);
+                exit;
             }, "Admin", "List all users authorized, by category");
 
             // Command /cnt outputs the number of messages in the chat history
             $command_manager->add_command(array("/cnt"), function($command, $_) use ($telegram, $user_config_manager) {
                 $chat = $user_config_manager->get_config();
                 $telegram->send_message("There are ".count($chat->messages)." messages in the chat history.");
+                exit;
             }, "Admin", "Output the number of messages in the chat history");
 
             // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
-            $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $_) use ($telegram, $user_config_manager) {
+            $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $n) use ($telegram, $user_config_manager) {
                 $messages = $user_config_manager->get_config()->messages;
-                // Add the roles in the beginning of each message
-                $messages = array_map(function($message) {
-                    return "/".$message->role." ".$message->content;
-                }, $messages);
+                // Check if there are messages
                 if (count($messages) == 0) {
                     $telegram->send_message("There are no messages to dump.");
-                    return;
+                    exit;
+                }
+                // If a number is provided, only dump the last n messages
+                if (is_numeric($n)) {
+                    $n = intval($n);
+                    if ($n > 0) {
+                        $messages = array_slice($messages, -$n);
+                    }
                 }
                 // Send each message as a separate message
                 foreach ($messages as $message) {
-                    $telegram->send_message($message);
+                    if (is_string($message->content))
+                        $telegram->send_message("/".$message->role." ".$message->content, null);
+                    else {
+                        $image_url = $message->content[0]->image_url;
+                        $caption = $message->content[1]->text;
+                        $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, null);
+                    }
                 }
-            }, "Misc", "Dump the messages in the chat history");
+                exit;
+            }, "Admin", "Dump all messages in the chat history. You can dump only the last n messages by providing a number with the command.");
 
             // Command /showcase (with optional parameter $name) let's the admin showcase the bot
             $command_manager->add_command(array("/showcase"), function($command, $name) use ($telegram, $user_config_manager, $username) {
@@ -403,6 +469,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name);
                     $telegram->send_message("Showcase prepared. Please send /start to start the showcase and \"/showcase end\" to end it.");
                 }
+                exit;
             }, "Admin", "Showcase the bot. Use \"/showcase <name>\" to specify a name, and \"/showcase end\" to end it.");
 
 
@@ -426,29 +493,57 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 } else {
                     $telegram->send_message("Unknown argument: ".$arg);
                 }
+                exit;
             }, "Admin", "Job management. Use \"/jobs on\" to turn on all jobs or \"/jobs off\" to turn off all jobs. No argument lists all jobs.");
         }
 
         $response = $command_manager->run_command($message);
-        if ($response != "") {
+        // Help command doesn't have access to the telegram object
+        // But some commands need to request a response from the model
+        // So, request a response only if the command doesn't return anything
+        if (is_string($response) && $response != "") {
             $telegram->send_message($response);
+            exit;
         }
-        exit;
+    } else {  // If the message is not a command
+        $user_config_manager->add_message("user", $message);
     }
 
-    $user_config_manager->add_message("user", $message);
-    // $telegram->send_message("Sending message to OpenAI: ".$message);
     $chat = $user_config_manager->get_config();
     $response = $openai->gpt($chat);
 
     // Append GPT's response to the messages array, except if it starts with "Error: "
     if (substr($response, 0, 7) != "Error: ") {
         $user_config_manager->add_message("assistant", $response);
-        $telegram->send_message($response);
+
+        // Check if voice mode is active
+        $session_info = $user_config_manager->get_session_info("session");
+        if ($session_info->voice_mode == true) {
+            // Generate the voice message
+            $tts_config = $user_config_manager->get_tts_config();
+            $audio_data = $openai->tts($response, $tts_config->model, $tts_config->voice, $tts_config->speed, response_format: "opus");  // telegram only supports opus
+            if ($audio_data == "") {
+                $telegram->send_message("WTF-Error: Could not generate audio. Please try again later.");
+                exit;
+            }
+            // if audio_url starts with "Error: "
+            if (substr($audio_data, 0, 7) == "Error: ") {
+                $error_message = $audio_data;
+                $telegram->send_message($error_message, null);
+                exit;
+            }
+            if ($DEBUG) {
+                $telegram->send_message("Generated an audio of length ".strlen($audio_data)." bytes.");
+            }
+            $telegram->send_voice($audio_data);
+        } else {
+            // Send the response as text message
+            $telegram->send_message($response);
+        }
     }
     else {
-        $user_config_manager->delete_messages(1);
-        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please send me your last message again.");
+        $telegram->send_message("Error: ".$response, null);
+        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please write /c to try again.");
     }
 }
 

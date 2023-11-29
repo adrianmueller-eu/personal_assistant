@@ -50,6 +50,12 @@ class UserConfigManager {
         "messages" => array(),
     );
 
+    static $default_tts_config = array(
+        "model" => "tts-1",
+        "voice" => "shimmer",
+        "speed" => 1.0
+    );
+
     /**
      * @param string $chat_id The chat ID
      * @param string $username The username of the user. Will only be used if the config is not yet created.
@@ -76,6 +82,7 @@ class UserConfigManager {
                 "hellos" => array(),
                 "config" => (object) self::$default_config,
                 "sessions" => (object) array(),
+                "tts_config" => (object) self::$default_tts_config
             );
             $this->save(); // Keep this
         } else {
@@ -310,6 +317,21 @@ class UserConfigManager {
         }
         $index = rand(0, count($hellos) - 1);
         return $hellos[$index];
+    }
+
+    /**
+     * Get the text-to-speech (TTS) config of the user.
+     */
+    public function get_tts_config() {
+        return $this->user_data->tts_config;
+    }
+
+    /**
+     * Set the text-to-speech (TTS) config of the user.
+     */
+    public function save_tts_config($tts_config) {
+        $this->user_data->tts_config = $tts_config;
+        $this->save();
     }
 }
 

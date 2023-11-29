@@ -111,6 +111,7 @@ class OpenAI {
      * @param string $model One of the available TTS models: `tts-1` or `tts-1-hd`
      * @param string $voice The voice to use when generating the audio. Supported voices are `alloy`, `echo`, `fable`, `onyx`, `nova`, and `shimmer`.
      * @param float $speed The speed at which to speak the text. The supported range of values is `[0.25, 4]`. Defaults to `1.0`.
+     * @param string $response_format The format of the returned audio. Supported values are `mp3`, `ogg`, and `wav`. Defaults to `ogg`.
      */
     public function tts($message, $model = "tts-1-hd", $voice = "nova", $speed = 1.0, $response_format = "opus") {
         $data = array(
