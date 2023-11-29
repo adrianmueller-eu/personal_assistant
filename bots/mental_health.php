@@ -404,6 +404,29 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $telegram->send_message("Showcase prepared. Please send /start to start the showcase and \"/showcase end\" to end it.");
                 }
             }, "Admin", "Showcase the bot. Use \"/showcase <name>\" to specify a name, and \"/showcase end\" to end it.");
+
+
+            // The command /jobs lists all jobs
+            $command_manager->add_command(array("/jobs"), function($command, $arg) use ($telegram, $global_config_manager) {
+                $jobs = $global_config_manager->get_jobs();
+                if ($arg == "on" || $arg == "off") {
+                    // Set all jobs to active or inactive
+                    foreach ($jobs as $job) {
+                        $job->status = "active" ? $arg == "on" : "inactive";
+                    }
+                    $global_config_manager->save_jobs($jobs);
+                    $telegram->send_message("All jobs successfully set \"".$arg."\".");
+                } else if ($arg == "") {
+                    // List all jobs
+                    $message = "List of jobs:";
+                    foreach ($jobs as $job) {
+                        $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT);
+                    }
+                    $telegram->send_message($message, null);
+                } else {
+                    $telegram->send_message("Unknown argument: ".$arg);
+                }
+            }, "Admin", "Job management. Use \"/jobs on\" to turn on all jobs or \"/jobs off\" to turn off all jobs. No argument lists all jobs.");
         }
 
         $response = $command_manager->run_command($message);

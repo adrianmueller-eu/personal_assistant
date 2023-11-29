@@ -134,6 +134,26 @@ class GlobalConfigManager {
     public function get_categories() {
         return array_keys((array) $this->global_config->users);
     }
+
+    /**
+     * Get the list of jobs.
+     * 
+     * @return array The list of jobs.
+     */
+    public function get_jobs() {
+        return $this->global_config->jobs;
+    }
+
+    /**
+     * Save the list of jobs.
+     * 
+     * @param array $jobs The list of jobs.
+     */
+    public function save_jobs($jobs) {
+        $this->global_config->jobs = $jobs;
+        $this->save();
+    }
+
 }
 
 ?>

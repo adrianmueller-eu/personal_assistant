@@ -495,6 +495,28 @@ END:VTIMEZONE"))
                 }
                 $telegram->send_message($message);
             }, "Admin", "List all users authorized, by category");
+
+            // The command /jobs lists all jobs
+            $command_manager->add_command(array("/jobs"), function($command, $arg) use ($telegram, $global_config_manager) {
+                $jobs = $global_config_manager->get_jobs();
+                if ($arg == "on" || $arg == "off") {
+                    // Set all jobs to active or inactive
+                    foreach ($jobs as $job) {
+                        $job->status = "active" ? $arg == "on" : "inactive";
+                    }
+                    $global_config_manager->save_jobs($jobs);
+                    $telegram->send_message("All jobs successfully set \"".$arg."\".");
+                } else if ($arg == "") {
+                    // List all jobs
+                    $message = "List of jobs:";
+                    foreach ($jobs as $job) {
+                        $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT);
+                    }
+                    $telegram->send_message($message, null);
+                } else {
+                    $telegram->send_message("Unknown argument: ".$arg);
+                }
+            }, "Admin", "Job management. Use \"/jobs on\" to turn on all jobs or \"/jobs off\" to turn off all jobs. No argument lists all jobs.");
         }
 
         // ######################
