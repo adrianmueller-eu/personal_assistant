@@ -111,7 +111,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
             $user_config_manager->save_config(array(
                 "messages" => array(
-                    array("role" => "system", "content" => "Your task is to help and support your friend in their life. "
+                    array("role" => "system", "content" => "Your task is to help and support your friend in their life. "  # ".$user_config_manager->get_name()."  
                     ."Your voice is generally casual, kind, compassionate, and heartful. "
                     ."Keep your responses concise and compact. "
                     ."Don't draw conclusions before you've finished your reasoning and think carefully about the correctness of your answers. "
