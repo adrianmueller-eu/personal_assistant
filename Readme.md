@@ -9,6 +9,7 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
 - [x] Sending images to the AI
 - [x] Requesting images from the AI (using DALLE)
 - [x] ASR and TTS
+- [x] Sending reminders to the user (using Cron)
 
 General bot
 - [x] Several presets for different use cases
@@ -28,7 +29,6 @@ General bot
 - [ ] Travel planning and booking
 
 Mental health bot
-- [ ] Send reminders to the user to have a session
 - [ ] Provide a way to schedule sessions
 - [ ] Find a way to measure and track the user's progress (e.g. mood, stress, etc.)
 - [ ] Forward to social workers or an actual therapist (e.g. some database (?) that can be searched by location, specializations, etc.)
