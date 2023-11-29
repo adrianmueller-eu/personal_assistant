@@ -141,6 +141,9 @@ class UserConfigManager {
      */
     public function add_message($role, $content) {
         // Ignore empty messages
+        if ($content == null) {
+            return;
+        }
         if (is_string($content) && trim($content) === "") {
             return;
         }

@@ -126,17 +126,40 @@ class OpenAI {
     }
 
     /**
+     * Send a request to the OpenAI API to transcribe an audio file.
+     * 
+     * @param string $audio The audio file to transcribe.
+     * @param string $model The model to use for the transcription. Currently only `whisper-1`.
+     * @param string $language The language of the audio file. Supplying the input language in ISO-639-1 format will improve accuracy and latency.
+     * @return string The transcription of the audio file or an error message (starts with "Error: ").
+     */
+    public function whisper($audio, $model = "whisper-1", $language = "en") {
+        $data = array(
+            "model" => $model,
+            "language" => $language,
+        );
+        $response = $this->send_request("audio/transcriptions", $data, "file", "audio.ogg", $audio);
+        if (isset($response->text)) {
+            return $response->text;
+        }
+        return $response;
+    }
+
+    /**
      * Send a request to the OpenAI API.
      * 
      * @param string $endpoint The endpoint to send the request to.
      * @param object|array $data The data to send.
+     * @param string $field_name (optional) The name of the field with the file content.
+     * @param string $file_name (optional) The name of the file to send.
+     * @param string $file_content (optional) The content of the file to send.
      * @return object|string The response object from the API or an error message (starts with "Error: ").
      */
-    private function send_request($endpoint, $data) {
+    private function send_request($endpoint, $data, $field_name = null, $file_name = null, $file_content = null) {
         $url = "https://api.openai.com/v1/".$endpoint;
         $headers = array('Authorization: Bearer '.$this->api_key);
 
-        $response = curl_post($url, $data, $headers);
+        $response = curl_post($url, $data, $headers, $field_name, $file_name, $file_content);
         if ($this->DEBUG) {
             $response_log = json_encode($response);
             if (strlen($response_log) > 10000) {

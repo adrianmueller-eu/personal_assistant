@@ -224,6 +224,20 @@ class Telegram {
     }
 
     /**
+     * Get the file content from a Telegram file ID.
+     * 
+     * @param string $file_id The file ID
+     * @return string|null The file content or null if there was an error.
+     */
+    public function get_file($file_id) {
+        $file_url = $this->get_file_url($file_id);
+        if ($file_url == null) {
+            return null;
+        }
+        return file_get_contents($file_url);
+    }
+
+    /**
      * Get the chat ID.
      * 
      * @return string The chat ID.
