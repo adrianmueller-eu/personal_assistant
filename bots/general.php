@@ -566,6 +566,27 @@ END:VTIMEZONE"))
             $telegram->send_image($image_url, $prompt);
         }, "Misc", "Request an image. If the prompt starts with `dalle2` or `dalle3`, use the corresponding model (default: `dalle2`). If the prompt is a URL, show that picture instead of generating a one.");
 
+        // The command /tts requests a text-to-speech conversion from the model
+        $command_manager->add_command(array("/tts"), function($command, $prompt) use ($telegram, $openai) {
+            if ($prompt == "") {
+                $telegram->send_message("Please provide a prompt with command ".$command.".");
+                exit;
+            }
+            $audio_data = $openai->tts($prompt, response_format: "opus");  // telegram only supports opus
+            if ($audio_data == "") {
+                $telegram->send_message("WTF-Error: Could not generate audio. Please try again later.");
+                exit;
+            }
+            // if audio_url starts with "Error: "
+            if (substr($audio_data, 0, 7) == "Error: ") {
+                $error_message = $audio_data;
+                $telegram->send_message($error_message);
+                exit;
+            }
+            $telegram->send_message("Generated an audio of length ".strlen($audio_data)." bytes.");
+            $telegram->send_voice($audio_data);
+        }, "Misc", "Request a text-to-speech conversion");
+
         // The command /dump outputs the content of the permanent storage
         $command_manager->add_command(array("/dump", "/d"), function($command, $_) use ($telegram, $user_config_manager) {
             $file = $user_config_manager->get_file();

@@ -105,6 +105,27 @@ class OpenAI {
     }
 
     /**
+     * Send a request to the OpenAI API to generate a text-to-speech audio file.
+     * 
+     * @param string $message The message to generate audio for.
+     * @param string $model One of the available TTS models: `tts-1` or `tts-1-hd`
+     * @param string $voice The voice to use when generating the audio. Supported voices are `alloy`, `echo`, `fable`, `onyx`, `nova`, and `shimmer`.
+     * @param float $speed The speed at which to speak the text. The supported range of values is `[0.25, 4]`. Defaults to `1.0`.
+     */
+    public function tts($message, $model = "tts-1-hd", $voice = "nova", $speed = 1.0, $response_format = "opus") {
+        $data = array(
+            "model" => $model,
+            "input" => $message,
+            "voice" => $voice,
+            "speed" => $speed,
+            "response_format" => $response_format
+        );
+        $response = $this->send_request("audio/speech", $data);
+        Log::info("TTS of ".$message." with model ".$model." and voice ".$voice." at speed ".$speed." returned a response of length ".strlen($response));
+        return $response;
+    }
+
+    /**
      * Send a request to the OpenAI API.
      * 
      * @param string $endpoint The endpoint to send the request to.
@@ -117,11 +138,15 @@ class OpenAI {
 
         $response = curl_post($url, $data, $headers);
         if ($this->DEBUG) {
+            $response_log = json_encode($response);
+            if (strlen($response_log) > 10000) {
+                $response_log = substr($response_log, 0, 10000)."...";
+            }
             Log::debug(array(
                 "interface" => "openai",
                 "endpoint" => $endpoint,
                 "data" => $data,
-                "response" => $response,
+                "response" => $response_log,
             ));
         }
 

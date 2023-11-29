@@ -1,19 +1,20 @@
 <?php
 
 /**
- * This function is a generic wrapper for cURL POST requests.
+ * This function is a generic wrapper for cURL POST requests. To send a file, set $field_name, $file_name, *and* $file_content.
  * 
  * @param string $url The URL to send the request to
  * @param object|array $data Data
  * @param array $headers (optional) Headers
+ * @param string $field_name (optional) The name of the field
  * @param string $file_name (optional) The name of the file
  * @param string $file_content (optional) The content of the file
  * @return object|string The response from the API or an error message
  */
-function curl_post($url, $data, $headers = array(), $file_name = null, $file_content = null) {
-    if ($file_name != null && $file_content != null) {
+function curl_post($url, $data, $headers = array(), $field_name = null, $file_name = null, $file_content = null) {
+    if ($field_name != null && $file_name != null && $file_content != null) {
         $boundary = '-------------' . uniqid();
-        $data = build_data_files($boundary, $data, $file_name, $file_content);
+        $data = build_data_files($boundary, $data, $field_name, $file_name, $file_content);
         $headers = array_merge($headers, array(
             "Content-Type: multipart/form-data; boundary=" . $boundary,
             "Content-Length: " . strlen($data)
@@ -40,7 +41,7 @@ function curl_post($url, $data, $headers = array(), $file_name = null, $file_con
     }
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $response = json_decode($server_output, false);
-    if ($http_code != 200 || !$response){
+    if ($http_code != 200 || $server_output === false) {
         if (isset($response->description)) {
             return "Error: (http: ".$http_code.") ".$response->description;
         }
@@ -52,12 +53,15 @@ function curl_post($url, $data, $headers = array(), $file_name = null, $file_con
             return 'Error: No response from '.$domain;
         }
     }
-
+    // if server_output is not a valid JSON string, return it as is
+    if ($response === null) {
+        return $server_output;
+    }
     return $response;
 }
 
 // Thanks to https://stackoverflow.com/questions/17862004/send-file-using-multipart-form-data-request-in-php
-function build_data_files($boundary, $fields, $file_name, $file_content){
+function build_data_files($boundary, $fields, $field_name, $file_name, $file_content){
     $data = '';
     $eol = "\r\n";
 
@@ -68,7 +72,7 @@ function build_data_files($boundary, $fields, $file_name, $file_content){
     }
 
     $data .= "--" . $boundary . $eol
-        . 'Content-Disposition: form-data; name="' . "document" . '"; filename="' . $file_name . '"' . $eol
+        . 'Content-Disposition: form-data; name="' . $field_name . '"; filename="' . $file_name . '"' . $eol
         //. 'Content-Type: image/png'.$eol
         . 'Content-Transfer-Encoding: binary'.$eol;
     $data .= $eol;

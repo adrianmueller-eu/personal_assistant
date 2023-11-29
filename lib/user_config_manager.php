@@ -90,6 +90,7 @@ class UserConfigManager {
                 http_response_code(500);
                 throw new Exception($error);
             }
+            $this->username = $this->user_data->username;
             $this->name = $this->user_data->name;
         }
     }

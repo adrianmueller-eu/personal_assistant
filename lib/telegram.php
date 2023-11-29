@@ -34,19 +34,20 @@ class Telegram {
     }
 
     /**
-     * Generic function to send a request to the Telegram API.
+     * Generic function to send a POST request to the Telegram API. To send a file, set $field_name, $file_name, *and* $file_content.
      * 
      * @param string $endpoint The endpoint to send the request to.
      * @param object|array $data The data to send to the Telegram API.
      * @param array $headers (optional) The headers to send to the Telegram API.
+     * @param string $field_name (optional) The name of the field with the file content.
      * @param string $file_name (optional) The name of the file to send to the Telegram API.
      * @param string $file_content (optional) The content of the file to send to the Telegram API.
      * @return object|null The response from the Telegram API or null if there was an error.
      */
-    private function send($endpoint, $data, $headers = array(), $file_name = null, $file_content = null) {
+    private function send($endpoint, $data, $headers = array(), $field_name = null, $file_name = null, $file_content = null) {
         $url = "https://api.telegram.org/bot".$this->telegram_token."/".$endpoint;
 
-        $server_output = curl_post($url, $data, $headers, $file_name, $file_content);
+        $server_output = curl_post($url, $data, $headers, $field_name, $file_name, $file_content);
         // DEBUG endpoint, data, server_output, and optionally file_name and file_content
         if ($this->DEBUG) {
             if ($file_name != null) {
@@ -192,7 +193,18 @@ class Telegram {
     public function send_document($file_name, $file_content) {
         $this->send("sendDocument", array(
             "chat_id" => $this->chat_id
-        ), array(), $file_name, $file_content);
+        ), array(), "document", $file_name, $file_content);
+    }
+
+    /**
+     * Send a voice message to Telegram. The file name must be in an .OGG file encoded with OPUS.
+     * 
+     * @param string $ogg_content The content of the OGG file.
+     */
+    public function send_voice($ogg_content) {
+        $this->send("sendVoice", array(
+            "chat_id" => $this->chat_id
+        ), array(), "voice", "audio.ogg", $ogg_content);
     }
 
     /**
