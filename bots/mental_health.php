@@ -71,7 +71,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $message = substr($message, 0, 100)."...";
             }
             if ($user_config_manager->get_lang() == "de") {
-                $telegram->send_message("Meintest du den Befehl /".substr($message, 1)." ? Wenn nicht, schreibe den ersten Buchstaben mit '\\' davor.");
+                $telegram->send_message("Meintest du den Befehl /".substr($message, 1)." ? Wenn nicht, schreibe '\\' vor das erste Zeichen.");
             } else {
                 $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
             }
@@ -110,13 +110,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // Dictionary of prompts for each mode, e.g. "IFS" => "You are also familiar with Internal Family Systems (IFS) and might use it to guide the process. "
         if ($user_config_manager->get_lang() == "de") {
             $mode_prompts = array(
-                "IFS" => "Du bist auch mit Internal Family Systems (IFS) vertraut und verwendest es möglicherweise implizit, um den Prozess zu leiten. ",
+                "IFS" => "Du bist auch mit Internal Family Systems (IFS) vertraut und verwendest es implizit, um den Prozess zu leiten. ",
                 "CBT" => "Du bist auch mit Kognitive Verhaltenstherapie (KVT) vertraut und verwendest es, um den Prozess zu leiten. ",
                 "ACT" => "Du bist auch mit Akzeptanz- und Commitmenttherapie (ACT) vertraut und verwendest es, um den Prozess zu leiten. ",
                 "DBT" => "Du bist auch mit Dialektisch-Behaviorale Therapie (DBT) vertraut und verwendest es, um den Prozess zu leiten. ",
                 "EFT" => "Du bist auch mit Emotionsfokussierter Therapie (EFT) vertraut und verwendest es, um den Prozess zu leiten. ",
                 "psychodynamic" => "Du bist auch mit psychodynamischer Therapie vertraut und verwendest es, um den Prozess zu leiten. ",
-                "somatic" => "Du bist auch mit somatischer Therapie vertraut und verwendest es möglicherweise, um den Prozess zu leiten. ",
+                "somatic" => "Du bist auch mit somatischer Therapie vertraut und verwendest es, um den Prozess zu leiten. ",
                 "meditation" => "Deine Hauptmethode ist Achtsamkeitsmeditation, um den Klienten an einen ruhigeren Ort zu führen. ",
                 "none" => "",
             );
@@ -148,9 +148,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             if ($session_info->cnt == 0) {
                 if ($user_config_manager->get_lang() == "de") {
                     $telegram->send_message("Hallo! Ich bin hier, um deine mentale Gesundheit zu unterstützen. "
-                    ."Du kannst eine Sitzung beginnen, indem du mir sagst, was dir auf dem Herzen liegt oder /start verwendest.\n\n"
+                    ."Du kannst eine Sitzung beginnen, indem du mir sagst, was dir auf dem Herzen liegt, oder indem du /start verwendest.\n\n"
                     ."*Bitte beende jede Sitzung mit /end*, um zu aktualisieren, was ich über dich weiß. "
-                    ."Du kannst /profile verwenden, um die Informationen einzusehen, die ich über dich gesammelt habe. "
+                    ."Du kannst den Befehl /profile verwenden, um die Informationen einzusehen, die ich über dich gesammelt habe. "
                     ."Schau dir /help für weitere verfügbare Befehle an.");
                 } else {
                     $telegram->send_message("Hey there! I am here to support your mental health. "
@@ -182,10 +182,10 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $start_prompt = "Du bist eine psychotherapeutische Fachkraft, die mir ".$name_string."hilft, mich selbst zu verbinden "
                     ."und zu heilen. Zeige Empathie und Mitgefühl, indem du meine Gefühle anerkennst und validierst. Dein Hauptziel "
                     ."ist es, mir einen sicheren, fürsorglichen und unterstützenden Raum zu bieten. Hilf mir, meine "
-                    ."Gedanken, Gefühle und Erfahrungen zu erkunden, während du mich auf persönliches Wachstum und emotionale Heilung lenkst. "
+                    ."Gedanken, Gefühle und Erfahrungen zu erkunden, während du mich zu persönliche Weiterentwicklung und emotionale Heilung führst. "
                     .$mode_prompt
                     ."Halte deine Antworten kurz, aber so hilfreich wie möglich. Vermeide im Allgemeinen, Listen von "
-                    ."Ratschlägen zu geben, sondern bitte den Klienten stattdessen um seine eigenen Meinungen und Ideen. Und bitte fragen, wenn etwas "
+                    ."Ratschlägen zu geben, sondern bitte frage stattdessen um eigenen Meinungen und Ideen. Und bitte fragen, wenn etwas "
                     ."unklar ist oder wichtige Informationen fehlen. Die aktuelle Uhrzeit ist ".date("G:i").".";
             } else {
                 $start_prompt = "You are a therapist assisting me ".$name_string."to connect to "
@@ -210,7 +210,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
                 $profile = $session_info->profile;
                 if ($user_config_manager->get_lang() == "de") {
-                    $profile_prompt = "Zu deiner eigenen Referenz hier ist das Profil, das du nach "
+                    $profile_prompt = "Zu deiner eigenen Referenz, hier ist das Profil, das du nach "
                     ."der letzten Sitzung (".$time_passed." her) geschrieben hast, als Grundlage für diese Sitzung:\n\n".$profile;
                 } else {
                     $profile_prompt = "For your own reference, here is the profile you previously wrote after "
@@ -252,7 +252,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // If there were more than 5 messages (2x system, 2 responses), request a session summary
             if ($command != "/endskip" && count($chat->messages) > 7) {
                 if ($user_config_manager->get_lang() == "de") {
-                    $telegram->send_message("Bitte gib mir einen Moment, um über unsere Sitzung nachzudenken...");
+                    $telegram->send_message("Bitte gib mir einen Moment, um über unsere Sitzung reflektieren...");
                 } else {
                     $telegram->send_message("Please give me a moment to reflect on our session...");
                 }
