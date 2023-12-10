@@ -121,9 +121,14 @@ for ($i = 0; $i < count($jobs); $i++) {
             $message = str_replace("{{time}}", date("g:ia"), $message);
             $message = str_replace("{{date}}", date("l, F jS"), $message);
             // Use a temporary system prompt to generate the next message
+            if ($user_config_manager->get_lang() == "de"){
+                $pre_message = "In der nächsten Nachricht, bitte antworte folgend dieser Anweisung:";
+            } else {
+                $pre_message = "In the next message, please include a response following this instruction:";
+            }
             $config->messages[] = array(
                 "role" => "system",
-                "content" => "In the next message, please include a response following this instruction:\n\n".$message,
+                "content" => $pre_message."\n\n".$message,
             );
             // Request a response from the model
             $message = $openai->gpt($config);
