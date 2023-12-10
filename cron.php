@@ -115,10 +115,15 @@ for ($i = 0; $i < count($jobs); $i++) {
             if (isset($job->temperature) && $job->temperature != null) {
                 $config->temperature = $job->temperature;
             }
+            // Replace variables in the message
+            $message = $job->message;
+            $message = str_replace("{{name}}", $user_config_manager->get_name(), $message);
+            $message = str_replace("{{time}}", date("g:ia"), $message);
+            $message = str_replace("{{date}}", date("l, F jS"), $message);
             // Use a temporary system prompt to generate the next message
             $config->messages[] = array(
                 "role" => "system",
-                "content" => "In the next message, please include a response following this instruction:\n\n".$job->message,
+                "content" => "In the next message, please include a response following this instruction:\n\n".$message,
             );
             // Request a response from the model
             $message = $openai->gpt($config);
