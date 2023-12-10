@@ -41,8 +41,13 @@ if ($openai_api_key == null || $openai_api_key == "") {
     echo "OPENAI_API_KEY is not set.";
     exit;
 }
+$timezone = $global_config_manager->get("TIME_ZONE");
+if ($timezone != null && $timezone != "") {
+    date_default_timezone_set($timezone);
+}
 
 $openai = new OpenAI($openai_api_key, $DEBUG);
+
 
 // Get jobs from GlobalConfigManager
 $jobs = $global_config_manager->get_jobs();
