@@ -72,9 +72,17 @@ if ($jobs == null || count($jobs) == 0) {
 //     "message": "Ask the user how they are feeling right now.",
 //     "temperature": 0.9
 // }
-// Distribution can be "constant" or "exponential". If it is constant, the mean is the number of hours between runs.
-// If it is exponential, the mean is the mean of the exponential distribution.
+// Distribution can be have the following types and respective parameters:
+// - constant: value (in hours)
+// - uniform: min, max (in hours)
+// - exponential: mean (in hours)
+// - uniform_once_a_day: earliest, latest (in hours)
+// If is_prompt is true, the message is used as system prompt for the model and the response is sent to the user.
+// If is_prompt is false, the message is sent to the user directly.
+// If chat_id is "admin", the message is sent to the admin chat ID instead of the chat ID of the job.
+// If temperature is set, it overrides the default temperature of the model.
 
+// Load the default config
 $default_config = UserConfigManager::$default_config;
 
 for ($i = 0; $i < count($jobs); $i++) {
@@ -84,10 +92,10 @@ for ($i = 0; $i < count($jobs); $i++) {
         continue;
 
     // Check if the job is due
-    if ($job->next_run != null && $job->next_run > time()) {
+    if ($job->next_run != null && strtotime($job->next_run) > time()) {
         if ($DEBUG) {
-            Log::debug("Job \"".$job->name."\" is not due yet. Next run is not before ".date("Y-m-d H:i:s", $job->next_run)).".";
-            echo "Job \"".$job->name."\" is not due yet. Next run is not before ".date("Y-m-d H:i:s", $job->next_run).".";
+            Log::debug("Job \"".$job->name."\" is not due yet. Next run is not before ".$job->next_run.".");
+            echo "Job \"".$job->name."\" is not due yet. Next run is not before ".$job->next_run.".";
         }
         continue;
     }
@@ -145,7 +153,7 @@ for ($i = 0; $i < count($jobs); $i++) {
     // If $job->chat_id is not the admin chat ID, send the message to the admin chat ID as well
     if ($job->chat_id != $chat_id_admin) {
         $telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
-        $telegram_admin->send_message("Job ".$job->name." sent the following message to chat ID ".$job->chat_id.":\n".$message);
+        $telegram_admin->send_message("Job ".$job->name." sent a message to chat ID ".$job->chat_id, null);
     }
 
     // If $message is an error message, don't update the last_run and next_run
@@ -153,22 +161,34 @@ for ($i = 0; $i < count($jobs); $i++) {
         continue;
     }
     // Update the last_run and next_run
-    $job->last_run = time();
+    $job->last_run = date("Y-m-d H:i:s");
+    $last_run = strtotime($job->last_run);
     if ($job->distribution->type == "constant") {
-        $job->next_run = $job->last_run + $job->distribution->mean * 3600;
+        $next_run = $last_run + $job->distribution->value * 3600;
     } else if ($job->distribution->type == "uniform") {
-        $job->next_run = $job->last_run + rand(0, 2 * $job->distribution->mean) * 3600;
+        $min = $job->distribution->min;
+        $max = $job->distribution->max;
+        $next_run = $last_run + mt_rand($min * 3600, $max * 3600);
     } else if ($job->distribution->type == "exponential") {
         // inverse transform sampling
         $U = mt_rand() / mt_getrandmax();
-        $job->next_run = $job->last_run + round(- $job->distribution->mean * 3600 * log(1 - $U));
+        $next_run = $last_run + round(- $job->distribution->mean * 3600 * log(1 - $U));
         if ($DEBUG) {
             Log::debug("Job ".$job->name." has a next run of ".date("Y-m-d H:i:s", $job->next_run));
         }
-    } else {
+    } else if ($job->distribution->type == "uniform_once_a_day") {
+        $earliest = $job->distribution->earliest;
+        $latest = $job->distribution->latest;
+        // Generate a random time between earliest and latest at the next day
+        $next_day_00 = strtotime("tomorrow 00:00:00");
+        $next_run = $next_day_00 + mt_rand($earliest * 3600, $latest * 3600);
+    }
+    else {
         Log::error("Invalid distribution type: ".$job->distribution->type);
         continue;
     }
+    // Save $next_run in job
+    $job->next_run = date("Y-m-d H:i:s", $next_run);
 }
 
 // Save the updated jobs
