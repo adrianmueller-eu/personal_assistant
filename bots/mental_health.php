@@ -103,11 +103,14 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
             // If this is the first session, send a welcome message
             if ($session_info->cnt == 0) {
-                $telegram->send_message("Hello! I am a chatbot that can help you with your mental health. I am currently "
-                ."in beta, so please be patient with me. You can start a session by telling what's on your mind or "
-                ."using /start.\n\n*Please end every session with /end* to update what I know about you.");
-            } else {
-                $telegram->send_message("Starting a new session. You can use /end to end the session.");
+                $telegram->send_message("Hey there! I am here to support your mental health. "
+                ."You can start a session by telling me what's on your mind or using /start.\n\n"
+                ."*Please end every session with /end* to update what I know about you. "
+                ."You can use /profile to see the information I collected about you. "
+                ."Check out /help for more available commands.");
+            }
+            else {
+                $telegram->send_message("Starting a new session. Please use /end to end the session.");
             }
             $name_string = $user_config_manager->get_name();
             if ($name_string == "" || $name_string == null) {
