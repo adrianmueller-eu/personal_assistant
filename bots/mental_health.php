@@ -55,7 +55,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }
     } else {
-        $telegram->send_message("Sorry, for now I can only read text messages and listen to voice messages.");
+        if ($user_config_manager->get_lang() == "de") {
+            $telegram->send_message("Sorry, ich kann bisher noch nicht mit diesem Nachrichtentyp umgehen :/");
+        } else {
+            $telegram->send_message("Sorry, for now I can't handle this type of message :/");
+        }
         exit;
     }
 
@@ -66,7 +70,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             if (strlen($message) > 100) {
                 $message = substr($message, 0, 100)."...";
             }
-            $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
+            if ($user_config_manager->get_lang() == "de") {
+                $telegram->send_message("Meintest du den Befehl /".substr($message, 1)." ? Wenn nicht, schreibe den ersten Buchstaben mit '\\' davor.");
+            } else {
+                $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
+            }
             exit;
         }
     }
@@ -100,17 +108,31 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }
 
         // Dictionary of prompts for each mode, e.g. "IFS" => "You are also familiar with Internal Family Systems (IFS) and might use it to guide the process. "
-        $mode_prompts = array(
-            "IFS" => "You are also familiar with Internal Family Systems (IFS) and might use it implicitly to guide the process. ",
-            "CBT" => "You are also familiar with Cognitive Behavioral Therapy (CBT) and use it to guide the process. ",
-            "ACT" => "You are also familiar with Acceptance and Commitment Therapy (ACT) and use it to guide the process. ",
-            "DBT" => "You are also familiar with Dialectical Behavior Therapy (DBT) and use it to guide the process. ",
-            "EFT" => "You are also familiar with Emotionally Focused Therapy (EFT) and use it to guide the process. ",
-            "psychodynamic" => "You are also familiar with psychodynamic therapy and use it to guide the process. ",
-            "somatic" => "You are also familiar with somatic therapy and might use it to guide the process. ",
-            "meditation" => "Your main method is mindfulness meditation to guide the client to a calmer place. ",
-            "none" => "",
-        );
+        if ($user_config_manager->get_lang() == "de") {
+            $mode_prompts = array(
+                "IFS" => "Du bist auch mit Internal Family Systems (IFS) vertraut und verwendest es möglicherweise implizit, um den Prozess zu leiten. ",
+                "CBT" => "Du bist auch mit Kognitive Verhaltenstherapie (KVT) vertraut und verwendest es, um den Prozess zu leiten. ",
+                "ACT" => "Du bist auch mit Akzeptanz- und Commitmenttherapie (ACT) vertraut und verwendest es, um den Prozess zu leiten. ",
+                "DBT" => "Du bist auch mit Dialektisch-Behaviorale Therapie (DBT) vertraut und verwendest es, um den Prozess zu leiten. ",
+                "EFT" => "Du bist auch mit Emotionsfokussierter Therapie (EFT) vertraut und verwendest es, um den Prozess zu leiten. ",
+                "psychodynamic" => "Du bist auch mit psychodynamischer Therapie vertraut und verwendest es, um den Prozess zu leiten. ",
+                "somatic" => "Du bist auch mit somatischer Therapie vertraut und verwendest es möglicherweise, um den Prozess zu leiten. ",
+                "meditation" => "Deine Hauptmethode ist Achtsamkeitsmeditation, um den Klienten an einen ruhigeren Ort zu führen. ",
+                "none" => "",
+            );
+        } else {
+            $mode_prompts = array(
+                "IFS" => "You are also familiar with Internal Family Systems (IFS) and might use it implicitly to guide the process. ",
+                "CBT" => "You are also familiar with Cognitive Behavioral Therapy (CBT) and use it to guide the process. ",
+                "ACT" => "You are also familiar with Acceptance and Commitment Therapy (ACT) and use it to guide the process. ",
+                "DBT" => "You are also familiar with Dialectical Behavior Therapy (DBT) and use it to guide the process. ",
+                "EFT" => "You are also familiar with Emotionally Focused Therapy (EFT) and use it to guide the process. ",
+                "psychodynamic" => "You are also familiar with psychodynamic therapy and use it to guide the process. ",
+                "somatic" => "You are also familiar with somatic therapy and might use it to guide the process. ",
+                "meditation" => "Your main method is mindfulness meditation to guide the client to a calmer place. ",
+                "none" => "",
+            );
+        }
 
         $command_manager->add_command(array("/start"), function($command, $_) use ($telegram, $user_config_manager, $openai, $mode_prompts) {
             $session_info = $user_config_manager->get_session_info("session");
@@ -124,43 +146,77 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
             // If this is the first session, send a welcome message
             if ($session_info->cnt == 0) {
-                $telegram->send_message("Hey there! I am here to support your mental health. "
-                ."You can start a session by telling me what's on your mind or using /start.\n\n"
-                ."*Please end every session with /end* to update what I know about you. "
-                ."You can use /profile to see the information I collected about you. "
-                ."Check out /help for more available commands.");
+                if ($user_config_manager->get_lang() == "de") {
+                    $telegram->send_message("Hallo! Ich bin hier, um deine mentale Gesundheit zu unterstützen. "
+                    ."Du kannst eine Sitzung beginnen, indem du mir sagst, was dir auf dem Herzen liegt oder /start verwendest.\n\n"
+                    ."*Bitte beende jede Sitzung mit /end*, um zu aktualisieren, was ich über dich weiß. "
+                    ."Du kannst /profile verwenden, um die Informationen einzusehen, die ich über dich gesammelt habe. "
+                    ."Schau dir /help für weitere verfügbare Befehle an.");
+                } else {
+                    $telegram->send_message("Hey there! I am here to support your mental health. "
+                    ."You can start a session by telling me what's on your mind or using /start.\n\n"
+                    ."*Please end every session with /end* to update what I know about you. "
+                    ."You can use /profile to see the information I collected about you. "
+                    ."Check out /help for more available commands.");
+                }
             }
             else {
-                $telegram->send_message("Starting a new session. Please use /end to end the session.");
+                if ($user_config_manager->get_lang() == "de") {
+                    $telegram->send_message("Eine neue Sitzung beginnt. Bitte verwende /end, um die Sitzung zu beenden.");
+                } else {
+                    $telegram->send_message("Starting a new session. Please use /end to end the session.");
+                }
             }
             $name_string = $user_config_manager->get_name();
             if ($name_string == "" || $name_string == null) {
                 $name_string = "";
             } else {
-                $name_string = "(my name is ".$name_string.") ";
+                if ($user_config_manager->get_lang() == "de") {
+                    $name_string = "(mein Name ist ".$name_string.") ";
+                } else {
+                    $name_string = "(my name is ".$name_string.") ";
+                }
             }
             $mode_prompt = $mode_prompts[$session_info->mode ?? "none"];
-            $chat = (object) array(
-                "model" => "gpt-4-vision-preview",
-                "temperature" => 0.5,
-                "max_tokens" => 4096,
-                "messages" => array(
-                    array("role" => "system", "content" => "You are a therapist assisting me ".$name_string."to connect to "
+            if ($user_config_manager->get_lang() == "de") {
+                $start_prompt = "Du bist eine psychotherapeutische Fachkraft, die mir ".$name_string."hilft, mich selbst zu verbinden "
+                    ."und zu heilen. Zeige Empathie und Mitgefühl, indem du meine Gefühle anerkennst und validierst. Dein Hauptziel "
+                    ."ist es, mir einen sicheren, fürsorglichen und unterstützenden Raum zu bieten. Hilf mir, meine "
+                    ."Gedanken, Gefühle und Erfahrungen zu erkunden, während du mich auf persönliches Wachstum und emotionale Heilung lenkst. "
+                    .$mode_prompt
+                    ."Halte deine Antworten kurz, aber so hilfreich wie möglich. Vermeide im Allgemeinen, Listen von "
+                    ."Ratschlägen zu geben, sondern bitte den Klienten stattdessen um seine eigenen Meinungen und Ideen. Und bitte fragen, wenn etwas "
+                    ."unklar ist oder wichtige Informationen fehlen. Die aktuelle Uhrzeit ist ".date("G:i").".";
+            } else {
+                $start_prompt = "You are a therapist assisting me ".$name_string."to connect to "
                     ."myself and heal. Show empathy and compassion by acknowledging and validating my feelings. Your primary "
                     ."goal is to provide a safe, nurturing, and supportive environment for me. Help me explore my "
                     ."thoughts, feelings, and experiences, while guiding me towards personal growth and emotional healing. "
                     .$mode_prompt
                     ."Keep your responses concise, but as helpful as possible. Generally, avoid giving lists of "
                     ."advice but rather ask the client for their own opinions and ideas instead. And please ask if something "
-                    ."is unclear to you or some important information is missing. The current time is ".date("g:ia")."."),
+                    ."is unclear to you or some important information is missing. The current time is ".date("g:ia").".";
+            }
+            $chat = (object) array(
+                "model" => "gpt-4-vision-preview",
+                "temperature" => 0.5,
+                "max_tokens" => 4096,
+                "messages" => array(
+                    array("role" => "system", "content" => $start_prompt),
                 ),
             );
             // If there is a previous session, add the profile to the chat history
             if ($session_info->profile != "") {
                 $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
                 $profile = $session_info->profile;
-                $chat->messages[] = array("role" => "system", "content" => "For your own reference, here is the profile you previously wrote after "
-                ."the last session (".$time_passed." ago) as a basis for this session:\n\n".$profile);
+                if ($user_config_manager->get_lang() == "de") {
+                    $profile_prompt = "Zu deiner eigenen Referenz hier ist das Profil, das du nach "
+                    ."der letzten Sitzung (".$time_passed." her) geschrieben hast, als Grundlage für diese Sitzung:\n\n".$profile;
+                } else {
+                    $profile_prompt = "For your own reference, here is the profile you previously wrote after "
+                    ."the last session (".$time_passed." ago) as a basis for this session:\n\n".$profile;
+                }
+                $chat->messages[] = array("role" => "system", "content" => $profile_prompt);
             }
             // If there is already a chat history, append them to the new messages (i.e. have the system messages at the beginning)
             $prev_chat = $user_config_manager->get_config();
@@ -183,7 +239,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 // Clean the chat history
                 $chat->messages = array();
                 $user_config_manager->save_config($chat);
-                $telegram->send_message("The session isn't started yet. Please write something or use the command /start.");
+                if ($user_config_manager->get_lang() == "de") {
+                    $telegram->send_message("Die Sitzung wurde noch nicht gestartet. Bitte schreibe etwas oder verwende den Befehl /start.");
+                } else {
+                    $telegram->send_message("The session isn't started yet. Please write something or use the command /start.");
+                }
                 exit;
             }
             if ($command == "/end" && $arg == "skip") {
@@ -191,48 +251,80 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             }
             // If there were more than 5 messages (2x system, 2 responses), request a session summary
             if ($command != "/endskip" && count($chat->messages) > 7) {
-                $telegram->send_message("Please give me a moment to reflect on our session...");
+                if ($user_config_manager->get_lang() == "de") {
+                    $telegram->send_message("Bitte gib mir einen Moment, um über unsere Sitzung nachzudenken...");
+                } else {
+                    $telegram->send_message("Please give me a moment to reflect on our session...");
+                }
                 $user_config_manager->save_backup();
 
                 if ($session_info->profile != "") {
                     $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
+                    if ($user_config_manager->get_lang() == "de") {
+                        $summary_prompt = "Zeit zum Reflektieren. Schreibe eine Zusammenfassung dieser Sitzung, die später verwendet wird, um das "
+                        ."obige Profil zu aktualisieren. Fasse daher nur Informationen zusammen, die für zukünftige Sitzungen wirklich notwendig sind.";
+                    } else {
+                        $summary_prompt = "Time to reflect. Write a summary of this session that will be used later to update the "
+                        ."profile above. Hence, include only information that is really necessary for upcoming sessions.";
+                    }
                     $chat->messages = array_merge($chat->messages, array(
-                        array("role" => "system", "content" => "Time to reflect. Write a summary of this session that will be used later to update the "
-                        ."profile above. Hence, include only information that is really necessary for upcoming sessions.")
-                        // array("role" => "system", "content" => "Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
-                        // .$session_info->profile."\n\n"."Please update it with the new information you got in this session. The goal is to have a detailed "
-                        // ."description of me that is useful for whatever comes up in the next session. Hence, include only information that is really "
-                        // ."necessary for upcoming sessions. To have an all-encompassing profile after many session, avoid removing relevant information "
-                        // ."from previous sessions, but integrate them into a bigger picture."),
+                        array("role" => "system", "content" => $summary_prompt)
                     ));
 
                     // Request a summary of the session
                     $summary = $openai->gpt($chat);
                     if (substr($summary, 0, 7) == "Error: ") {
-                        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                        if ($user_config_manager->get_lang() == "de") {
+                            $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
+                        } else {
+                            $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                        }
                         exit;
                     }
-                    $telegram->send_message("Here is a summary of our session:\n\n".$summary);
+                    if ($user_config_manager->get_lang() == "de") {
+                        $telegram->send_message("Hier ist eine Zusammenfassung unserer Sitzung:\n\n".$summary);
+                    } else {
+                        $telegram->send_message("Here is a summary of our session:\n\n".$summary);
+                    }
 
                     // Add answer and profile request to chat history
-                    $chat->messages = array_merge($chat->messages, array(
-                        array("role" => "assistant", "content" => $summary),
-                        array("role" => "system", "content" => "Thank you for the summary. Now, let's update the profile with the new information you got "
+                    if ($user_config_manager->get_lang() == "de") {
+                        $profile_update_prompt = "Danke für die Zusammenfassung. Lass uns jetzt das Profil mit den neuen Informationen aktualisieren, die du "
+                        ."in dieser Sitzung erhalten hast. Hier ist noch einmal das Profil, das du nach unserer vorherigen Sitzung geschrieben hast (".$time_passed." her):\n\n"
+                        .$session_info->profile."\n\nDas Ziel ist es, eine detaillierte Beschreibung von mir zu haben, die für alles, was in der nächsten Sitzung ansteht, nützlich ist. "
+                        ."Um ein ausführliches, umfassendes Profil nach vielen Sitzungen zu haben, vermeide es, relevante Informationen aus früheren Sitzungen zu entfernen, sondern "
+                        ."integriere sie in ein detailliertes und informatives Gesamtbild.";
+                    } else {
+                        $profile_update_prompt = "Thank you for the summary. Now, let's update the profile with the new information you got "
                         ."in this session. Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
                         .$session_info->profile."\n\nThe goal is to have a detailed description of me that is useful for whatever comes up in the next session. "
                         ."To have an elaborate, all-encompassing profile after many sessions, avoid removing relevant information from previous sessions, but "
-                        ."integrate them into a detailed and informative bigger picture.")
+                        ."integrate them into a detailed and informative bigger picture.";
+                    }
+                    $chat->messages = array_merge($chat->messages, array(
+                        array("role" => "assistant", "content" => $summary),
+                        array("role" => "system", "content" => $profile_update_prompt)
                     ));
                 } else {
+                    if ($user_config_manager->get_lang() == "de") {
+                        $summary_prompt = "Bitte schreibe eine kurze Zusammenfassung, die die Informationen zusammenfasst, die du in dieser Sitzung erhalten hast. "
+                        ."Bitte füge nur Informationen hinzu, die für zukünftige Sitzungen wirklich notwendig sind.";
+                    } else {
+                        $summary_prompt = "Please write a short profile that summarizes the information you got in this session. "
+                        ."Please include only information that is really necessary for upcoming sessions.";
+                    }
                     $chat->messages = array_merge($chat->messages, array(
-                        array("role" => "system", "content" => "Please write a short profile that summarizes the information you got in this session. "
-                        ."Please include only information that is really necessary for upcoming sessions."),
+                        array("role" => "system", "content" => $summary_prompt),
                     ));
                 }
                 // Request the new profile
                 $new_profile = $openai->gpt($chat);
                 if (substr($new_profile, 0, 7) == "Error: ") {
-                    $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                    if ($user_config_manager->get_lang() == "de") {
+                        $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
+                    } else {
+                        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                    }
                     exit;
                 }
                 // Update the session info
@@ -248,7 +340,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // Save the chat history and the new profile
             $user_config_manager->save_config($chat);
             $user_config_manager->save_session_info("session", $session_info);
-            $telegram->send_message("Session ended. Thank you for being with me today.");
+            if ($user_config_manager->get_lang() == "de") {
+                $telegram->send_message("Sitzung beendet. Vielen Dank, dass du heute bei mir warst.");
+            } else {
+                $telegram->send_message("Session ended. Thank you for being with me today.");
+            }
             exit;
         }, "Mental health", "End the current session. /endskip skips the session summary and profile update.");
 
@@ -256,15 +352,27 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $command_manager->add_command(array("/profile"), function($command, $_) use ($telegram, $user_config_manager) {
             $session_info = $user_config_manager->get_session_info("session");
             if ($session_info->profile == "") {
-                $message = "No profile has been generated yet. ";
-                if ($session_info->running == true)
-                    $message .= "Please type something or end the current session with /end.";
-                else
-                    $message .= "Please start a new session with /start.";
+                if ($user_config_manager->get_lang() == "de") {
+                    $message = "Es wurde noch kein Profil erstellt. ";
+                    if ($session_info->running == true)
+                        $message .= "Bitte schreibe etwas oder beende die aktuelle Sitzung mit /end.";
+                    else
+                        $message .= "Bitte starte eine neue Sitzung mit /start.";
+                } else {
+                    $message = "No profile has been generated yet. ";
+                    if ($session_info->running == true)
+                        $message .= "Please type something or end the current session with /end.";
+                    else
+                        $message .= "Please start a new session with /start.";
+                }
                 $telegram->send_message($message);
             } else {
                 $date = date("d.m.y g:ia", $session_info->last_session_start);
-                $telegram->send_message("Here is your current profile (created ".$date."):\n\n".$session_info->profile);
+                if ($user_config_manager->get_lang() == "de") {
+                    $telegram->send_message("Hier ist dein aktuelles Profil (erstellt am ".$date."):\n\n".$session_info->profile);
+                } else {
+                    $telegram->send_message("Here is your current profile (created ".$date."):\n\n".$session_info->profile);
+                }
             }
             exit;
         }, "Mental health", "Show your profile");
