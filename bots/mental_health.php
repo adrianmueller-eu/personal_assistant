@@ -18,7 +18,26 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     if (isset($update->text)) {
         $message = $update->text;
     }
-    else if (isset($update->voice)) {
+    else if (isset($update->photo)) {
+        $chat = $user_config_manager->get_config();
+        // Check if the model can see
+        if ($chat->model != "gpt-4-vision-preview") {
+            $telegram->send_message("Error: You can only send images if you are talking to `gpt-4-vision-preview`. Try /gpt4v.");
+            exit;
+        }
+        $file_id = end($update->photo)->file_id;
+        $caption = isset($update->caption) ? $update->caption : "";
+        $file_url = $telegram->get_file_url($file_id);
+        if ($file_url == null) {
+            $telegram->send_message("Error: Could not get the file URL from Telegram.");
+            exit;
+        }
+
+        $message = array(
+            array("type" => "image_url", "image_url" => $file_url),
+            array("type" => "text", "text" => $caption),
+        );
+    } else if (isset($update->voice)) {
         // 1. Get the file content from file_id with $telegram->get_file
         $file_id = $update->voice->file_id;
         $file = $telegram->get_file($file_id);
@@ -40,14 +59,16 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         exit;
     }
 
-    // If starts with "." or "\", it's probably a typo for a command
-    if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
-        // Shorten the message if it's too long
-        if (strlen($message) > 100) {
-            $message = substr($message, 0, 100)."...";
+    if (is_string($message)) {
+        // If starts with "." or "\", it's probably a typo for a command
+        if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
+            // Shorten the message if it's too long
+            if (strlen($message) > 100) {
+                $message = substr($message, 0, 100)."...";
+            }
+            $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
+            exit;
         }
-        $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
-        exit;
     }
 
     $session_info = $user_config_manager->get_session_info("session");
@@ -65,13 +86,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $user_config_manager->save_session_info("session", $session_info);
     }
     // If there is no session running, start one
-    if (substr($message, 0, 1) != "/" && $session_info->running == false) {
+    if ((!is_string($message) || substr($message, 0, 1) != "/") && $session_info->running == false) {
         // Add message to chat history
         $user_config_manager->add_message("user", $message);
         $message = "/start";
     }
 
-    if (substr($message, 0, 1) == "/") {
+    if (is_string($message) && substr($message, 0, 1) == "/") {
         if ($is_admin) {
             $command_manager = new CommandManager(array("Mental health", "Settings", "Admin", "Misc"));
         } else {

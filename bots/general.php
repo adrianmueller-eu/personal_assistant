@@ -85,14 +85,16 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     // ### Command parsing ###
     // #######################
 
-    // If starts with "." or "\", it's probably a typo for a command
-    if (is_string($message) && (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\")))) {
-        // Shorten the message if it's too long
-        if (strlen($message) > 100) {
-            $message = substr($message, 0, 100)."...";
+    if (is_string($message)) {
+        // If starts with "." or "\", it's probably a typo for a command
+        if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
+            // Shorten the message if it's too long
+            if (strlen($message) > 100) {
+                $message = substr($message, 0, 100)."...";
+            }
+            $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
+            exit;
         }
-        $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
-        exit;
     }
 
     // If $message starts with /, it's a command
