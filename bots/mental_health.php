@@ -154,16 +154,22 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Mental health", "Start a new session");
 
         // The command /end ends the current session
-        $command_manager->add_command(array("/end"), function($command, $_) use ($telegram, $openai, $user_config_manager) {
+        $command_manager->add_command(array("/end", "/endskip"), function($command, $arg) use ($telegram, $openai, $user_config_manager) {
             $session_info = $user_config_manager->get_session_info("session");
+            $chat = $user_config_manager->get_config();
             // Check if there is a session running
             if ($session_info->running == false) {
+                // Clean the chat history
+                $chat->messages = array();
+                $user_config_manager->save_config($chat);
                 $telegram->send_message("The session isn't started yet. Please write something or use the command /start.");
                 exit;
             }
+            if ($command == "/end" && $arg == "skip") {
+                $command = "/endskip";
+            }
             // If there were more than 5 messages (2x system, 2 responses), request a session summary
-            $chat = $user_config_manager->get_config();
-            if ($_ != "skip" && count($chat->messages) > 7) {
+            if ($command != "/endskip" && count($chat->messages) > 7) {
                 $telegram->send_message("Please give me a moment to reflect on our session...");
                 $user_config_manager->save_backup();
 
@@ -223,7 +229,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $user_config_manager->save_session_info("session", $session_info);
             $telegram->send_message("Session ended. Thank you for being with me today.");
             exit;
-        }, "Mental health", "End the current session");
+        }, "Mental health", "End the current session. /endskip skips the session summary and profile update.");
 
         // The command /profile shows the profile of the user
         $command_manager->add_command(array("/profile"), function($command, $_) use ($telegram, $user_config_manager) {
