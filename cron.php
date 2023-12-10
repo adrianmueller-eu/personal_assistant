@@ -109,7 +109,7 @@ for ($i = 0; $i < count($jobs); $i++) {
     if ($job->is_prompt == "true") {  // "false" == true would validate to true!
         // If chats/ folder has a file with name "$job->chat_id.json", load the user config
         if (file_exists(__DIR__."/chats/".$job->chat_id.".json")) {
-            $user_config_manager = new UserConfigManager($job->chat_id, null, null);
+            $user_config_manager = new UserConfigManager($job->chat_id, null, null, null);
             $config = clone $user_config_manager->get_config();
             // Temporarily set the temperature to the job's temperature if it is set
             if (isset($job->temperature) && $job->temperature != null) {

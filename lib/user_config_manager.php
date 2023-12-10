@@ -245,7 +245,7 @@ class UserConfigManager {
             throw new Exception("Could not restore backup of user config file: ".$this->user_config_file);
         }
         # load the restored file into memory
-        $this->load();
+        $this->load(null, null, null);  # values will be ignored if the file exists
         return true;
     }
 
