@@ -84,8 +84,8 @@ class Telegram {
                 if (isset($data->parse_mode) && strpos($server_output, "can't parse entities") !== false) {
                     $this->send_message($data->text, null);
                 }
-                // Try again after a few seconds if $server_output is a string that contains "Too Many Requests"
-                else if ($this->RETRY_CNT < $this->MAX_RETRY && strpos($server_output, "Too Many Requests") !== false) {
+                // Try again after a few seconds
+                else if ($this->RETRY_CNT < $this->MAX_RETRY) {
                     $this->RETRY_CNT++;
                     sleep(5*$this->RETRY_CNT);
                     $this->send_message("[Retry ".$this->RETRY_CNT."] ".$data->text, $data->parse_mode);
