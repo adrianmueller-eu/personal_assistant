@@ -47,7 +47,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }
 
         // 2. Transcribe with $openai->whisper
-        $message = $openai->whisper($file);
+        $message = $openai->whisper($file, language: $user_config_manager->get_lang());
 
         // 3. Add the transcription to the chat history
         if (substr($message, 0, 7) == "Error: ") {
@@ -304,6 +304,22 @@ END:VTIMEZONE"))
             $telegram->send_message("Your name has been set to ".$name.".");
             exit;
         }, "Settings", "Set your name");
+
+        // The command /lang allows the user to change their language
+        $command_manager->add_command(array("/lang"), function($command, $lang) use ($telegram, $user_config_manager) {
+            if ($lang == "") {
+                $telegram->send_message("Your language is currently set to \"".$user_config_manager->get_lang()."\". To change it, provide an [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (2 letters) with the command.");
+                exit;
+            }
+            // Ensure $lang is ISO 639-1
+            if (strlen($lang) != 2) {
+                $telegram->send_message("The language code must be [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (2 letters).");
+                exit;
+            }
+            $user_config_manager->set_lang($lang);
+            $telegram->send_message("Your language has been set to \"".$lang."\".");
+            exit;
+        }, "Settings", "Set your language");
 
         // The command /intro allows to read out or set the intro message
         $command_manager->add_command(array("/intro"), function($command, $message) use ($telegram, $user_config_manager) {

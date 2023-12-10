@@ -137,6 +137,7 @@ $update = $update->message;
 $chat_id = $update->chat->id; // Assume that if $update->message exists, so does $update->message->chat->id
 $username = $update->from->username;
 $name = $update->from->first_name ?? $username;
+$lang = $update->from->language_code ?? "en";
 
 $telegram = new Telegram($telegram_token, $chat_id, $DEBUG);
 $is_admin = $chat_id == $chat_id_admin;
@@ -145,7 +146,7 @@ $is_admin = $chat_id == $chat_id_admin;
 // Note: Instantiate the UserConfigManager only after checking if the user is allowed to talk to the bot to avoid
 //       unnecessary database entries
 if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
-    $user_config_manager = new UserConfigManager($chat_id, $username, $name);
+    $user_config_manager = new UserConfigManager($chat_id, $username, $name, $lang);
     $openai = new OpenAI($openai_api_key, $DEBUG);
 
     run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 

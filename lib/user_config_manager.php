@@ -10,6 +10,7 @@ require_once __DIR__."/utils.php";
  * {
  *     "username": "test_user",
  *     "name": "Joe",
+ *     "lang": "en",
  *     "config": {
  *         "model": "gpt-4",
  *         "temperature": 0.7,
@@ -40,8 +41,6 @@ class UserConfigManager {
 
     private $user_config_file;
     private $user_data;
-    private $username;
-    private $name;
 
     static $default_config = array(
         "model" => "gpt-4-vision-preview",
@@ -51,7 +50,7 @@ class UserConfigManager {
     );
 
     static $default_tts_config = array(
-        "model" => "tts-1",
+        "model" => "tts-1-hd",
         "voice" => "shimmer",
         "speed" => 1.0
     );
@@ -60,32 +59,20 @@ class UserConfigManager {
      * @param string $chat_id The chat ID
      * @param string $username The username of the user. Will only be used if the config is not yet created.
      * @param string $name The name of the user. Will only be used if the config is not yet created.
+     * @param string $lang The language code of the user. Will only be used if the config is not yet created.
      */
-    public function __construct($chat_id, $username, $name) {
+    public function __construct($chat_id, $username, $name, $lang) {
         $chats_dir = __DIR__."/../chats";
-        $this->username = $username;
         if ($name === null || $name === "") {
             $name = $username;
         }
-        $this->name = $name;
         
         $this->user_config_file = $chats_dir."/".$chat_id.".json";
-        $this->load();
+        $this->load($username, $name, $lang);
     }
 
-    private function load() {
-        if (!file_exists($this->user_config_file)) {
-            $this->user_data = (object) array(
-                "username" => $this->username,
-                "name" => $this->name,
-                "intro" => "",
-                "hellos" => array(),
-                "config" => (object) self::$default_config,
-                "sessions" => (object) array(),
-                "tts_config" => (object) self::$default_tts_config
-            );
-            $this->save(); // Keep this
-        } else {
+    private function load($username, $name, $lang) {
+        if (file_exists($this->user_config_file)) {
             $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
             if ($this->user_data === null || $this->user_data === false) {
                 if ($this->user_data === null) {
@@ -97,8 +84,18 @@ class UserConfigManager {
                 http_response_code(500);
                 throw new Exception($error);
             }
-            $this->username = $this->user_data->username;
-            $this->name = $this->user_data->name;
+        } else {
+            $this->user_data = (object) array(
+                "username" => $username,
+                "name" => $name,
+                "lang" => $lang,
+                "intro" => "",
+                "hellos" => array(),
+                "config" => (object) self::$default_config,
+                "sessions" => (object) array(),
+                "tts_config" => (object) self::$default_tts_config
+            );
+            $this->save(); // Keep this
         }
     }
 
@@ -256,7 +253,7 @@ class UserConfigManager {
      * @return string The name of the user.
      */
     public function get_name() {
-        return $this->name;
+        return $this->user_data->name;
     }
 
     /**
@@ -265,7 +262,24 @@ class UserConfigManager {
      * @param string $name The name of the user.
      */
     public function set_name($name) {
-        $this->name = $name;
+        $this->user_data->name = $name;
+        $this->save();
+    }
+
+    /**
+     * @return string The language of the user.
+     */
+    public function get_lang() {
+        return $this->user_data->lang;
+    }
+
+    /**
+     * Set the language of the user.
+     *
+     * @param string $lang The language of the user.
+     */
+    public function set_lang($lang) {
+        $this->user_data->lang = $lang;
         $this->save();
     }
 
