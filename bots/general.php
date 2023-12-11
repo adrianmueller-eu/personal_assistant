@@ -160,7 +160,12 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             if ($message != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $message);
                 $response = $openai->gpt($chat);
-                $telegram->send_message($response);
+                // If the response starts with "Error: ", it is an error message
+                if (substr($response, 0, 7) == "Error: ") {
+                    $telegram->send_message($response, null);
+                } else {
+                    $telegram->send_message($response);
+                }
             } else {
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a message responder.");
@@ -169,29 +174,58 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Presets", "Suggests responses to messages from others. Give a message with the command to preserve the previous conversation.");
 
         // The command /translator translates a given text
-        $command_manager->add_command(array("/translator", "/trans"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
-            $user_config_manager->save_config(array(
-                "temperature" => 0.7,
-                "messages" => array(array("role" => "system", "content" => "Translate the messages sent to you into English, ensuring "
-                ."accuracy in grammar, verb tenses, and context. Identify the language or encoding of the text you translate from."))
-            ));
-            $telegram->send_message("Chat history reset. I am now a translator.");
+        $command_manager->add_command(array("/translator", "/trans"), function($command, $text) use ($telegram, $user_config_manager, $openai) {
+            $chat = UserConfigManager::$default_config;
+            $chat["temperature"] = 0.7;
+            $chat["messages"] = array(array("role" => "system", "content" => "Translate the messages sent to you into English, ensuring "
+                ."accuracy in grammar, verb tenses, and context. Identify the language or encoding of the text you translate from."));
+            // If the text is not empty, process the request one-time without saving the config
+            if ($text != "") {
+                $chat["messages"][] = array("role" => "user", "content" => $text);
+                $response = $openai->gpt($chat);
+                // If the response starts with "Error: ", it is an error message
+                if (substr($response, 0, 7) == "Error: ") {
+                    $telegram->send_message($response, null);
+                } else {
+                    $telegram->send_message($response);
+                }
+            } else {
+                $user_config_manager->save_config($chat);
+                $telegram->send_message("Chat history reset. I am now a translator.");
+            }
             exit;
         }, "Presets", "Translate messages into English");
 
         // The command /calendar converts event descriptions to an iCalendar file
-        $command_manager->add_command(array("/calendar", "/cal"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/calendar", "/cal"), function($command, $description) use ($telegram, $user_config_manager, $openai) {
             $timezone = date("e");
-            $user_config_manager->save_config(array(
-                "temperature" => 0,
-                "messages" => array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
+            $chat = UserConfigManager::$default_config;
+            $chat["temperature"] = 0;
+            $chat["messages"] = array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
                 ."event in iCalendar format. Try to infer the time zone from the location. Use can use the example for the timezone below as "
                 ."a template. Ensure that the code is valid. Output the code only. The current year is ".date("Y").".\n\n"
 ."BEGIN:VTIMEZONE
 TZID:$timezone
-END:VTIMEZONE"))
-            ));
-            $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
+END:VTIMEZONE"));
+            // If the description is not empty, process the request one-time without saving the config
+            if ($description != "") {
+                $chat["messages"][] = array("role" => "user", "content" => $description);
+                $response = $openai->gpt($chat);
+
+                // If the response starts with "Error: ", it is an error message
+                if (substr($response, 0, 7) == "Error: ") {
+                    $telegram->send_message($response, null);
+                // If the response starts with "BEGIN:VCALENDAR", it is an iCalendar event
+                } else if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
+                    $file_name = "event.ics";
+                    $telegram->send_document($file_name, $response);
+                } else {
+                    $telegram->send_message($response);
+                }
+            } else {
+                $user_config_manager->save_config($chat);
+                $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
+            }
             exit;
         }, "Presets", "Converts an event description to iCalendar format");
 
@@ -208,14 +242,26 @@ END:VTIMEZONE"))
         }, "Presets", "Generates academic-style text from notes");
 
         // The command /code is a programming assistant
-        $command_manager->add_command(array("/code", "/program"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
-            $user_config_manager->save_config(array(
-                "temperature" => 0.5,
-                "messages" => array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
+        $command_manager->add_command(array("/code", "/program"), function($command, $query) use ($telegram, $user_config_manager, $openai) {
+            $chat = UserConfigManager::$default_config;
+            $chat["temperature"] = 0.5;
+            $chat["messages"] = array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
                 ."If there is a lack of details, state your uncertainty and ask for clarification. Do not show any warnings or information "
-                ."regarding your capabilities. Keep your response short and avoid unnecessary explanations. If you provide code, ensure it is valid."))
-            ));
-            $telegram->send_message("Chat history reset. I will support you in writing code.");
+                ."regarding your capabilities. Keep your response short and avoid unnecessary explanations. If you provide code, ensure it is valid."));
+            // If the query is not empty, process the request one-time without saving the config
+            if ($query != "") {
+                $chat["messages"][] = array("role" => "user", "content" => $query);
+                $response = $openai->gpt($chat);
+                // If the response starts with "Error: ", it is an error message
+                if (substr($response, 0, 7) == "Error: ") {
+                    $telegram->send_message($response, null);
+                } else {
+                    $telegram->send_message($response);
+                }
+            } else {
+                $user_config_manager->save_config($chat);
+                $telegram->send_message("Chat history reset. I will support you in writing code.");
+            }
             exit;
         }, "Presets", "Programming assistant");
 
