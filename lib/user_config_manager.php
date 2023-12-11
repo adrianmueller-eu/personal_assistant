@@ -239,6 +239,7 @@ class UserConfigManager {
             return false;
         }
         $res = copy($backup_file, $this->user_config_file);
+        unlink($backup_file);
         if ($res === false) {
             Log::error("Could not restore backup of user config file: ".$this->user_config_file);
             http_response_code(500);
