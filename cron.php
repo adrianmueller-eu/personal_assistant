@@ -173,12 +173,12 @@ for ($i = 0; $i < count($jobs); $i++) {
     // Update the last_run and next_run
     $job->last_run = date("Y-m-d H:i:s");
     $last_run = strtotime($job->last_run);
-    if ($job->distribution->type == "constant") {
-        $next_run = $last_run + $job->distribution->value * 3600;
-    } else if ($job->distribution->type == "uniform") {
-        $min = $job->distribution->min;
-        $max = $job->distribution->max;
-        $next_run = $last_run + mt_rand($min * 3600, $max * 3600);
+    if ($job->distribution->type == "uniform_once_a_day") {
+        $earliest = $job->distribution->earliest;
+        $latest = $job->distribution->latest;
+        // Generate a random time between earliest and latest at the next day
+        $next_day_00 = strtotime("tomorrow 00:00:00");
+        $next_run = $next_day_00 + mt_rand($earliest * 3600 - 3540, $latest * 3600 - 60);  // script runs only once an hour
     } else if ($job->distribution->type == "exponential") {
         // inverse transform sampling
         $U = mt_rand() / mt_getrandmax();
@@ -186,14 +186,13 @@ for ($i = 0; $i < count($jobs); $i++) {
         if ($DEBUG) {
             Log::debug("Job ".$job->name." has a next run of ".date("Y-m-d H:i:s", $job->next_run));
         }
-    } else if ($job->distribution->type == "uniform_once_a_day") {
-        $earliest = $job->distribution->earliest;
-        $latest = $job->distribution->latest;
-        // Generate a random time between earliest and latest at the next day
-        $next_day_00 = strtotime("tomorrow 00:00:00");
-        $next_run = $next_day_00 + mt_rand($earliest * 3600, $latest * 3600);
-    }
-    else {
+    } else if ($job->distribution->type == "constant") {
+        $next_run = $last_run + $job->distribution->value * 3600;
+    } else if ($job->distribution->type == "uniform") {
+        $min = $job->distribution->min;
+        $max = $job->distribution->max;
+        $next_run = $last_run + mt_rand($min * 3600, $max * 3600);
+    } else {
         Log::error("Invalid distribution type: ".$job->distribution->type);
         continue;
     }
