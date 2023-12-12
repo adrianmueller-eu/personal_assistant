@@ -82,20 +82,20 @@ class Telegram {
             if (is_string($server_output)) {
                 // Try again without parse mode if $server_output is a string that contains "can't parse entities"
                 if (isset($data->parse_mode) && strpos($server_output, "can't parse entities") !== false) {
-                    $this->send_message($data->text, null);
+                    $this->send_message($data->text, false);
                 }
                 // Try again after a few seconds
                 else if ($this->RETRY_CNT < $this->MAX_RETRY) {
                     $this->RETRY_CNT++;
                     sleep(5*$this->RETRY_CNT);
-                    $this->send_message("[Retry ".$this->RETRY_CNT."] ".$data->text, $data->parse_mode);
+                    $this->send_message("[Retry ".$this->RETRY_CNT."] ".$data->text, isset($data->parse_mode));
                 }
             }
             // else, silently fail
         } else if (is_string($server_output)) {
-            $this->send_message($server_output, null);
+            $this->send_message($server_output, false);
         } else {
-            $this->send_message("Error: [/".$endpoint."] ".json_encode($server_output, JSON_PRETTY_PRINT), null);
+            $this->send_message("Error: [/".$endpoint."] ".json_encode($server_output, JSON_PRETTY_PRINT), false);
         }
         // echo json_encode($server_output);
         return null;
@@ -149,10 +149,10 @@ class Telegram {
      * Send a message to Telegram.
      * 
      * @param string $message The message to send.
-     * @param string $parse_mode The parse mode to use.
+     * @param bool $is_markdown (optional) Whether the message is markdown or not. Default: true.
      * @return void
      */
-    public function send_message($message, $parse_mode = "Markdown") {
+    public function send_message($message, $is_markdown = true) {
         $messages = $this->split_message($message);
 
         foreach ($messages as $m) {
@@ -161,8 +161,8 @@ class Telegram {
                 "text" => $m,
                 "disable_web_page_preview" => "true",
             );
-            if ($parse_mode != null) {
-                $data->parse_mode = $parse_mode;
+            if ($is_markdown) {
+                $data->parse_mode = "Markdown";
             }
             $this->send("sendMessage", $data);
         }

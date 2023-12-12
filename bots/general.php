@@ -51,7 +51,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
         // 3. Add the transcription to the chat history
         if (substr($message, 0, 7) == "Error: ") {
-            $telegram->send_message($message, null);
+            $telegram->send_message($message, false);
             exit;
         }
     }
@@ -162,7 +162,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $response = $openai->gpt($chat);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
-                    $telegram->send_message($response, null);
+                    $telegram->send_message($response, false);
                 } else {
                     $telegram->send_message($response);
                 }
@@ -185,7 +185,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $response = $openai->gpt($chat);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
-                    $telegram->send_message($response, null);
+                    $telegram->send_message($response, false);
                 } else {
                     $telegram->send_message($response);
                 }
@@ -214,7 +214,7 @@ END:VTIMEZONE"));
 
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
-                    $telegram->send_message($response, null);
+                    $telegram->send_message($response, false);
                 // If the response starts with "BEGIN:VCALENDAR", it is an iCalendar event
                 } else if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
                     $file_name = "event.ics";
@@ -254,7 +254,7 @@ END:VTIMEZONE"));
                 $response = $openai->gpt($chat);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
-                    $telegram->send_message($response, null);
+                    $telegram->send_message($response, false);
                 } else {
                     $telegram->send_message($response);
                 }
@@ -507,7 +507,7 @@ END:VTIMEZONE"));
                     exit;
                 }
             } catch (Exception $e) {
-                $telegram->send_message("Error: ".json_encode($e), null);
+                $telegram->send_message("Error: ".json_encode($e), false);
                 exit;
             }
 
@@ -553,7 +553,7 @@ END:VTIMEZONE"));
                 try {
                     $global_config_manager->remove_allowed_user($username, "general");
                 } catch (Exception $e) {
-                    $telegram->send_message("Error: ".json_encode($e), null);
+                    $telegram->send_message("Error: ".json_encode($e), false);
                     exit;
                 }
                 $telegram->send_message("Removed user @".$username." from the list of authorized users.");
@@ -595,7 +595,7 @@ END:VTIMEZONE"));
                     foreach ($jobs as $job) {
                         $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT);
                     }
-                    $telegram->send_message($message, null);
+                    $telegram->send_message($message, false);
                 } else {
                     $telegram->send_message("Unknown argument: ".$arg);
                 }
@@ -645,7 +645,7 @@ END:VTIMEZONE"));
             // if image_url starts with "Error: "
             if (substr($image_url, 0, 7) == "Error: ") {
                 $error_message = $image_url;
-                $telegram->send_message($error_message, null);
+                $telegram->send_message($error_message, false);
                 exit;
             }
             // Add the image to the chat history
@@ -679,7 +679,7 @@ END:VTIMEZONE"));
             // if audio_url starts with "Error: "
             if (substr($audio_data, 0, 7) == "Error: ") {
                 $error_message = $audio_data;
-                $telegram->send_message($error_message, null);
+                $telegram->send_message($error_message, false);
                 exit;
             }
             if ($DEBUG) {
@@ -692,7 +692,7 @@ END:VTIMEZONE"));
         // The command /dump outputs the content of the permanent storage
         $command_manager->add_command(array("/dump", "/d"), function($command, $_) use ($telegram, $user_config_manager) {
             $file = $user_config_manager->get_file();
-            $telegram->send_message(file_get_contents($file), null);
+            $telegram->send_message(file_get_contents($file), false);
         }, "Misc", "Dump the data saved in the permanent storage");
 
         // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
@@ -713,11 +713,11 @@ END:VTIMEZONE"));
             // Send each message as a separate message
             foreach ($messages as $message) {
                 if (is_string($message->content))
-                    $telegram->send_message("/".$message->role." ".$message->content, null);
+                    $telegram->send_message("/".$message->role." ".$message->content, false);
                 else {
                     $image_url = $message->content[0]->image_url;
                     $caption = $message->content[1]->text;
-                    $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, null);
+                    $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, false);
                 }
             }
             exit;
@@ -752,7 +752,7 @@ END:VTIMEZONE"));
 
     // Show error messages
     if (substr($response, 0, 7) == "Error: ") {
-        $telegram->send_message($response, null);
+        $telegram->send_message($response, false);
         exit;
     }
 

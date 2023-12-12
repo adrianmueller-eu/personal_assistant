@@ -163,7 +163,7 @@ for ($i = 0; $i < count($jobs); $i++) {
     // If $job->chat_id is not the admin chat ID, send the message to the admin chat ID as well
     if ($job->chat_id != $chat_id_admin) {
         $telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
-        $telegram_admin->send_message("Job ".$job->name." sent a message to chat ID ".$job->chat_id, null);
+        $telegram_admin->send_message("Job ".$job->name." sent a message to chat ID ".$job->chat_id, false);
     }
 
     // If $message is an error message, don't update the last_run and next_run

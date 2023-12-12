@@ -119,7 +119,7 @@ if (!isset($update->message) || !isset($update->update_id)) {
 
 if ($DEBUG) {
     Log::debug($update);
-    $telegram_admin->send_message(json_encode($update, JSON_PRETTY_PRINT), null);
+    $telegram_admin->send_message(json_encode($update, JSON_PRETTY_PRINT), false);
 }
 
 // Avoid processing the same message twice by checking whether update_id was already processed
@@ -149,24 +149,29 @@ if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) 
     $user_config_manager = new UserConfigManager($chat_id, $username, $name, $lang);
     $openai = new OpenAI($openai_api_key, $DEBUG);
 
-    run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
-                        $global_config_manager, $is_admin, $DEBUG);
+    try {
+        run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
+                            $global_config_manager, $is_admin, $DEBUG);
+    } catch (Exception $e) {
+        Log::error($e->getMessage());
+        throw $e;
+    }
     exit;
 }
 else {
     // if $update->text contains "chatid", send the chat_id to the user
     if (isset($update->text) && strpos($update->text, "chatid") !== false)
-        $telegram->send_message("Your chat_id is: ".$chat_id, null);
+        $telegram->send_message("Your chat_id is: ".$chat_id, false);
     else
-        $telegram->send_message("I'm sorry, I'm not allowed to talk with you :/", null);
+        $telegram->send_message("I'm sorry, I'm not allowed to talk with you :/", false);
 
     // Tell me ($chat_id_admin) that someone tried to talk to the bot
     // This could be used to spam the admin
     if ($username != null && $username != "")
-        $telegram_admin->send_message("@".$username." tried to talk to me (chat_id: ".$chat_id.")", null);
+        $telegram_admin->send_message("@".$username." tried to talk to me (chat_id: ".$chat_id.")", false);
     else if ($name != null && $name != "")
-        $telegram_admin->send_message($name." tried to talk to me (chat_id: ".$chat_id.")", null);
+        $telegram_admin->send_message($name." tried to talk to me (chat_id: ".$chat_id.")", false);
     else
-        $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: ".$chat_id.")", null);
+        $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: ".$chat_id.")", false);
 }
 ?>

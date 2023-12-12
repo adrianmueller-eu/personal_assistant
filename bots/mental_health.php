@@ -51,7 +51,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
         // 3. Add the transcription to the chat history
         if (substr($message, 0, 7) == "Error: ") {
-            $telegram->send_message($message, null);
+            $telegram->send_message($message, false);
             exit;
         }
     } else {
@@ -465,7 +465,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $telegram->send_message("There is no backup to restore. Please start a new session with /start.");
                 }
             } catch (Exception $e) {
-                $telegram->send_message("Error in reading backup file: ".$e->getMessage(), null);
+                $telegram->send_message("Error in reading backup file: ".$e->getMessage(), false);
             }
             exit;
         }, "Settings", "Restore the config from the backup file");
@@ -539,7 +539,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 try {
                     $global_config_manager->remove_allowed_user($username, "general");
                 } catch (Exception $e) {
-                    $telegram->send_message("Error: ".json_encode($e), null);
+                    $telegram->send_message("Error: ".json_encode($e), false);
                     exit;
                 }
                 $telegram->send_message("Removed user @".$username." from the list of authorized users.");
@@ -590,11 +590,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 // Send each message as a separate message
                 foreach ($messages as $message) {
                     if (is_string($message->content))
-                        $telegram->send_message("/".$message->role." ".$message->content, null);
+                        $telegram->send_message("/".$message->role." ".$message->content, false);
                     else {
                         $image_url = $message->content[0]->image_url;
                         $caption = $message->content[1]->text;
-                        $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, null);
+                        $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, false);
                     }
                 }
                 exit;
@@ -643,7 +643,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     foreach ($jobs as $job) {
                         $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT);
                     }
-                    $telegram->send_message($message, null);
+                    $telegram->send_message($message, false);
                 } else {
                     $telegram->send_message("Unknown argument: ".$arg);
                 }
@@ -683,7 +683,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // if audio_url starts with "Error: "
             if (substr($audio_data, 0, 7) == "Error: ") {
                 $error_message = $audio_data;
-                $telegram->send_message($error_message, null);
+                $telegram->send_message($error_message, false);
                 exit;
             }
             if ($DEBUG) {
@@ -696,7 +696,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }
     }
     else {
-        $telegram->send_message("Error: ".$response, null);
+        $telegram->send_message("Error: ".$response, false);
         $telegram->send_message("Sorry, I am having trouble connecting to the server. Please write /c to try again.");
     }
 }
