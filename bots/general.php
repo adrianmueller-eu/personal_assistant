@@ -721,7 +721,7 @@ END:VTIMEZONE"));
                 }
             }
             exit;
-        }, "Misc", "Dump all messages in the chat history. You can dump only the last n messages by providing a number with the command.");
+        }, "Misc", "Dump all messages in the chat history. You can dump only the last n messages by providing a number with the command (e.g. \"/dm 3\" to dump the last 3 messages).");
 
         // The command /cnt outputs the number of messages in the chat history
         $command_manager->add_command(array("/cnt"), function($command, $_) use ($telegram, $user_config_manager) {
