@@ -100,9 +100,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     // If $message starts with /, it's a command
     if (is_string($message) && substr($message, 0, 1) == "/") {
         if ($is_admin) {
-            $categories = array("Presets", "Settings", "Chat history management", "Admin", "Misc");
+            $categories = array("Presets", "Shortcuts", "Settings", "Chat history management", "Admin", "Misc");
         } else {
-            $categories = array("Presets", "Settings", "Chat history management", "Misc");
+            $categories = array("Presets", "Shortcuts", "Settings", "Chat history management", "Misc");
         }
         $command_manager = new CommandManager($categories);
 
@@ -194,7 +194,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $telegram->send_message("Chat history reset. I am now a translator.");
             }
             exit;
-        }, "Presets", "Translate messages into English");
+        }, "Presets", "Translate messages into English. Give the text with the command to preserve the previous conversation.");
 
         // The command /calendar converts event descriptions to an iCalendar file
         $command_manager->add_command(array("/calendar", "/cal"), function($command, $description) use ($telegram, $user_config_manager, $openai) {
@@ -227,7 +227,7 @@ END:VTIMEZONE"));
                 $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
             }
             exit;
-        }, "Presets", "Converts an event description to iCalendar format");
+        }, "Presets", "Converts an event description to iCalendar format. Provide a description with the command to preserve the previous conversation.");
 
         // The command /paper supports writing an academic paper
         $command_manager->add_command(array("/paper", "/research"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
@@ -263,7 +263,21 @@ END:VTIMEZONE"));
                 $telegram->send_message("Chat history reset. I will support you in writing code.");
             }
             exit;
-        }, "Presets", "Programming assistant");
+        }, "Presets", "Programming assistant. Add a query to preserve the previous conversation.");
+
+        // The command /task helps the user to break down a task and track progress
+        $command_manager->add_command(array("/task"), function($command, $task) use ($telegram, $user_config_manager, $reset) {
+            $reset($command, $task, false);  // general prompt
+            if ($task == "") {
+                $telegram->send_message("Please provide a task with the command.");
+                exit;
+            }
+            $prompt = "Your task is to help the user achieve the following goal: \"".$task."\". "
+                ."Break down it into subtasks, negotiate a schedule, and provide live accountabilty at each step. "
+                ."Avoid generic advice, but instead find specific, actionable steps. "
+                ."As soon as the steps are clear, walk the user through them one by one to ensure they are completed. ";
+            $user_config_manager->add_message("system", $prompt);
+        }, "Presets", "Helps the user to break down a task and track immediate progress");
 
         // The command /anki adds a command to create an Anki flashcard from the previous text
         $command_manager->add_command(array("/anki"), function($command, $topic) use ($telegram, $user_config_manager, $openai) {
@@ -280,8 +294,17 @@ END:VTIMEZONE"));
             }
             $user_config_manager->add_message("user", $user_message);
             // don't exit, to request a response from the model below
-        }, "Presets", "Request an Anki flashcard based on the previous conversation. You can provide a message with the command to clarify the topic.");
+        }, "Shortcuts", "Request an Anki flashcard based on the previous conversation. You can provide a message with the command to clarify the topic.");
 
+        // The command /todo is a shortcut to extract actionable items out of the previous conversation
+        $command_manager->add_command(array("/todo"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
+            // Prompt the model to write a todo list
+            $prompt = "Please create a consolidated list of specific, actionable items based on the previous conversation. "
+                    ."Keep the points concise, but specific and informative. "
+                    ."If there is important information missing, don't provide an actual answer, but instead ask for what you'd need to know first. ";
+            $user_config_manager->add_message("system", $prompt);
+            // don't exit, to request a response from the model below
+        }, "Shortcuts", "Extract a list of actionable items from the previous conversation");
 
         // TODO !!! Add more presets here !!!
 
