@@ -258,36 +258,39 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 }
                 $user_config_manager->save_backup();
 
-                if ($session_info->profile != "") {
+                // Session summary
+                if ($user_config_manager->get_lang() == "de") {
+                    $summary_prompt = "Zeit zum Reflektieren. Schreibe eine Zusammenfassung dieser Sitzung, die später verwendet wird, um das "
+                    ."Profil zu aktualisieren. Fasse daher nur Informationen zusammen, die für zukünftige Sitzungen wirklich notwendig sind.";
+                } else {
+                    $summary_prompt = "Time to reflect. Write a summary of this session that will be used later to update the "
+                    ."profile. Hence, include only information that is really necessary for upcoming sessions.";
+                }
+                $chat->messages = array_merge($chat->messages, array(
+                    array("role" => "system", "content" => $summary_prompt)
+                ));
+                $summary = $openai->gpt($chat);
+                if (substr($summary, 0, 7) == "Error: ") {
+                    if ($user_config_manager->get_lang() == "de") {
+                        $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
+                    } else {
+                        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                    }
+                    exit;
+                }
+                // Show the summary to the user
+                if ($user_config_manager->get_lang() == "de") {
+                    $telegram->send_message("Hier ist eine Zusammenfassung unserer Sitzung:\n\n".$summary);
+                } else {
+                    $telegram->send_message("Here is a summary of our session:\n\n".$summary);
+                }
+
+                // Profile update
+                if ($session_info->profile == "") {
+                    $new_profile = $summary;
+                } else {
                     $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
-                    if ($user_config_manager->get_lang() == "de") {
-                        $summary_prompt = "Zeit zum Reflektieren. Schreibe eine Zusammenfassung dieser Sitzung, die später verwendet wird, um das "
-                        ."obige Profil zu aktualisieren. Fasse daher nur Informationen zusammen, die für zukünftige Sitzungen wirklich notwendig sind.";
-                    } else {
-                        $summary_prompt = "Time to reflect. Write a summary of this session that will be used later to update the "
-                        ."profile above. Hence, include only information that is really necessary for upcoming sessions.";
-                    }
-                    $chat->messages = array_merge($chat->messages, array(
-                        array("role" => "system", "content" => $summary_prompt)
-                    ));
 
-                    // Request a summary of the session
-                    $summary = $openai->gpt($chat);
-                    if (substr($summary, 0, 7) == "Error: ") {
-                        if ($user_config_manager->get_lang() == "de") {
-                            $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
-                        } else {
-                            $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
-                        }
-                        exit;
-                    }
-                    if ($user_config_manager->get_lang() == "de") {
-                        $telegram->send_message("Hier ist eine Zusammenfassung unserer Sitzung:\n\n".$summary);
-                    } else {
-                        $telegram->send_message("Here is a summary of our session:\n\n".$summary);
-                    }
-
-                    // Add answer and profile request to chat history
                     if ($user_config_manager->get_lang() == "de") {
                         $profile_update_prompt = "Danke für die Zusammenfassung. Lass uns jetzt das Profil mit den neuen Informationen aktualisieren, die du "
                         ."in dieser Sitzung erhalten hast. Hier ist noch einmal das Profil, das du nach unserer vorherigen Sitzung geschrieben hast (".$time_passed." her):\n\n"
@@ -305,27 +308,15 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                         array("role" => "assistant", "content" => $summary),
                         array("role" => "system", "content" => $profile_update_prompt)
                     ));
-                } else {
-                    if ($user_config_manager->get_lang() == "de") {
-                        $summary_prompt = "Bitte schreibe eine kurze Zusammenfassung, die die Informationen zusammenfasst, die du in dieser Sitzung erhalten hast. "
-                        ."Bitte füge nur Informationen hinzu, die für zukünftige Sitzungen wirklich notwendig sind.";
-                    } else {
-                        $summary_prompt = "Please write a short profile that summarizes the information you got in this session. "
-                        ."Please include only information that is really necessary for upcoming sessions.";
+                    $new_profile = $openai->gpt($chat);
+                    if (substr($new_profile, 0, 7) == "Error: ") {
+                        if ($user_config_manager->get_lang() == "de") {
+                            $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
+                        } else {
+                            $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                        }
+                        exit;
                     }
-                    $chat->messages = array_merge($chat->messages, array(
-                        array("role" => "system", "content" => $summary_prompt),
-                    ));
-                }
-                // Request the new profile
-                $new_profile = $openai->gpt($chat);
-                if (substr($new_profile, 0, 7) == "Error: ") {
-                    if ($user_config_manager->get_lang() == "de") {
-                        $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
-                    } else {
-                        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
-                    }
-                    exit;
                 }
                 // Update the session info
                 $session_info->profile = $new_profile;
