@@ -306,6 +306,69 @@ END:VTIMEZONE"));
             // don't exit, to request a response from the model below
         }, "Shortcuts", "Extract a list of actionable items from the previous conversation");
 
+        // The command /mail builds a mail based on the previous conversation
+        $command_manager->add_command(array("/mail"), function($command, $topic) use ($telegram, $user_config_manager, $openai) {
+            // If the topic is not empty, process it one-time without saving the config
+            // Prompt the model to write a mail
+            $prompt = "You task is to prepare a mail based on the previous conversation using the template below. "
+                    ."Keep your response concise and compact. Your voice is casual and kind. "
+                    ."If there is important information missing, don't provide an actual answer, but instead ask for what you'd need to know first. "
+                    ."Use \".".$user_config_manager->get_name()." as sender name.\"\n\n"
+                    ."To: [recipient]\n"
+                    ."Subject: [subject]\n\n"
+                    ."Body:\n[body]";
+            if ($topic == "") {
+                $user_config_manager->add_message("system", $prompt);
+                $chat = $user_config_manager->get_config();
+            } else {
+                $chat = UserConfigManager::$default_config;
+                $chat["temperature"] = 0.3;
+                $chat["messages"][] = array("role" => "user", "content" => $topic);
+                $chat["messages"][] = array("role" => "system", "content" => $prompt);
+            }
+            // Request a response from the model
+            $response = $openai->gpt($chat);
+            // If the response starts with "Error: ", it is an error message
+            if (substr($response, 0, 7) == "Error: ") {
+                $telegram->send_message($response, false);
+                exit;
+            }
+            // Build a mailto link from the response
+            $mailto = "https://adrianmueller.eu/mailto/";
+            // Find the recipient
+            $recipient = "";
+            $recipient_regex = "/To: (.*)\n/";
+            if (preg_match($recipient_regex, $response, $matches)) {
+                $recipient = $matches[1];
+            }
+            // Find the subject
+            $subject = "";
+            $subject_regex = "/Subject: (.*)\n/";
+            if (preg_match($subject_regex, $response, $matches)) {
+                $subject = $matches[1];
+            }
+            // Find the body
+            $body = "";
+            // $body_regex = "/Body:\n(.*)/"; // this doesn't match newlines; instead matches everything after "Body:\n"
+            $body_regex = "/Body:\n((?:.|\n)*)/";
+            if (preg_match($body_regex, $response, $matches)) {
+                $body = $matches[1];
+                $body = urlencode($body);
+            }
+            // Build the mailto link
+            $mailto .= "?to=".$recipient."&subject=".urlencode($subject)."&body=".$body;
+            if ($topic == "") {
+                $user_config_manager->add_message("assistant", $response);
+            }
+            // Add the mailto link to the response as a markdown link
+            $response .= "\n\n[Send mail]({$mailto})";
+            $telegram->send_message($response);
+            if ($topic == "") {
+                $user_config_manager->add_message("assistant", $response);
+            }
+            exit;
+        }, "Shortcuts", "Create a mail based on the previous conversation or a given request");
+
         // TODO !!! Add more presets here !!!
 
 
