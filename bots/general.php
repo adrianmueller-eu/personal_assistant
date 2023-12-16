@@ -387,7 +387,7 @@ END:VTIMEZONE"));
         }
 
         // The command /model shows the current model and allows to change it
-        $command_manager->add_command(array("/model", "/m", "/gpt4", "/gpt3"), function($command, $model) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/model", "/gpt4", "/gpt3"), function($command, $model) use ($telegram, $user_config_manager) {
             $chat = $user_config_manager->get_config();
             if ($model == "") {
                 $telegram->send_message("You are currently talking to `".($chat->model)."`.\n\n"
@@ -521,7 +521,7 @@ END:VTIMEZONE"));
         }, "Chat history management", "Clear the internal chat history");
 
         // The command /delete deletes the last n messages, or the last message if no number is provided
-        $command_manager->add_command(array("/delete", "/del"), function($command, $n) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/del"), function($command, $n) use ($telegram, $user_config_manager) {
             if (is_numeric($n)) {
                 $n = intval($n);
                 if ($n > 0) {
@@ -703,7 +703,7 @@ END:VTIMEZONE"));
         }, "Misc", "Request another response");
 
         // The command /image requests an image from the model
-        $command_manager->add_command(array("/image", "/img", "/i"), function($command, $prompt) use ($telegram, $openai, $user_config_manager) {
+        $command_manager->add_command(array("/img"), function($command, $prompt) use ($telegram, $openai, $user_config_manager) {
             if ($prompt == "") {
                 $telegram->send_message("Please provide a prompt with command ".$command.".");
                 exit;
@@ -776,13 +776,14 @@ END:VTIMEZONE"));
         }, "Misc", "Request a text-to-speech conversion. If no prompt is provided, use the last message.");
 
         // The command /dump outputs the content of the permanent storage
-        $command_manager->add_command(array("/dump", "/d"), function($command, $_) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/dump"), function($command, $_) use ($telegram, $user_config_manager) {
             $file = $user_config_manager->get_file();
             $telegram->send_message(file_get_contents($file), false);
+            exit;
         }, "Misc", "Dump the data saved in the permanent storage");
 
         // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
-        $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $n) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/dm"), function($command, $n) use ($telegram, $user_config_manager) {
             $messages = $user_config_manager->get_config()->messages;
             // Check if there are messages
             if (count($messages) == 0) {
