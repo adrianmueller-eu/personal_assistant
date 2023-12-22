@@ -476,12 +476,18 @@ END:VTIMEZONE"));
 
         // The command /delete deletes the last n messages, or the last message if no number is provided
         $command_manager->add_command(array("/del"), function($command, $n) use ($telegram, $user_config_manager) {
+            if ($n == "") {
+                $n = 1;
+            }
             if (is_numeric($n)) {
                 $n = intval($n);
                 if ($n > 0) {
+                    $n_messages = count($user_config_manager->get_config()->messages);
                     $n = $user_config_manager->delete_messages($n);
                     if ($n == 0) {
                         $telegram->send_message("There are no messages to delete.");
+                    } else if ($n == $n_messages) {
+                        $telegram->send_message("All ".$n." messages deleted.");
                     } else {
                         $telegram->send_message("Deleted the last ".$n." messages.");
                     }
@@ -489,12 +495,7 @@ END:VTIMEZONE"));
                     $telegram->send_message("You can only delete a positive number of messages.");
                 }
             } else {
-                $n = $user_config_manager->delete_messages(1);
-                if ($n == 0) {
-                    $telegram->send_message("There are no messages to delete.");
-                } else {
-                    $telegram->send_message("Deleted the last message.");
-                }
+                $telegram->send_message("Please provide a number of messages to delete.");
             }
             exit;
         }, "Chat history management", "Delete the last message from the internal chat history. You can delete multiple messages by adding a number (e.g. \"/del 3\" to delete the last 3 messages).");
