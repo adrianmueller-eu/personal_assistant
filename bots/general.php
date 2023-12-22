@@ -196,14 +196,14 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }, "Presets", "Translate messages into English. Give the text with the command to preserve the previous conversation.");
 
-        // The command /calendar converts event descriptions to an iCalendar file
-        $command_manager->add_command(array("/calendar", "/cal"), function($command, $description) use ($telegram, $user_config_manager, $openai) {
+        // The command /event converts event descriptions to an iCalendar file
+        $command_manager->add_command(array("/event"), function($command, $description) use ($telegram, $user_config_manager, $openai) {
             $timezone = date("e");
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0;
             $chat["messages"] = array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
                 ."event in iCalendar format. Try to infer the time zone from the location. Use can use the example for the timezone below as "
-                ."a template. Ensure that the code is valid. Output the code only. The current year is ".date("Y").".\n\n"
+                ."a template. Ensure that the code is valid. Output the code only. Today is ".date("l, j.n.Y").".\n\n"
 ."BEGIN:VTIMEZONE
 TZID:$timezone
 END:VTIMEZONE"));
