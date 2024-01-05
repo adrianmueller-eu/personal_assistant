@@ -8,13 +8,12 @@
  * @param Telegram $telegram The Telegram manager for the user
  * @param OpenAI $openai The OpenAI object
  * @param Telegram $telegram_admin The Telegram manager for the admin
- * @param string $username The username of the user
  * @param GlobalConfigManager $global_config_manager The global config manager
  * @param bool $is_admin Whether the user is an admin
  * @param bool $DEBUG Whether to enable debug mode
  * @return void
  */
-function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, $global_config_manager, $is_admin, $DEBUG) {
+function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
     if (isset($update->text)) {
         $message = $update->text;
     }

@@ -8,13 +8,12 @@
  * @param Telegram $telegram The Telegram manager for the user
  * @param OpenAI $openai The OpenAI object
  * @param Telegram $telegram_admin The Telegram manager for the admin
- * @param string $username The username of the user
  * @param GlobalConfigManager $global_config_manager The global config manager
  * @param bool $is_admin Whether the user is an admin
  * @param bool $DEBUG Whether to enable debug mode
  * @return void
  */
-function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, $global_config_manager, $is_admin, $DEBUG) {
+function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
     if (isset($update->text)) {
         $message = $update->text;
     }
@@ -592,7 +591,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             }, "Admin", "Dump all messages in the chat history. You can dump only the last n messages by providing a number with the command.");
 
             // Command /showcase (with optional parameter $name) let's the admin showcase the bot
-            $command_manager->add_command(array("/showcase"), function($command, $name) use ($telegram, $user_config_manager, $username) {
+            $command_manager->add_command(array("/showcase"), function($command, $name) use ($telegram, $user_config_manager) {
                 $file_path = $user_config_manager->get_file();
                 $sc_backup_file_path = $file_path."_showcase";
                 if ($name == "end") {
@@ -611,12 +610,12 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     copy($file_path, $sc_backup_file_path);
                     // Create a new config file
                     unlink($file_path);
+                    $username = $user_config_manager->get_username();
                     $user_config_manager = new UserConfigManager($telegram->get_chat_id(), $username, $name, "en");
                     $telegram->send_message("Showcase prepared. Please send /start to start the showcase and \"/showcase end\" to end it.");
                 }
                 exit;
             }, "Admin", "Showcase the bot. Use \"/showcase <name>\" to specify a name, and \"/showcase end\" to end it.");
-
 
             // The command /jobs lists all jobs
             $command_manager->add_command(array("/jobs"), function($command, $arg) use ($telegram, $global_config_manager) {

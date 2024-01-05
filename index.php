@@ -150,7 +150,7 @@ if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) 
     $openai = new OpenAI($openai_api_key, $DEBUG);
 
     try {
-        run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $username, 
+        run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, 
                             $global_config_manager, $is_admin, $DEBUG);
     } catch (Exception $e) {
         Log::error($e->getMessage());
