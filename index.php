@@ -139,8 +139,9 @@ $username = $update->from->username;
 $name = $update->from->first_name ?? $username;
 $lang = $update->from->language_code ?? "en";
 
-$telegram = new Telegram($telegram_token, $chat_id, $DEBUG);
 $is_admin = $chat_id == $chat_id_admin;
+$DEBUG = $DEBUG && $is_admin;  // Only allow debugging for the admin
+$telegram = new Telegram($telegram_token, $chat_id, $DEBUG);
 
 // Run the bots
 // Note: Instantiate the UserConfigManager only after checking if the user is allowed to talk to the bot to avoid
