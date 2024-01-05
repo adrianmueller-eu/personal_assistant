@@ -37,7 +37,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             array("type" => "text", "text" => $caption),
         );
     } else if (isset($update->voice)) {
-        // 1. Get the file content from file_id with $telegram->get_file
+        // Get the file content from file_id with $telegram->get_file
         $file_id = $update->voice->file_id;
         $file = $telegram->get_file($file_id);
         if ($file == null) {
@@ -45,14 +45,15 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }
 
-        // 2. Transcribe with $openai->whisper
+        // Transcribe with $openai->whisper
         $message = $openai->whisper($file, language: $user_config_manager->get_lang());
 
-        // 3. Add the transcription to the chat history
         if (substr($message, 0, 7) == "Error: ") {
             $telegram->send_message($message, false);
             exit;
         }
+        // Send the transcription to the user
+        $telegram->send_message("/user ".$message);
     }
     else {
         $telegram->send_message("Sorry, I don't know yet what do to this message:\n\n".json_encode($update, JSON_PRETTY_PRINT));
