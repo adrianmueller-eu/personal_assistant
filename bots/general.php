@@ -56,7 +56,10 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         $telegram->send_message("/user ".$message);
     }
     else {
-        $telegram->send_message("Sorry, I don't know yet what do to this message:\n\n".json_encode($update, JSON_PRETTY_PRINT));
+        $telegram->send_message("Sorry, I don't know yet what do to this message! :/");
+        if ($DEBUG) {
+            $telegram->send_message("Unknown message: ".json_encode($update, JSON_PRETTY_PRINT), false);
+        }
         exit;
     }
 
