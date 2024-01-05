@@ -33,7 +33,15 @@ require_once __DIR__."/utils.php";
  *             "property1": "value1",
  *             "property2": "value2"
  *         }
- *     }
+ *     },
+ *     "tts_config": {
+ *         "model": "tts-1",
+ *         "voice": "shimmer",
+ *         "speed": 1.0
+ *     },
+ *     "intro": "Please always add emojis to your messages.",
+ *     "hellos": [],
+ *     "counters": {}
  * }
  * ```
  */
@@ -93,7 +101,8 @@ class UserConfigManager {
                 "hellos" => array(),
                 "config" => (object) self::$default_config,
                 "sessions" => (object) array(),
-                "tts_config" => (object) self::$default_tts_config
+                "tts_config" => (object) self::$default_tts_config,
+                "counters" => (object) array(),
             );
             $this->save(); // Keep this
         }
@@ -354,6 +363,33 @@ class UserConfigManager {
     public function save_tts_config($tts_config) {
         $this->user_data->tts_config = $tts_config;
         $this->save();
+    }
+
+    /**
+     * Increment a counter.
+     * 
+     * @param string $name The name of the counter.
+     * @param int $cnt The amount to increment the counter by (default: 1).
+     */
+    public function increment($name, $cnt=1) {
+        if (!isset($this->user_data->counters->$name)) {
+            $this->user_data->counters->$name = 0;
+        }
+        $this->user_data->counters->$name += $cnt;
+        $this->save();
+    }
+
+    /**
+     * Get the value of a counter.
+     * 
+     * @param string $name The name of the counter.
+     * @return int The value of the counter or 0 if the counter does not exist.
+     */
+    public function get_counter($name) {
+        if (!isset($this->user_data->counters->$name)) {
+            return 0;
+        }
+        return $this->user_data->counters->$name;
     }
 }
 
