@@ -645,6 +645,38 @@ END:VTIMEZONE"));
                 }
                 exit;
             }, "Admin", "Job management. Use \"/jobs on\" to turn on all jobs or \"/jobs off\" to turn off all jobs. No argument lists all jobs.");
+
+            // The command /usage prints the usage statistics of all users for a given month
+            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
+                // If monthstring is not in format "ym", send an error message
+                if ($month == "") {
+                    $month = date("ym");
+                }
+                else if (!preg_match("/^[0-9]{4}$/", $month)) {
+                    $telegram->send_message("Please provide a month in the format \"YYMM\".");
+                    exit;
+                }
+                $chatids = $global_config_manager->get_chatids();
+                $message = "Usage statistics for month ".$month.":\n\n";
+                foreach ($chatids as $chatid) {
+                    // Add a line for each user: @username (chatid): prompt + completion = total tokens
+                    $user = new UserConfigManager($chatid, null, null, null);
+                    $message .= "- @".$user->get_username()." (".$chatid."): ";
+                    // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
+                    $cnt_prompt = $user->get_counter("openai_".$month."_chat_prompt_tokens");
+                    $cnt_completion = $user->get_counter("openai_".$month."_chat_completion_tokens");
+                    $cnt_total = $user->get_counter("openai_".$month."_chat_total_tokens");
+                    if ($cnt_prompt == 0 && $cnt_completion == 0 && $cnt_total == 0) {
+                        $message .= "no data\n";
+                    } else {
+                        // Add a price estimate for each: $0.01 / 1K tokens for prompt, $0.03 / 1K tokens for completion
+                        $price_estimate = round($cnt_prompt / 1000 * 0.01 + $cnt_completion / 1000 * 0.03, 2);
+                        $message .= $cnt_prompt." + ".$cnt_completion." = ".$cnt_total." tokens (~$".$price_estimate.")\n";
+                    }
+                }
+                $telegram->send_message($message);
+                exit;
+            }, "Admin", "Print the usage statistics of all users for a given month (default: current month)");
         }
 
         // ######################

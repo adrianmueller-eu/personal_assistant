@@ -154,6 +154,25 @@ class GlobalConfigManager {
         $this->save();
     }
 
+    /**
+     * Get the list of chatids
+     * 
+     * @return array The list of chatids.
+     */
+    public function get_chatids() {
+        // Needs to be read out for them directory __DIR__."/../chats/", where there are files in the format <chatid>.json
+        $chatids = array();
+        $files = scandir(__DIR__."/../chats/");
+        foreach ($files as $file) {
+            if (substr($file, -5) != ".json")
+                continue;
+            $filename = substr($file, 0, -5);
+            if (is_numeric($filename)) {
+                $chatids[] = $filename;
+            }
+        }
+        return $chatids;
+    }
 }
 
 ?>
