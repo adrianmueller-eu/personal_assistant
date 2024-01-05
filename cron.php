@@ -131,7 +131,7 @@ for ($i = 0; $i < count($jobs); $i++) {
                 "content" => $pre_message."\n\n".$message,
             );
             // Request a response from the model
-            $message = $openai->gpt($config);
+            $message = $openai->gpt($config, $user_config_manager);
             // Add the message as assistant message
             if (substr($message, 0, 7) != "Error: ") {
                 $user_config_manager->add_message("assistant", $message);
@@ -144,14 +144,12 @@ for ($i = 0; $i < count($jobs); $i++) {
                 $config["temperature"] = $job->temperature;
             }
             // Set the system prompt
-            $config["messages"] = array(
-                array(
-                    "role" => "system",
-                    "content" => $job->message,
-                ),
-            );
+            $config["messages"] = array(array(
+                "role" => "system",
+                "content" => $job->message,
+            ));
             // Request a response from the model
-            $message = $openai->gpt($config);
+            $message = $openai->gpt($config, $user_config_manager);
         }
     } else {
         $message = $job->message;

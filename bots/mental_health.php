@@ -268,7 +268,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $chat->messages = array_merge($chat->messages, array(
                     array("role" => "system", "content" => $summary_prompt)
                 ));
-                $summary = $openai->gpt($chat);
+                $summary = $openai->gpt($chat, $user_config_manager);
                 if (substr($summary, 0, 7) == "Error: ") {
                     if ($user_config_manager->get_lang() == "de") {
                         $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
@@ -307,7 +307,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                         array("role" => "assistant", "content" => $summary),
                         array("role" => "system", "content" => $profile_update_prompt)
                     ));
-                    $new_profile = $openai->gpt($chat);
+                    $new_profile = $openai->gpt($chat, $user_config_manager);
                     if (substr($new_profile, 0, 7) == "Error: ") {
                         if ($user_config_manager->get_lang() == "de") {
                             $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
@@ -654,7 +654,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     }
 
     $chat = $user_config_manager->get_config();
-    $response = $openai->gpt($chat);
+    $response = $openai->gpt($chat, $user_config_manager);
 
     // Append GPT's response to the messages array, except if it starts with "Error: "
     if (substr($response, 0, 7) != "Error: ") {

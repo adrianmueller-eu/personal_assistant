@@ -162,7 +162,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // If the message is not empty, process the request one-time without saving the config
             if ($message != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $message);
-                $response = $openai->gpt($chat);
+                $response = $openai->gpt($chat, $user_config_manager);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
                     $telegram->send_message($response, false);
@@ -185,7 +185,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // If the text is not empty, process the request one-time without saving the config
             if ($text != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $text);
-                $response = $openai->gpt($chat);
+                $response = $openai->gpt($chat, $user_config_manager);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
                     $telegram->send_message($response, false);
@@ -213,7 +213,7 @@ END:VTIMEZONE"));
             // If the description is not empty, process the request one-time without saving the config
             if ($description != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $description);
-                $response = $openai->gpt($chat);
+                $response = $openai->gpt($chat, $user_config_manager);
 
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
@@ -254,7 +254,7 @@ END:VTIMEZONE"));
             // If the query is not empty, process the request one-time without saving the config
             if ($query != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $query);
-                $response = $openai->gpt($chat);
+                $response = $openai->gpt($chat, $user_config_manager);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
                     $telegram->send_message($response, false);
@@ -654,7 +654,7 @@ END:VTIMEZONE"));
         // The command /continue requests a response from the model
         $command_manager->add_command(array("/continue", "/c"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
             $chat = $user_config_manager->get_config();
-            $response = $openai->gpt($chat);
+            $response = $openai->gpt($chat, $user_config_manager);
             $user_config_manager->add_message("assistant", $response);
             $telegram->send_message($response);
             exit;
@@ -793,7 +793,7 @@ END:VTIMEZONE"));
 
     // $telegram->send_message("Sending message to OpenAI: ".$message);
     $chat = $user_config_manager->get_config();
-    $response = $openai->gpt($chat);
+    $response = $openai->gpt($chat, $user_config_manager);
 
     // Show error messages
     if (substr($response, 0, 7) == "Error: ") {

@@ -24,9 +24,10 @@ class OpenAI {
      * Send a request to the OpenAI API to create a chat completion.
      * 
      * @param object|array $data The data to send to the OpenAI API.
+     * @param UserConfigManager $user_config_manager The user config manager, to count the usage.
      * @return string The response from GPT or an error message (starts with "Error: ").
      */
-    public function gpt($data) {
+    public function gpt($data, $user_config_manager) {
         // Request a chat completion from OpenAI
         // The response has the following format:
         // $server_output = '{
@@ -58,6 +59,12 @@ class OpenAI {
 
         $response = $this->send_request("chat/completions", $data);
         if (isset($response->choices)) {
+            // Get a month year string
+            $month = date("ym");
+            // Count the usages
+            $user_config_manager->increment("openai_".$month."_chat_prompt_tokens", $response->usage->prompt_tokens);
+            $user_config_manager->increment("openai_".$month."_chat_completion_tokens", $response->usage->completion_tokens);
+            $user_config_manager->increment("openai_".$month."_chat_total_tokens", $response->usage->total_tokens);
             return $response->choices[0]->message->content;
         }
         return $response;
