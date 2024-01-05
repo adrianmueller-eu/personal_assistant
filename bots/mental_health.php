@@ -460,28 +460,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }, "Settings", "Restore the config from the backup file");
 
-        // The command /voice requests a text-to-speech conversion from the model
-        $command_manager->add_command(array("/voice"), function($command, $arg) use ($telegram, $user_config_manager) {
-            // Check if voice mode is active
-            $session_info = $user_config_manager->get_session_info("session");
-            if (!isset($session_info->voice_mode)) {
-                $session_info->voice_mode = false;
-                $user_config_manager->save_session_info("session", $session_info);
-            }
-            if ($session_info->voice_mode == false) {
-                // Turn on voice mode
-                $session_info->voice_mode = true;
-                $user_config_manager->save_session_info("session", $session_info);
-                $telegram->send_message("Voice mode is now active. I will send my responses as voice messages. To turn it off, simply write /voice again.");
-            } else {
-                // Turn off voice mode
-                $session_info->voice_mode = false;
-                $user_config_manager->save_session_info("session", $session_info);
-                $telegram->send_message("Voice mode is now inactive. I will send my responses as text messages. To turn it on, simply write /voice again.");
-            }
-            exit;
-        }, "Settings", "Toggle voice mode");
-
         // The command /c allows to request another response from the model
         $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $openai, $user_config_manager, $DEBUG) {
             // Check if session is running
@@ -496,6 +474,28 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // #######################
             // ### Commands: Admin ###
             // #######################
+
+            // The command /voice requests a text-to-speech conversion from the model
+            $command_manager->add_command(array("/voice"), function($command, $arg) use ($telegram, $user_config_manager) {
+                // Check if voice mode is active
+                $session_info = $user_config_manager->get_session_info("session");
+                if (!isset($session_info->voice_mode)) {
+                    $session_info->voice_mode = false;
+                    $user_config_manager->save_session_info("session", $session_info);
+                }
+                if ($session_info->voice_mode == false) {
+                    // Turn on voice mode
+                    $session_info->voice_mode = true;
+                    $user_config_manager->save_session_info("session", $session_info);
+                    $telegram->send_message("Voice mode is now active. I will send my responses as voice messages. To turn it off, simply write /voice again.");
+                } else {
+                    // Turn off voice mode
+                    $session_info->voice_mode = false;
+                    $user_config_manager->save_session_info("session", $session_info);
+                    $telegram->send_message("Voice mode is now inactive. I will send my responses as text messages. To turn it on, simply write /voice again.");
+                }
+                exit;
+            }, "Settings", "Toggle voice mode");
 
             // The command /addusermh adds a user to the list of authorized users
             $command_manager->add_command(array("/adduser"), function($command, $username) use ($telegram, $global_config_manager) {
