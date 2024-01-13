@@ -473,7 +473,7 @@ END:VTIMEZONE"));
             $user_config_manager->set_openai_api_key($key);
             $telegram->send_message("Your new OpenAI API key has been set.");
             exit;
-        }, "Settings", "Set your OpenAI API key");
+        }, "Settings", "Set your OpenAI own API key");
 
         // ###############################
         // ### Chat history management ###
