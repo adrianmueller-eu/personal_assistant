@@ -674,15 +674,21 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     }
                     $global_config_manager->save_jobs($jobs);
                     $telegram->send_message("All jobs successfully set \"".$arg."\".");
-                } else if ($arg == "") {
+                } else if ($arg != "") {
                     // Toggle all jobs with name $arg
+                    $cnt = 0;
                     foreach ($jobs as $job) {
                         if ($job->name == $arg) {
                             $job->status = $job->status == "active" ? "inactive" : "active";
+                            $cnt++;
                         }
                     }
                     $global_config_manager->save_jobs($jobs);
-                    $telegram->send_message("All jobs with name \"".$arg."\" successfully toggled.");
+                    if ($cnt == 0) {
+                        $telegram->send_message("No jobs with name \"".$arg."\" found.");
+                    } else {
+                        $telegram->send_message($cnt." jobs successfully toggled.");
+                    }
                 } else {
                     // List all jobs
                     $message = "List of jobs:";
@@ -692,7 +698,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $telegram->send_message($message, false);
                 }
                 exit;
-            }, "Admin", "Job management. Use \"/jobs on\" to turn on all jobs or \"/jobs off\" to turn off all jobs. No argument lists all jobs.");
+            }, "Admin", "Job management. Use \"/jobs <name>\" to toggle all jobs with name <name>, \"/jobs on\" to set all jobs to active, and \"/jobs off\" to set all jobs to inactive. No argument lists all jobs.");
 
             // The command /usage prints the usage statistics of all users for a given month
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
