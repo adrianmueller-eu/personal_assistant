@@ -664,14 +664,21 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $global_config_manager->save_jobs($jobs);
                     $telegram->send_message("All jobs successfully set \"".$arg."\".");
                 } else if ($arg == "") {
+                    // Toggle all jobs with name $arg
+                    foreach ($jobs as $job) {
+                        if ($job->name == $arg) {
+                            $job->status = $job->status == "active" ? "inactive" : "active";
+                        }
+                    }
+                    $global_config_manager->save_jobs($jobs);
+                    $telegram->send_message("All jobs with name \"".$arg."\" successfully toggled.");
+                } else {
                     // List all jobs
                     $message = "List of jobs:";
                     foreach ($jobs as $job) {
                         $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT);
                     }
                     $telegram->send_message($message, false);
-                } else {
-                    $telegram->send_message("Unknown argument: ".$arg);
                 }
                 exit;
             }, "Admin", "Job management. Use \"/jobs on\" to turn on all jobs or \"/jobs off\" to turn off all jobs. No argument lists all jobs.");
