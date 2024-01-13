@@ -155,6 +155,16 @@ class GlobalConfigManager {
     }
 
     /**
+     * Add a job to the list of jobs.
+     * 
+     * @param object $job The job to add.
+     */
+    public function add_job($job) {
+        $this->global_config->jobs[] = $job;
+        $this->save();
+    }
+
+    /**
      * Get the list of chatids
      * 
      * @return array The list of chatids.

@@ -460,6 +460,42 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }, "Settings", "Restore the config from the backup file");
 
+        // The command /dailyreminder allows the user to toggle the daily reminder
+        $command_manager->add_command(array("/dailyreminder"), function($command, $arg) use ($telegram, $user_config_manager, $global_config_manager) {
+            $jobs = $global_config_manager->get_jobs();
+            $chat_id = $telegram->get_chat_id();
+            // Toggle the jobs for $chat_id with name starting with "dailyreminder"
+            foreach ($jobs as $job) {
+                if ($job->chat_id == $chat_id && substr($job->name, 0, 13) == "dailyreminder") {
+                    $job->status = $job->status == "active" ? "inactive" : "active";
+                    $global_config_manager->save_jobs($jobs);
+                    $telegram->send_message("Daily reminder ".($job->status == "active" ? "activated" : "deactivated").".");
+                    exit;
+                }
+            }
+            // Otherwise, create a new job
+            $global_config_manager->add_job((object) array(
+                "status" => "active",
+                "name" => "dailyreminder_".$user_config_manager->get_name(),
+                "chat_id" => $chat_id,
+                "is_prompt" => true,
+                "last_run" => null,
+                "next_run" => null,
+                "distribution" => array("type" => "uniform_once_a_day", "earliest" => 8, "latest" => 22),
+                "message" => $user_config_manager->get_lang() == "de"
+                    ? "Du bist eine therapeutische Fachkraft, die sich dem Wohlbefinden und der Weiterentwicklung deiner Klient*in verpflichtet f\u00fchlt. "
+                    ."Frage auf herzliche Weise, wie es der Person heute geht und ob etwas gibt, die sie mit dir teilen m\u00f6chte. Die aktuelle Uhrzeit ist {{time}}, "
+                    ."aber bitte vermeide es, die genaue Uhrzeit zu erw\u00e4hnen. "
+                    ."Deine Nachricht wird in einem Chat gesendet, verwende also gerne Emojis. Verbreite Liebe! \u2764\ufe0f"
+                    : "You are a therapist committed to your clients well-being and growth. Ask your client in a heartfelt way how they are feeling today and if "
+                    ."they have any concerns they would like to share with you. The current time is {{time}}, but please avoid mentioning the specific time. "
+                    ."Your message is sent in a chat, so you can make use of emojis. Spread love! \u2764\ufe0f" 
+
+            ));
+            $telegram->send_message("Daily reminder activated.");
+            exit;
+        }, "Settings", "Toggle the daily reminder");
+
         // The command /c allows to request another response from the model
         $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $openai, $user_config_manager, $DEBUG) {
             // Check if session is running

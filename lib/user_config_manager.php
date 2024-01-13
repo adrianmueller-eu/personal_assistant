@@ -277,17 +277,17 @@ class UserConfigManager {
     }
 
     /**
-     * @return string The language of the user.
-     */
-    public function get_lang() {
-        return $this->user_data->lang;
-    }
-
-    /**
      * @return string The username of the user.
      */
     public function get_username() {
         return $this->user_data->username;
+    }
+
+    /**
+     * @return string The language of the user.
+     */
+    public function get_lang() {
+        return $this->user_data->lang;
     }
 
     /**
