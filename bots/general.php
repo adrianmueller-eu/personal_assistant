@@ -464,6 +464,17 @@ END:VTIMEZONE"));
             exit;
         }, "Settings", "Set your hello messages");
 
+        // The command /openaiapikey allows the user to set their custom OpenAI API key
+        $command_manager->add_command(array("/openaiapikey"), function($command, $key) use ($telegram, $user_config_manager) {
+            if ($key == "") {
+                $telegram->send_message("Provide an API key with the command, e.g. \"/openaiapikey abc123\".");
+                exit;
+            }
+            $user_config_manager->set_openai_api_key($key);
+            $telegram->send_message("Your new OpenAI API key has been set.");
+            exit;
+        }, "Settings", "Set your OpenAI API key");
+
         // ###############################
         // ### Chat history management ###
         // ###############################

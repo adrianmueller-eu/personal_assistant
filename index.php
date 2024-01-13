@@ -148,6 +148,12 @@ $telegram = new Telegram($telegram_token, $chat_id, $DEBUG);
 //       unnecessary database entries
 if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
     $user_config_manager = new UserConfigManager($chat_id, $username, $name, $lang);
+    $user_openai_api_key = $user_config_manager->get_openai_api_key();
+    if ($user_openai_api_key == null || $user_openai_api_key == "") {
+        $user_config_manager->set_openai_api_key($openai_api_key);
+    } else {
+        $openai_api_key = $user_openai_api_key;
+    }
     $openai = new OpenAI($openai_api_key, $DEBUG);
 
     try {

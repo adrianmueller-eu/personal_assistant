@@ -496,6 +496,17 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }, "Settings", "Toggle the daily reminder");
 
+        // The command /openaiapikey allows the user to set their custom OpenAI API key
+        $command_manager->add_command(array("/openaiapikey"), function($command, $key) use ($telegram, $user_config_manager) {
+            if ($key == "") {
+                $telegram->send_message("Provide an API key with the command, e.g. \"/openaiapikey abc123\".");
+                exit;
+            }
+            $user_config_manager->set_openai_api_key($key);
+            $telegram->send_message("Your new OpenAI API key has been set.");
+            exit;
+        }, "Settings", "Set your OpenAI API key");
+
         // The command /c allows to request another response from the model
         $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $openai, $user_config_manager, $DEBUG) {
             // Check if session is running

@@ -40,6 +40,7 @@ require_once __DIR__."/utils.php";
  *         "speed": 1.0
  *     },
  *     "intro": "Please always add emojis to your messages.",
+ *     "openai_api_key": "sk-1234567890",
  *     "hellos": [],
  *     "counters": {}
  * }
@@ -74,7 +75,7 @@ class UserConfigManager {
         if ($name === null || $name === "") {
             $name = $username;
         }
-        
+
         $this->user_config_file = $chats_dir."/".$chat_id.".json";
         $this->load($username, $name, $lang);
     }
@@ -102,6 +103,7 @@ class UserConfigManager {
                 "config" => (object) self::$default_config,
                 "sessions" => (object) array(),
                 "tts_config" => (object) self::$default_tts_config,
+                "openai_api_key" => "",
                 "counters" => (object) array(),
             );
             $this->save(); // Keep this
@@ -390,6 +392,25 @@ class UserConfigManager {
             return 0;
         }
         return $this->user_data->counters->$name;
+    }
+
+    /**
+     * Set the OpenAI API key of the user.
+     * 
+     * @param string $openai_api_key The OpenAI API key of the user.
+     */
+    public function set_openai_api_key($openai_api_key) {
+        $this->user_data->openai_api_key = $openai_api_key;
+        $this->save();
+    }
+
+    /**
+     * Get the OpenAI API key of the user.
+     * 
+     * @return string The OpenAI API key of the user.
+     */
+    public function get_openai_api_key() {
+        return $this->user_data->openai_api_key;
     }
 }
 
