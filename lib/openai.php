@@ -202,12 +202,6 @@ class OpenAI {
             // Return the error message
             return 'Error: '.$response->error->message;
         }
-        Log::info(array(
-            "interface" => "openai",
-            "endpoint" => $endpoint,
-            "data" => $data,
-            "response" => $response,
-        ));
         return $response;
     }
 }
