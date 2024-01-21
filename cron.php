@@ -109,6 +109,12 @@ for ($i = 0; $i < count($jobs); $i++) {
         if (file_exists(__DIR__."/chats/".$job->chat_id.".json")) {
             $user_config_manager = new UserConfigManager($job->chat_id, null, null, null);
             $config = clone $user_config_manager->get_config();
+            // If the last two messages are from the assistant, remove the last
+            $cnt = count($config->messages);
+            if ($cnt > 1 && $config->messages[$cnt - 1]->role == "assistant" && $config->messages[$cnt - 2]->role == "assistant") {
+                $user_config_manager->delete_messages(1);
+                array_pop($config->messages);
+            }
             // Temporarily set the temperature to the job's temperature if it is set
             if (isset($job->temperature) && $job->temperature != null) {
                 $config->temperature = $job->temperature;
@@ -175,7 +181,7 @@ for ($i = 0; $i < count($jobs); $i++) {
         $U = mt_rand() / mt_getrandmax();
         $next_run = $last_run + round(- $job->distribution->mean * 3600 * log(1 - $U));
         if ($DEBUG) {
-            Log::debug("Job ".$job->name." has a next run of ".date("Y-m-d H:i:s", $job->next_run));
+            Log::debug("Job ".$job->name." has a next run of ".date("Y-m-d H:i:s", $next_run));
         }
     } else if ($job->distribution->type == "constant") {
         $next_run = $last_run + $job->distribution->value * 3600;
