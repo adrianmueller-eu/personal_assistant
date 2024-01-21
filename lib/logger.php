@@ -9,6 +9,32 @@ class Log {
     private static $image_log_file = "log_image.txt";
     private static $update_id_log_file = "update_ids.txt";
 
+    private static $echo_level = 0;  // 0: no echo, 1: echo error, 2: echo error and info, 3: echo error, info, and debug
+
+    /**
+     * Set the echo level.
+     */
+    public static function set_echo_level($echo_level) {
+        self::$echo_level = $echo_level;
+    }
+
+    /**
+     * Echo a message.
+     * 
+     * @param string|array $message The message to echo.
+     * @param int $echo_level The required echo level.
+     */
+    public static function echo($message, $echo_level) {
+        if (self::$echo_level < $echo_level)
+            return;
+
+        if (is_array($message)) {
+            echo json_encode($message, JSON_PRETTY_PRINT).PHP_EOL;
+        } else {
+            echo $message.PHP_EOL;
+        }
+    }
+
     /**
      * Append a message to the given log file. The message will be prepended with the current timestamp by default.
      * 
@@ -33,21 +59,23 @@ class Log {
     }
 
     /**
-     * Append a message to the log file.
-     * 
-     * @param string|array $message The message to append to the log file.
-     */
-    public static function info($message) {
-        self::_log(self::$log_file, $message);
-    }
-
-    /**
      * Append an error message to the log file.
      * 
      * @param string|array $message The error message to append to the log file.
      */
     public static function error($message) {
+        self::echo($message, 1);
         self::_log(self::$error_log_file, $message);
+    }
+
+    /**
+     * Append a message to the log file.
+     * 
+     * @param string|array $message The message to append to the log file.
+     */
+    public static function info($message) {
+        self::echo($message, 2);
+        self::_log(self::$log_file, $message);
     }
 
     /**
@@ -56,6 +84,7 @@ class Log {
      * @param string|array $message The debug message to append to the log file.
      */
     public static function debug($message) {
+        self::echo($message, 3);
         self::_log(self::$debug_log_file, $message);
     }
 

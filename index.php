@@ -21,6 +21,10 @@ require_once __DIR__."/lib/user_config_manager.php";
 require_once __DIR__."/lib/global_config_manager.php";
 require_once __DIR__."/lib/command_manager.php";
 
+if ($DEBUG) {
+    Log::set_echo_level(3);
+}
+
 // ######################
 // ### Initialization ###
 // ######################
@@ -30,25 +34,21 @@ $global_config_manager = new GlobalConfigManager();
 $telegram_token = $global_config_manager->get("TELEGRAM_BOT_TOKEN");
 if ($telegram_token == null || $telegram_token == "") {
     Log::error("TELEGRAM_BOT_TOKEN is not set.");
-    echo "TELEGRAM_BOT_TOKEN is not set.";
     exit;
 }
 $secret_token = $global_config_manager->get("TELEGRAM_BOT_SECRET");
 if ($secret_token == null || $secret_token == "") {
     Log::error("TELEGRAM_BOT_SECRET is not set.");
-    echo "TELEGRAM_BOT_SECRET is not set.";
     exit;
 }
 $chat_id_admin = $global_config_manager->get("TELEGRAM_ADMIN_CHAT_ID");
 if ($chat_id_admin == null || $chat_id_admin == "") {
     Log::error("TELEGRAM_ADMIN_CHAT_ID is not set.");
-    echo "TELEGRAM_ADMIN_CHAT_ID is not set.";
     exit;
 }
 $openai_api_key = $global_config_manager->get("OPENAI_API_KEY");
 if ($openai_api_key == null || $openai_api_key == "") {
     Log::error("OPENAI_API_KEY is not set.");
-    echo "OPENAI_API_KEY is not set.";
     exit;
 }
 
