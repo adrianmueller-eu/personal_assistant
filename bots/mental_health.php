@@ -701,7 +701,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             }, "Admin", "Job management. Use \"/jobs <name>\" to toggle all jobs with name <name>, \"/jobs on\" to set all jobs to active, and \"/jobs off\" to set all jobs to inactive. No argument lists all jobs.");
 
             // The command /usage prints the usage statistics of all users for a given month
-            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
+            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager, $openai) {
                 // If monthstring is not in format "ym", send an error message
                 if ($month == "") {
                     $month = date("ym");
@@ -715,7 +715,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 foreach ($chatids as $chatid) {
                     // Add a line for each user: @username (chatid): prompt + completion = total tokens
                     $user = new UserConfigManager($chatid, null, null, null);
-                    $message .= "- @".$user->get_username()." (".$chatid."): ";
+                    $user_api_key = $user->get_openai_api_key();
+                    $is_default_openai_key = $user_api_key == "" || $user_api_key == $openai->api_key ? 'true' : 'false';
+                    $message .= "- @".$user->get_username()." (".$chatid.", ".$is_default_openai_key."): ";
                     // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
                     $cnt_prompt = $user->get_counter("openai_".$month."_chat_prompt_tokens");
                     $cnt_completion = $user->get_counter("openai_".$month."_chat_completion_tokens");
