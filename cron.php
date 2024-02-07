@@ -48,7 +48,6 @@ if ($timezone != null && $timezone != "") {
 
 $openai = new OpenAI($openai_api_key, $DEBUG);
 
-
 // Get jobs from GlobalConfigManager
 $jobs = $global_config_manager->get_jobs();
 if ($jobs == null || count($jobs) == 0) {
@@ -104,11 +103,21 @@ for ($i = 0; $i < count($jobs); $i++) {
     if ($job->chat_id == "admin") {
         $job->chat_id = $chat_id_admin;
     }
+
     if ($job->is_prompt == "true") {  // "false" == true would validate to true!
         // If chats/ folder has a file with name "$job->chat_id.json", load the user config
         if (file_exists(__DIR__."/chats/".$job->chat_id.".json")) {
+            // Load the user config
             $user_config_manager = new UserConfigManager($job->chat_id, null, null, null);
             $config = clone $user_config_manager->get_config();
+            // Create a new OpenAI object with the user's API key
+            $openai_api_key = $user_config_manager->get_openai_api_key();
+            if ($user_openai_api_key == null || $user_openai_api_key == "") {
+                $user_config_manager->set_openai_api_key($openai_api_key);
+            } else {
+                $openai_api_key = $user_openai_api_key;
+            }
+            $user_openai = new OpenAI($openai_api_key, $DEBUG);
             // If the last two messages are from the assistant, remove the last
             $cnt = count($config->messages);
             if ($cnt > 1 && $config->messages[$cnt - 1]->role == "assistant" && $config->messages[$cnt - 2]->role == "assistant") {
@@ -135,7 +144,7 @@ for ($i = 0; $i < count($jobs); $i++) {
                 "content" => $pre_message."\n\n".$message,
             );
             // Request a response from the model
-            $message = $openai->gpt($config, $user_config_manager);
+            $message = $user_openai->gpt($config, $user_config_manager);
             // Add the message as assistant message
             if (substr($message, 0, 7) != "Error: ") {
                 $user_config_manager->add_message("assistant", $message);
@@ -152,7 +161,7 @@ for ($i = 0; $i < count($jobs); $i++) {
                 "role" => "system",
                 "content" => $job->message,
             ));
-            // Request a response from the model
+            // Request a response from the model using default openai object
             $message = $openai->gpt($config, $user_config_manager);
         }
     } else {
