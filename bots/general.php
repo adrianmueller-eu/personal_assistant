@@ -53,7 +53,12 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }
         // Send the transcription to the user
-        $telegram->send_message("/user ".$message);
+        if (isset($update->forward_from) || isset($update->forward_sender_name) || isset($update->forward_date)) {
+            $telegram->send_message("/re ".$message);
+            exit; // Don't automatically request a response
+        } else {
+            $telegram->send_message("/user ".$message);
+        }
     }
     else {
         $telegram->send_message("Sorry, I don't know yet what do to this message! :/");
