@@ -331,6 +331,16 @@ END:VTIMEZONE"));
             $user_config_manager->add_message("system", $prompt);
         }, "Shortcuts", "Create a mail based on the previous conversation. You can provide a message with the command to clarify the request.");
 
+        // The command /math prompts the bot to format Latex equations nicely
+        $command_manager->add_command(array("/math"), function($command, $_) use ($telegram, $user_config_manager) {
+            $user_config_manager->add_message("system",
+                "If you write LaTeX equations, please don't use \\(\\)/\\[\\] or $$, but instead use single ticks ` for inline equations "
+                ."and triple ticks ``` for block equations, in order to avoid conflicts with Markdown and to make the equations easier to read and copy. "
+                ."You can also assume the LaTeX physics package is loaded, so you can use the commands \\bra, \\ket, etc.");
+            $telegram->send_message("Math mode activated.");
+            exit;
+        }, "Shortcuts", "Add a system message for better formatting of LaTeX equations");
+
         // TODO !!! Add more presets here !!!
 
 
