@@ -268,6 +268,26 @@ class UserConfigManager {
     }
 
     /**
+     * Delete the user config file.
+     * 
+     * @return bool True if the file was deleted, false if the file does not exist. Throws an exception if the file exists but could not be deleted.
+     */
+    public function delete() {
+        if (!file_exists($this->user_config_file)) {
+            return false;
+        }
+        # Make a backup before deleting
+        $this->save_backup();
+        $res = unlink($this->user_config_file);
+        if ($res === false) {
+            Log::error("Could not delete user config file: ".$this->user_config_file);
+            http_response_code(500);
+            throw new Exception("Could not delete user config file: ".$this->user_config_file);
+        }
+        return true;
+    }
+
+    /**
      * @return string The name of the user.
      */
     public function get_name() {

@@ -124,6 +124,19 @@ class GlobalConfigManager {
 
         $this->global_config->users->$category = array_diff($this->global_config->users->$category, array($username));
         $this->save();
+
+        # Delete the user's config
+        $chatids = $this->get_chatids();
+        foreach ($chatids as $chatid) {
+            $user_config_manager = new UserConfigManager($chatid);
+            $config = $user_config_manager->get_config();
+            if ($config->username == $username) {
+                $user_config_manager->delete();
+                return;
+            }
+        }
+        # If the user's config was not found, log an error
+        Log::error("Could not delete the config for user ".$username." because it was not found.");
     }
 
     /**
