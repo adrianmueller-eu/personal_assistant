@@ -6,7 +6,7 @@
  * @param object $update The update object
  * @param UserConfigManager $user_config_manager The user config manager
  * @param Telegram $telegram The Telegram manager for the user
- * @param OpenAI $openai The OpenAI object
+ * @param OpenAI|null $openai The OpenAI object. `null` if the user hasn't set an API key
  * @param Telegram $telegram_admin The Telegram manager for the admin
  * @param GlobalConfigManager $global_config_manager The global config manager
  * @param bool $is_admin Whether the user is an admin
@@ -14,6 +14,10 @@
  * @return void
  */
 function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
+    if ($openai == null && !(isset($update->text) && $update->text == "/openaiapikey")) {
+        $telegram->send_message("Error: You need to set your OpenAI API key to use this bot. Use /openaiapikey to set your API key.");
+        exit;
+    }
     if (isset($update->text)) {
         $message = $update->text;
     }

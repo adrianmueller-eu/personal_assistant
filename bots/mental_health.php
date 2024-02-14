@@ -6,7 +6,7 @@
  * @param object $update The update object
  * @param UserConfigManager $user_config_manager The user config manager
  * @param Telegram $telegram The Telegram manager for the user
- * @param OpenAI $openai The OpenAI object
+ * @param OpenAI|null $openai The OpenAI object. `null` if the user hasn't set an API key
  * @param Telegram $telegram_admin The Telegram manager for the admin
  * @param GlobalConfigManager $global_config_manager The global config manager
  * @param bool $is_admin Whether the user is an admin
@@ -14,6 +14,10 @@
  * @return void
  */
 function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
+    if ($openai == null && !(isset($update->text) && ($update->text == "/start" || substr($update->text, 0, 13) == "/openaiapikey"))) {
+        $telegram->send_message("You need to set your OpenAI API key to talk with me. Use /openaiapikey to set your OpenAI API key. You can get your API key from https://platform.openai.com/account/api-keys. I promise I won't share your API key with anyone and I will only use it to generate responses for you.");
+        exit;
+    }
     if (isset($update->text)) {
         $message = $update->text;
     }
@@ -146,17 +150,34 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // If this is the first session, send a welcome message
             if ($session_info->cnt == 0) {
                 if ($user_config_manager->get_lang() == "de") {
-                    $telegram->send_message("Hallo! Ich bin hier, um deine mentale Gesundheit zu unterstützen. "
+                    $message = "Hallo! Ich bin hier, um deine mentale Gesundheit zu unterstützen. "
+                    ."Ich bin mit OpenAI verbunden, um dir einen sicheren Raum zu bieten, um über deine Gefühle und Erfahrungen zu sprechen. "
                     ."Du kannst eine Sitzung beginnen, indem du mir sagst, was dir auf dem Herzen liegt, oder indem du /start verwendest.\n\n"
-                    ."*Bitte beende jede Sitzung mit /end*, um zu aktualisieren, was ich über dich weiß. "
+                    ."**Bitte beende jede Sitzung mit /end**, um zu aktualisieren, was ich über dich weiß. "
                     ."Du kannst den Befehl /profile verwenden, um die Informationen einzusehen, die ich über dich gesammelt habe. "
-                    ."Schau dir /help für weitere verfügbare Befehle an.");
+                    ."Schau dir /help für weitere verfügbare Befehle an.\n\n"
+                    ."*Haftungsausschluss: Bitte beachte, dass dies keinen professionellen Rat ersetzt. "
+                    ."Jegliche Auswirkungen, die durch die Nutzung dieses Dienstes verursacht werden, liegen nicht in der Verantwortung des Entwicklers oder des Dienstanbieters. "
+                    ."Wenn du in einer Krise bist oder glaubst, dass du einen Notfall hast, rufe bitte sofort einen Arzt oder die Notdienste an.*";
+                    $openai_message = "Bitte beginne, indem du deinen OpenAI API-Schlüssel mit dem Befehl /openaiapikey einrichtest. Du kannst deinen API-Schlüssel von https://platform.openai.com/account/api-keys erhalten."
+                    ."Wenn du bereit bist, bin ich hier, um mit dir zu chatten.";
                 } else {
-                    $telegram->send_message("Hey there! I am here to support your mental health. "
+                    $message = "Welcome! I am here to support your mental health. "
+                    ."I am connected to OpenAI to provide you with a safe space to talk about your feelings and experiences. "
                     ."You can start a session by telling me what's on your mind or using /start.\n\n"
-                    ."*Please end every session with /end* to update what I know about you. "
+                    ."**Please end every session with /end** to update what I know about you. "
                     ."You can use /profile to see the information I collected about you. "
-                    ."Check out /help for more available commands.");
+                    ."Check out /help for more available commands.\n\n"
+                    ."*Disclaimer: Please note that this is not a substitute for professional help. "
+                    ."Any impact caused by the use of this service is not the responsibility of the developer or the service provider."
+                    ."If you are in crisis or you think you may have an emergency, please call a doctor or emergency services immediately.*";
+                    $openai_message = "Please start by setting your OpenAI API key using the command /openaiapikey. You can get your API key from https://platform.openai.com/account/api-keys."
+                    ."If you are ready, I am here to chat with you.";
+                }
+                $telegram->send_message($message);
+                if ($openai == null) {
+                    $telegram->send_message($openai_message);
+                    exit;
                 }
             }
             else {
