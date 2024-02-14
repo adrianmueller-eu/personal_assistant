@@ -427,8 +427,14 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // The command /lang allows the user to change their language
         $command_manager->add_command(array("/lang"), function($command, $lang) use ($telegram, $user_config_manager) {
             if ($lang == "") {
-                $telegram->send_message("Your language is currently set to \"".$user_config_manager->get_lang()."\". To change it, provide an [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (2 letters) with the command, e.g. \"/lang en\".");
+                $telegram->send_message("Your language is currently set to \"".$user_config_manager->get_lang()."\". Currently supported languages are English (en) and German (de). To change it, please provide a language with the command, e.g. \"/lang de\".");
                 exit;
+            }
+            $lang = strtolower($lang);
+            if ($lang == "english") {
+                $lang = "en";
+            } else if ($lang == "german" || $lang == "deutsch") {
+                $lang = "de";
             }
             // Ensure $lang is ISO 639-1
             if (strlen($lang) != 2) {

@@ -440,7 +440,9 @@ END:VTIMEZONE"));
         // The command /lang allows the user to change their language
         $command_manager->add_command(array("/lang"), function($command, $lang) use ($telegram, $user_config_manager) {
             if ($lang == "") {
-                $telegram->send_message("Your language is currently set to \"".$user_config_manager->get_lang()."\". To change it, provide an [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (2 letters) with the command.");
+                $telegram->send_message("Your language is currently set to \"".$user_config_manager->get_lang()."\". "
+                ."To change it, provide an [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (2 letters) with the command, e.g. \"/lang en\"."
+                ."This property is only used for voice transcription.");
                 exit;
             }
             // Ensure $lang is ISO 639-1
