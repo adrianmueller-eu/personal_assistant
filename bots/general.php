@@ -36,9 +36,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             array("type" => "image_url", "image_url" => $file_url),
             array("type" => "text", "text" => $caption),
         );
-    } else if (isset($update->voice)) {
+    } else if (isset($update->voice) || isset($update->audio)) {
         // Get the file content from file_id with $telegram->get_file
-        $file_id = $update->voice->file_id;
+        if (isset($update->voice)) {
+            $file_id = $update->voice->file_id;
+        } else {
+            $file_id = $update->audio->file_id;
+        }
         $file = $telegram->get_file($file_id);
         if ($file == null) {
             $telegram->send_message("Error: Could not get the file from Telegram.");
@@ -53,11 +57,17 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }
         // Send the transcription to the user
-        if (isset($update->forward_from) || isset($update->forward_sender_name) || isset($update->forward_date)) {
-            $telegram->send_message("/re ".$message);
-            exit; // Don't automatically request a response
+        if (isset($update->voice) && $update->voice->duration > 0) {
+            if (isset($update->forward_from) || isset($update->forward_sender_name) || isset($update->forward_date)) {
+                $telegram->send_message("/re ".$message);
+                exit; // Don't automatically request a response
+            } else {
+                $telegram->send_message("/user ".$message);
+            }
         } else {
-            $telegram->send_message("/user ".$message);
+            // If audio, just send the transcription
+            $telegram->send_message($message);
+            exit;
         }
     }
     else {
