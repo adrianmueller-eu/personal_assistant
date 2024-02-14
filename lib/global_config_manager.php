@@ -132,6 +132,16 @@ class GlobalConfigManager {
             $config = $user_config_manager->get_config();
             if ($config->username == $username) {
                 $user_config_manager->delete();
+
+                # Remove jobs with the user's chat_id
+                $jobs = $this->get_jobs();
+                $new_jobs = array();
+                foreach ($jobs as $job) {
+                    if ($job->chat_id != $chatid) {
+                        $new_jobs[] = $job;
+                    }
+                }
+                $this->save_jobs($new_jobs);
                 return;
             }
         }
