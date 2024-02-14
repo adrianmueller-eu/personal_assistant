@@ -41,11 +41,6 @@ if ($openai_api_key == null || $openai_api_key == "") {
     Log::error("OPENAI_API_KEY is not set.");
     exit;
 }
-$timezone = $global_config_manager->get("TIME_ZONE");
-if ($timezone != null && $timezone != "") {
-    date_default_timezone_set($timezone);
-}
-
 $openai = new OpenAI($openai_api_key, $DEBUG);
 
 // Get jobs from GlobalConfigManager
@@ -82,6 +77,7 @@ if ($jobs == null || count($jobs) == 0) {
 
 // Load the default config
 $default_config = UserConfigManager::$default_config;
+$default_timezone = date("e");
 
 for ($i = 0; $i < count($jobs); $i++) {
     $job = $jobs[$i];
@@ -118,6 +114,8 @@ for ($i = 0; $i < count($jobs); $i++) {
                 $openai_api_key = $user_openai_api_key;
             }
             $user_openai = new OpenAI($openai_api_key, $DEBUG);
+            // Set user's timezone
+            date_default_timezone_set($user_config_manager->get_timezone());
             // If the last two messages are from the assistant, remove the last
             $cnt = count($config->messages);
             if ($cnt > 1 && $config->messages[$cnt - 1]->role == "assistant" && $config->messages[$cnt - 2]->role == "assistant") {
@@ -150,6 +148,8 @@ for ($i = 0; $i < count($jobs); $i++) {
                 $user_config_manager->add_message("assistant", $message);
             }
         } else {
+            // Set default timezone
+            date_default_timezone_set($default_timezone);
             // Copy the template config
             $config = clone $default_config;  // clone, because we might execute multiple jobs in a row
             // Update the temperature if it is set in the job
@@ -177,7 +177,7 @@ for ($i = 0; $i < count($jobs); $i++) {
         continue;
     }
     // Update the last_run and next_run
-    $job->last_run = date("Y-m-d H:i:s");
+    $job->last_run = date("Y-m-d H:i:s O");
     $last_run = strtotime($job->last_run);
     if ($job->distribution->type == "uniform_once_a_day") {
         $earliest = $job->distribution->earliest;
@@ -190,7 +190,7 @@ for ($i = 0; $i < count($jobs); $i++) {
         $U = mt_rand() / mt_getrandmax();
         $next_run = $last_run + round(- $job->distribution->mean * 3600 * log(1 - $U));
         if ($DEBUG) {
-            Log::debug("Job ".$job->name." has a next run of ".date("Y-m-d H:i:s", $next_run));
+            Log::debug("Job ".$job->name." has a next run of ".date("Y-m-d H:i:s O", $next_run));
         }
     } else if ($job->distribution->type == "constant") {
         $next_run = $last_run + $job->distribution->value * 3600;
@@ -203,7 +203,7 @@ for ($i = 0; $i < count($jobs); $i++) {
         continue;
     }
     // Save $next_run in job
-    $job->next_run = date("Y-m-d H:i:s", $next_run);
+    $job->next_run = date("Y-m-d H:i:s O", $next_run);
 }
 
 // Save the updated jobs
