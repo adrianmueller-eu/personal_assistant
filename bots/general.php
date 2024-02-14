@@ -15,7 +15,8 @@
  */
 function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
     if ($openai == null && !(isset($update->text) && $update->text == "/openaiapikey")) {
-        $telegram->send_message("Error: You need to set your OpenAI API key to use this bot. Use /openaiapikey to set your API key.");
+        $telegram->send_message("Error: You need to set your OpenAI API key to use this bot. Use /openaiapikey to set your API key. "
+        ."It will stored securely, not be shared with anyone, and only used to generate responses for you. The developer will not be responsible for any damage caused by using this bot.");
         exit;
     }
     if (isset($update->text)) {

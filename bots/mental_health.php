@@ -157,7 +157,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."Du kannst den Befehl /profile verwenden, um die Informationen einzusehen, die ich über dich gesammelt habe. "
                     ."Schau dir /help für weitere verfügbare Befehle an.\n\n"
                     ."*Haftungsausschluss: Bitte beachte, dass dies keinen professionellen Rat ersetzt. "
-                    ."Jegliche Auswirkungen, die durch die Nutzung dieses Dienstes verursacht werden, liegen nicht in der Verantwortung des Entwicklers oder des Dienstanbieters. "
+                    ."Jegliche Auswirkungen (psychologisch, finanziell, oder anderweitig), die durch die Nutzung dieses Dienstes verursacht werden, liegen nicht in der Verantwortung des Entwicklers. "
                     ."Wenn du in einer Krise bist oder glaubst, dass du einen Notfall hast, rufe bitte sofort einen Arzt oder die Notdienste an.*";
                     $openai_message = "Bitte beginne, indem du deinen OpenAI API-Schlüssel mit dem Befehl /openaiapikey einrichtest. Du kannst deinen API-Schlüssel von https://platform.openai.com/account/api-keys erhalten."
                     ."Wenn du bereit bist, bin ich hier, um mit dir zu chatten.";
@@ -169,7 +169,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."You can use /profile to see the information I collected about you. "
                     ."Check out /help for more available commands.\n\n"
                     ."*Disclaimer: Please note that this is not a substitute for professional help. "
-                    ."Any impact caused by the use of this service is not the responsibility of the developer or the service provider."
+                    ."This bot is offered as is, and any impact (psychologically, financially, or otherwise) caused by the use of it is not the responsibility of the developer."
                     ."If you are in crisis or you think you may have an emergency, please call a doctor or emergency services immediately.*";
                     $openai_message = "Please start by setting your OpenAI API key using the command /openaiapikey. You can get your API key from https://platform.openai.com/account/api-keys."
                     ."If you are ready, I am here to chat with you.";
