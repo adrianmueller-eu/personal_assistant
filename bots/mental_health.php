@@ -406,6 +406,24 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }, "Settings", "Show or set your name");
 
+        // The command /timezone allows the user to change their timezone
+        $command_manager->add_command(array("/timezone"), function($command, $timezone) use ($telegram, $user_config_manager) {
+            if ($timezone == "") {
+                $telegram->send_message("Your timezone is currently set to \"".$user_config_manager->get_timezone()."\". To change it, please provide a timezone with the command, e.g. \"/timezone Europe/Berlin\".");
+                exit;
+            }
+            // Validate the timezone
+            try {
+                new DateTimeZone($timezone);
+            } catch (Exception $e) {
+                $telegram->send_message("The timezone \"".$timezone."\" is not valid. Please provide a valid timezone, e.g. \"/timezone Europe/Berlin\".");
+                exit;
+            }
+            $user_config_manager->set_timezone($timezone);
+            $telegram->send_message("Your timezone has been set to \"".$timezone."\".");
+            exit;
+        }, "Settings", "Set your timezone");
+
         // The command /lang allows the user to change their language
         $command_manager->add_command(array("/lang"), function($command, $lang) use ($telegram, $user_config_manager) {
             if ($lang == "") {

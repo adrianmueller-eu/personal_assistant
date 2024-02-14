@@ -41,6 +41,7 @@ require_once __DIR__."/utils.php";
  *     },
  *     "intro": "Please always add emojis to your messages.",
  *     "openai_api_key": "sk-1234567890",
+ *     "time_zone": "UTC",
  *     "hellos": [],
  *     "counters": {}
  * }
@@ -104,9 +105,14 @@ class UserConfigManager {
                 "sessions" => (object) array(),
                 "tts_config" => (object) self::$default_tts_config,
                 "openai_api_key" => "",
+                "time_zone" => "Europe/Helsinki",
                 "counters" => (object) array(),
             );
             $this->save(); // Keep this
+        }
+        if (!isset($this->user_data->time_zone)) {
+            $this->user_data->time_zone = "Europe/Helsinki";
+            $this->save();
         }
     }
 
@@ -411,6 +417,25 @@ class UserConfigManager {
      */
     public function get_openai_api_key() {
         return $this->user_data->openai_api_key;
+    }
+
+    /**
+     * Set the time zone of the user.
+     * 
+     * @param string $time_zone The time zone of the user.
+     */
+    public function set_timezone($time_zone) {
+        $this->user_data->time_zone = $time_zone;
+        $this->save();
+    }
+
+    /**
+     * Get the time zone of the user.
+     * 
+     * @return string The time zone of the user.
+     */
+    public function get_timezone() {
+        return $this->user_data->time_zone;
     }
 }
 

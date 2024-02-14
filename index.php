@@ -52,15 +52,9 @@ if ($openai_api_key == null || $openai_api_key == "") {
     exit;
 }
 
-// Set the time zone to give the correct time to the model
-$timezone = $global_config_manager->get("TIME_ZONE");
-if ($timezone != null && $timezone != "") {
-    date_default_timezone_set($timezone);
-}
-$telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
-
 // ##### Emergency stop #####
 // Log::debug("Emergency stop");
+// $telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
 // $telegram_admin->send_message("This works again.");
 // exit;
 
@@ -116,6 +110,8 @@ $update = json_decode($content, false);
 if (!isset($update->message) || !isset($update->update_id)) {
     exit;
 }
+
+$telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
 
 if ($DEBUG) {
     Log::debug($update);

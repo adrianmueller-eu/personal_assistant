@@ -48,11 +48,7 @@ Mental health bot
         ```bash
         cp chats/config_template.json chats/config.json && chmod +w -R .
         ```
-    3. The bot will need access to multiple variables. You can use the `chats/config.json` file to configure the variables or save them as environment variables, e.g. using `SetEnv <KEY> <VALUE>` in the `.htaccess` or using the ["Secrets" function in Replit](https://docs.replit.com/programming-ide/workspace-features/secrets). Let's try it out by setting the `TIME_ZONE` variable (which is used to tell the bot the current time) in your preferred manner. E.g., for Italy you might set:
-        ```json
-        "TIME_ZONE": "Europe/Rome"
-        ```
-        You can find the list of valid timezone identifiers [here](https://www.php.net/manual/en/timezones.php).
+    3. The bot will need access to multiple variables. You can use the `chats/config.json` file to configure the variables or save them as environment variables, e.g. using `SetEnv <KEY> <VALUE>` in the `.htaccess` or using the ["Secrets" function in Replit](https://docs.replit.com/programming-ide/workspace-features/secrets).
 2. Set up the **Telegram bot**
     1. Create a Telegram bot using [BotFather](https://t.me/botfather)
     2. Get the bot's token from BotFather. Put the token into the `TELEGRAM_BOT_TOKEN` variable.
