@@ -738,7 +738,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $message = "Usage statistics for month ".$month.":\n\n";
                 foreach ($chatids as $chatid) {
                     // Add a line for each user: @username (chatid): prompt + completion = total tokens
-                    $user = new UserConfigManager($chatid, null, null, null);
+                    $user = new UserConfigManager($chatid);
                     $user_api_key = $user->get_openai_api_key();
                     $is_default_openai_key = $user_api_key == "" || $user_api_key == $openai->api_key ? 'true' : 'false';
                     $message .= "- @".$user->get_username()." (".$chatid.", ".$is_default_openai_key."): ";

@@ -71,7 +71,7 @@ class UserConfigManager {
      * @param string $name The name of the user. Will only be used if the config is not yet created.
      * @param string $lang The language code of the user. Will only be used if the config is not yet created.
      */
-    public function __construct($chat_id, $username, $name, $lang) {
+    public function __construct($chat_id, $username = null, $name = null, $lang = "en") {
         $chats_dir = __DIR__."/../chats";
         if ($name === null || $name === "") {
             $name = $username;

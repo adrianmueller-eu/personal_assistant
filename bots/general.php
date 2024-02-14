@@ -729,7 +729,7 @@ END:VTIMEZONE"));
                 $message = "Usage statistics for month ".$month.":\n\n";
                 foreach ($chatids as $chatid) {
                     // Add a line for each user: @username (chatid): prompt + completion = total tokens
-                    $user = new UserConfigManager($chatid, null, null, null);
+                    $user = new UserConfigManager($chatid);
                     $message .= "- @".$user->get_username()." (".$chatid."): ";
                     // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
                     $cnt_prompt = $user->get_counter("openai_".$month."_chat_prompt_tokens");

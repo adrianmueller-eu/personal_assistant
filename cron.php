@@ -108,7 +108,7 @@ for ($i = 0; $i < count($jobs); $i++) {
         // If chats/ folder has a file with name "$job->chat_id.json", load the user config
         if (file_exists(__DIR__."/chats/".$job->chat_id.".json")) {
             // Load the user config
-            $user_config_manager = new UserConfigManager($job->chat_id, null, null, null);
+            $user_config_manager = new UserConfigManager($job->chat_id);
             $config = clone $user_config_manager->get_config();
             // Create a new OpenAI object with the user's API key
             $openai_api_key = $user_config_manager->get_openai_api_key();
