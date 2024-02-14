@@ -516,7 +516,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."Your message is sent in a chat, so you can make use of emojis. Spread love! \u2764\ufe0f" 
 
             ));
-            $telegram->send_message("Daily reminder activated.");
+            $telegram->send_message("Daily reminder activated. You will receive a message from me once a day at a random time to check in with you.");
             exit;
         }, "Settings", "Toggle the daily reminder");
 
