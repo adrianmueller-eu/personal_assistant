@@ -1,13 +1,13 @@
 {
     "config": {
-        "TIME_ZONE": "",
         "TELEGRAM_BOT_TOKEN": "",
         "TELEGRAM_BOT_SECRET": "",
         "TELEGRAM_ADMIN_CHAT_ID": "",
         "OPENAI_API_KEY": ""
     },
     "users": {
-        "general" : []
+        "general": [],
+        "seen": []
     },
     "jobs": []
 }
