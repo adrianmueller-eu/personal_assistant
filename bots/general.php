@@ -190,6 +190,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $telegram->send_message($response);
                 }
             } else {
+                $user_config_manager->save_backup();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a message responder.");
             }
@@ -213,6 +214,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $telegram->send_message($response);
                 }
             } else {
+                $user_config_manager->save_backup();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a translator.");
             }
@@ -282,6 +284,7 @@ END:VTIMEZONE"));
                     $telegram->send_message($response);
                 }
             } else {
+                $user_config_manager->save_backup();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I will support you in writing code.");
             }
@@ -300,7 +303,7 @@ END:VTIMEZONE"));
                 ."Avoid generic advice, but instead find specific, actionable steps. "
                 ."As soon as the steps are clear, walk the user through them one by one to ensure they are completed. ";
             $user_config_manager->add_message("system", $prompt);
-        }, "Presets", "Helps the user to break down a task and track immediate progress");
+        }, "Presets", "Helps the user to break down a task and track immediate progress (preserves the chat history)");
 
         // The command /anki adds a command to create an Anki flashcard from the previous text
         $command_manager->add_command(array("/anki"), function($command, $topic) use ($telegram, $user_config_manager, $openai) {
