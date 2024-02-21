@@ -248,26 +248,15 @@ END:VTIMEZONE"));
                     $telegram->send_message($response);
                 }
             } else {
+                $user_config_manager->save_backup();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
             }
             exit;
         }, "Presets", "Converts an event description to iCalendar format. Provide a description with the command to preserve the previous conversation.");
 
-        // The command /paper supports writing an academic paper
-        $command_manager->add_command(array("/paper", "/research"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
-            $user_config_manager->save_config(array(
-                "temperature" => 0.7,
-                "messages" => array(array("role" => "system", "content" => "Your task is to assist me in composing a research-grade paper. "
-                ."I will provide a paragraph containing notes or half-formed sentences. Please formulate it into a simple, well-written academic text. "
-                ."The text is written in LaTeX. Add details and equations wherever you would find them useful."))
-            ));
-            $telegram->send_message("Chat history reset. I will support you in writing academic text.");
-            exit;
-        }, "Presets", "Generates academic-style text from notes");
-
         // The command /code is a programming assistant
-        $command_manager->add_command(array("/code", "/program"), function($command, $query) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/program"), function($command, $query) use ($telegram, $user_config_manager, $openai) {
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0.5;
             $chat["messages"] = array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
