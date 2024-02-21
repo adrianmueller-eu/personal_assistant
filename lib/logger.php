@@ -28,11 +28,10 @@ class Log {
         if (self::$echo_level < $echo_level)
             return;
 
-        if (is_array($message)) {
-            echo json_encode($message, JSON_PRETTY_PRINT).PHP_EOL;
-        } else {
+        if (is_string($message))
             echo $message.PHP_EOL;
-        }
+        else
+            echo json_encode($message, JSON_PRETTY_PRINT).PHP_EOL;
     }
 
     /**
