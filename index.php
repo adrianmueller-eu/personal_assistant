@@ -158,7 +158,7 @@ if ($user_openai_api_key == null || $user_openai_api_key == "") {
 date_default_timezone_set($user_config_manager->get_timezone());
 
 // Update last message time
-$user_config_manager->set_last_message_time(date("Y-m-d H:i:s e"));
+$user_config_manager->update_last_seen(date("Y-m-d H:i:s e"));
 
 try {
     # if not seen before, add and inform admin
