@@ -42,6 +42,7 @@ require_once __DIR__."/utils.php";
  *     "intro": "Please always add emojis to your messages.",
  *     "openai_api_key": "sk-1234567890",
  *     "time_zone": "UTC",
+ *     "last_message_time": "2024-01-01 12:00:00 UTC",
  *     "hellos": [],
  *     "counters": {}
  * }
@@ -106,13 +107,10 @@ class UserConfigManager {
                 "tts_config" => (object) self::$default_tts_config,
                 "openai_api_key" => "",
                 "time_zone" => "Europe/Helsinki",
+                "last_message_time" => date("Y-m-d H:i:s e"),
                 "counters" => (object) array(),
             );
             $this->save(); // Keep this
-        }
-        if (!isset($this->user_data->time_zone)) {
-            $this->user_data->time_zone = "Europe/Helsinki";
-            $this->save();
         }
     }
 
@@ -456,6 +454,16 @@ class UserConfigManager {
      */
     public function get_timezone() {
         return $this->user_data->time_zone;
+    }
+
+    /**
+     * Set last message time.
+     * 
+     * @param string $last_message_time The last message time.
+     */
+    public function set_last_message_time($last_message_time) {
+        $this->user_data->last_message_time = $last_message_time;
+        $this->save();
     }
 }
 

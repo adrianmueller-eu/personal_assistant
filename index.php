@@ -157,6 +157,9 @@ if ($user_openai_api_key == null || $user_openai_api_key == "") {
 // Set the time zone to give the correct time to the model
 date_default_timezone_set($user_config_manager->get_timezone());
 
+// Update last message time
+$user_config_manager->set_last_message_time(date("Y-m-d H:i:s e"));
+
 try {
     # if not seen before, add and inform admin
     if (!$global_config_manager->is_allowed_user($chat_id, "seen")) {
