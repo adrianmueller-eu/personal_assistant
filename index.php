@@ -158,6 +158,16 @@ if ($user_openai_api_key == null || $user_openai_api_key == "") {
 date_default_timezone_set($user_config_manager->get_timezone());
 
 try {
+    # if not seen before, add and inform admin
+    if (!$global_config_manager->is_allowed_user($chat_id, "seen")) {
+        $global_config_manager->add_allowed_user($chat_id, "seen");
+        if ($username != null && $username != "")
+            $telegram_admin->send_message("New user: @".$username . " (chat_id: ".$chat_id.")", false);
+        else if ($name != null && $name != "")
+            $telegram_admin->send_message("New user: ".$name . " (chat_id: ".$chat_id.")", false);
+        else
+            $telegram_admin->send_message("New user: (chat_id: ".$chat_id.")", false);
+    }
     run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, 
                         $global_config_manager, $is_admin, $DEBUG);
 } catch (Exception $e) {
