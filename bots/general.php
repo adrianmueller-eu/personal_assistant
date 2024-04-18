@@ -652,6 +652,7 @@ END:VTIMEZONE"));
                     $telegram->send_message("Please provide a username to remove.");
                     exit;
                 }
+                $username = trim($username);
                 if ($username[0] == "@") {
                     $username = substr($username, 1);
                 }
