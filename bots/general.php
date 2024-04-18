@@ -139,27 +139,25 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             # save config intro backup file
             $user_config_manager->save_backup();
 
-            $user_config_manager->save_config(array(
-                "messages" => array(
-                    array("role" => "system", "content" => "Your task is to help and support your friend in their life. "  # ".$user_config_manager->get_name()."  
-                    ."Your voice is generally casual, kind, compassionate, and heartful. "
-                    ."Keep your responses concise and compact. "
-                    ."Don't draw conclusions before you've finished your reasoning and think carefully about the correctness of your answers. "
-                    ."If you are missing information that would allow you to give a much more helpful answer, "
-                    ."please don't provide an actual answer, but instead ask for what you'd need to know first. "
-                    ."If you are unsure about something, state your uncertainty and ask for clarification. "
-                    ."Feel free to give recommendations (actions, books, papers, etc.) that seem useful and appropriate. "
-                    ."If you recommend resources, please carefully ensure they actually exist. "
-                    ."Avoid showing warnings or information regarding your capabilities. "
-                    ."You can use Telegram Markdown and emojis to format and enrich your messages. "
-                    // ."You can generate an image (with DALLE) by starting your message with /image followed by a description of the image. "
-                    ."Spread love! ❤️✨"),
-                )
-            ));
             # If the user config contains an intro message, add it as system message
+            $user_config_manager->clear_messages();
             $intro = $user_config_manager->get_intro();
             if ($intro != "") {
                 $user_config_manager->add_message("system", $intro);
+            } else {
+                $user_config_manager->add_message("system", "Your task is to help and support your friend in their life. "  # ".$user_config_manager->get_name()."  
+                ."Your voice is generally casual, kind, compassionate, and heartful. "
+                ."Keep your responses concise and compact. "
+                ."Don't draw conclusions before you've finished your reasoning and think carefully about the correctness of your answers. "
+                ."If you are missing information that would allow you to give a much more helpful answer, "
+                ."please don't provide an actual answer, but instead ask for what you'd need to know first. "
+                ."If you are unsure about something, state your uncertainty and ask for clarification. "
+                ."Feel free to give recommendations (actions, books, papers, etc.) that seem useful and appropriate. "
+                ."If you recommend resources, please carefully ensure they actually exist. "
+                ."Avoid showing warnings or information regarding your capabilities. "
+                ."You can use Telegram Markdown and emojis to format and enrich your messages. "
+                // ."You can generate an image (with DALLE) by starting your message with /image followed by a description of the image. "
+                ."Spread love! ❤️✨");
             }
             if ($show_message) {
                 $hello = $user_config_manager->hello();
@@ -452,26 +450,26 @@ END:VTIMEZONE"));
             exit;
         }, "Settings", "Set your language");
 
-        // The command /intro allows to read out or set the intro message
+        // The command /intro allows to read out or set the intro prompt
         $command_manager->add_command(array("/intro"), function($command, $message) use ($telegram, $user_config_manager) {
             if ($message == "") {
                 $intro = $user_config_manager->get_intro();
                 if ($intro == "") {
-                    $telegram->send_message("You have not set an intro message yet. To set your intro message, you can provide a message with the command.");
+                    $telegram->send_message("You are using the default introductory system prompt. To set a custom intro prompt, please provide it with the command.");
                 } else {
-                    $telegram->send_message("Your current intro message is:\n\n\"".$intro."\"\n\nYou can change your intro message by providing the message after the /intro command. Use \"/intro reset\" to have no intro message.");
+                    $telegram->send_message("Your current intro prompt is:\n\n\"".$intro."\"\n\nYou can change it by providing a new version after the /intro command. Use \"/intro reset\" to use the default prompt.");
                 }
                 exit;
             }
             if ($message == "reset") {
                 $user_config_manager->set_intro("");
-                $telegram->send_message("Your intro message has been reset. You can set a new intro message by providing the message after the /intro command.");
+                $telegram->send_message("Your intro prompt has been reset. You can set a new intro prompt by providing it after the /intro command.");
                 exit;
             }
             $user_config_manager->set_intro($message);
-            $telegram->send_message("Your intro message has been set to:\n\n".$message);
+            $telegram->send_message("Your intro prompt has been set to:\n\n".$message);
             exit;
-        }, "Settings", "Set your intro message");
+        }, "Settings", "Set a custom initial system prompt");
 
         // The command /hellos allows to read out or set the hello messages
         $command_manager->add_command(array("/hellos"), function($command, $message) use ($telegram, $user_config_manager) {
@@ -522,10 +520,8 @@ END:VTIMEZONE"));
         // ###############################
 
         // The command /clear clears the chat history
-        $command_manager->add_command(array("/delall", "/clear", "/clr"), function($command, $_) use ($telegram, $user_config_manager) {
-            $chat = $user_config_manager->get_config();
-            $chat->messages = array();
-            $user_config_manager->save_config($chat);
+        $command_manager->add_command(array("/delall", "/clear"), function($command, $_) use ($telegram, $user_config_manager) {
+            $user_config_manager->clear_messages();
             $telegram->send_message("Chat history cleared.");
             exit;
         }, "Chat history management", "Clear the internal chat history");

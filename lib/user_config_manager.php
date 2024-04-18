@@ -192,6 +192,12 @@ class UserConfigManager {
         return $n;
     }
 
+    public function clear_messages() {
+        $chat = $this->get_config();
+        $chat->messages = array();
+        $this->save_config($chat);
+    }
+
     /**
      * Read the session info. Its properties can be set arbitrarily for each key when saving.
      * 
