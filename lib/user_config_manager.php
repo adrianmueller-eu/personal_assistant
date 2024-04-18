@@ -56,7 +56,6 @@ class UserConfigManager {
     static $default_config = array(
         "model" => "gpt-4-vision-preview",
         "temperature" => 0.9,
-        "max_tokens" => 4096,
         "messages" => array(),
     );
 

@@ -220,7 +220,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $chat = (object) array(
                 "model" => "gpt-4-vision-preview",
                 "temperature" => 0.5,
-                "max_tokens" => 4096,
                 "messages" => array(
                     array("role" => "system", "content" => $start_prompt),
                 ),
