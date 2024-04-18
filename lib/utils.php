@@ -109,4 +109,20 @@ function time_diff($timeA, $timeB) {
     }
 }
 
+function get_usage_string($user, $month) {
+    $message = "";
+    // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
+    $cnt_prompt = $user->get_counter("openai_".$month."_chat_prompt_tokens");
+    $cnt_completion = $user->get_counter("openai_".$month."_chat_completion_tokens");
+    $cnt_total = $user->get_counter("openai_".$month."_chat_total_tokens");
+    if ($cnt_prompt == 0 && $cnt_completion == 0 && $cnt_total == 0) {
+        $message .= "no data";
+    } else {
+        // Add a price estimate for each: $0.01 / 1K tokens for prompt, $0.03 / 1K tokens for completion
+        $price_estimate = round($cnt_prompt / 1000 * 0.01 + $cnt_completion / 1000 * 0.03, 2);
+        $message .= $cnt_prompt." + ".$cnt_completion." = ".$cnt_total." tokens (~$".$price_estimate.")";
+    }
+    return $message;
+};
+
 ?>

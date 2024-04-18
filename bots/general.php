@@ -709,7 +709,7 @@ END:VTIMEZONE"));
             }, "Admin", "Job management. Use \"/jobs <name>\" to toggle all jobs with name <name>, \"/jobs on\" to set all jobs to active, and \"/jobs off\" to set all jobs to inactive. No argument lists all jobs.");
 
             // The command /usage prints the usage statistics of all users for a given month
-            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
+            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager, $openai) {
                 // If monthstring is not in format "ym", send an error message
                 if ($month == "") {
                     $month = date("ym");
@@ -723,18 +723,17 @@ END:VTIMEZONE"));
                 foreach ($chatids as $chatid) {
                     // Add a line for each user: @username (chatid): prompt + completion = total tokens
                     $user = new UserConfigManager($chatid);
-                    $message .= "- @".$user->get_username()." (".$chatid."): ";
-                    // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
-                    $cnt_prompt = $user->get_counter("openai_".$month."_chat_prompt_tokens");
-                    $cnt_completion = $user->get_counter("openai_".$month."_chat_completion_tokens");
-                    $cnt_total = $user->get_counter("openai_".$month."_chat_total_tokens");
-                    if ($cnt_prompt == 0 && $cnt_completion == 0 && $cnt_total == 0) {
-                        $message .= "no data\n";
-                    } else {
-                        // Add a price estimate for each: $0.01 / 1K tokens for prompt, $0.03 / 1K tokens for completion
-                        $price_estimate = round($cnt_prompt / 1000 * 0.01 + $cnt_completion / 1000 * 0.03, 2);
-                        $message .= $cnt_prompt." + ".$cnt_completion." = ".$cnt_total." tokens (~$".$price_estimate.")\n";
-                    }
+                    // add username
+                    $username = $user->get_username();
+                    $message .= '- ';
+                    if ($username != "")
+                        $message .= "@".$user->get_username()." ";
+                    // add whether they use the default openai key
+                    $user_api_key = $user->get_openai_api_key();
+                    $is_default_openai_key = $user_api_key == "" || $user_api_key == $openai->api_key ? 'true' : 'false';
+                    $message .= "(".$chatid.", ".$is_default_openai_key."): ";
+                    // add usage info
+                    $message .= get_usage_string($user, $month)."\n";
                 }
                 $telegram->send_message($message);
                 exit;
