@@ -60,9 +60,9 @@ class CommandManager {
      * @param string $description The description of the command. Will be shown in the help message.
      */
     public function add_command($alternatives, $function, $category, $description) {
-        if (!in_array($category, $this->categories)) {
-            throw new Exception("Invalid category: ".$category);
-        }
+        // if (!in_array($category, $this->categories)) {
+        //     throw new Exception("Invalid category: ".$category);
+        // }
         $this->commands[] = array(
             "alternatives" => $alternatives,
             "function" => $function,
