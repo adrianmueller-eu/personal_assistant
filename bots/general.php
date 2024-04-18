@@ -609,6 +609,22 @@ END:VTIMEZONE"));
             exit;
         }, "Chat history management", "Restore the chat history from the backup file");
 
+        if (!$is_admin) {
+            // The command /usage allows the user to see their usage statistics
+            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $user_config_manager) {
+                if ($month == "") {
+                    $month = date("ym");
+                }
+                else if (!preg_match("/^[0-9]{4}$/", $month)) {
+                    $telegram->send_message("Please provide a month in the format \"YYMM\".");
+                    exit;
+                }
+                $usage = get_usage_string($user_config_manager, $month);
+                $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n".$usage);
+                exit;
+            }, "Chat history management", "Show your usage statistics");
+        }
+
         if ($is_admin) {
             // #######################
             // ### Commands: Admin ###
