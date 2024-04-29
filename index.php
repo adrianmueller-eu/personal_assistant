@@ -122,8 +122,8 @@ if ($DEBUG) {
 $update_id = $update->update_id;
 // Assume this can't adversarially block future messages
 if (!$DEBUG && Log::already_seen($update_id)) {
-    // $telegram->send_message("Repeated message ignored (update_id: ".$update_id.")");
-    Log::info("Repeated message ignored (update_id: ".$update_id.")");
+    // $telegram->send_message("Repeated message ignored (update_id: $update_id)");
+    Log::info("Repeated message ignored (update_id: $update_id)");
     exit;
 }
 Log::update_id($update_id);
@@ -165,11 +165,11 @@ try {
     if (!$global_config_manager->is_allowed_user($chat_id, "seen")) {
         $global_config_manager->add_allowed_user($chat_id, "seen");
         if ($username != null && $username != "")
-            $telegram_admin->send_message("New user: @".$username . " (chat_id: ".$chat_id.")", false);
+            $telegram_admin->send_message("New user: @$username (chat_id: $chat_id)", false);
         else if ($name != null && $name != "")
-            $telegram_admin->send_message("New user: ".$name . " (chat_id: ".$chat_id.")", false);
+            $telegram_admin->send_message("New user: $name (chat_id: $chat_id)", false);
         else
-            $telegram_admin->send_message("New user: (chat_id: ".$chat_id.")", false);
+            $telegram_admin->send_message("New user: (chat_id: $chat_id)", false);
     }
     run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, 
                         $global_config_manager, $is_admin, $DEBUG);
@@ -181,17 +181,17 @@ try {
 // else {
 //     // if $update->text contains "chatid", send the chat_id to the user
 //     if (isset($update->text) && strpos($update->text, "chatid") !== false)
-//         $telegram->send_message("Your chat_id is: ".$chat_id, false);
+//         $telegram->send_message("Your chat_id is: $chat_id", false);
 //     else
 //         $telegram->send_message("I'm sorry, I'm not allowed to talk with you :/", false);
 
 //     // Tell me ($chat_id_admin) that someone tried to talk to the bot
 //     // This could be used to spam the admin
 //     if ($username != null && $username != "")
-//         $telegram_admin->send_message("@".$username." tried to talk to me (chat_id: ".$chat_id.")", false);
+//         $telegram_admin->send_message("@$username tried to talk to me (chat_id: $chat_id)", false);
 //     else if ($name != null && $name != "")
-//         $telegram_admin->send_message($name." tried to talk to me (chat_id: ".$chat_id.")", false);
+//         $telegram_admin->send_message("$name tried to talk to me (chat_id: $chat_id)", false);
 //     else
-//         $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: ".$chat_id.")", false);
+//         $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: $chat_id)", false);
 // }
 ?>

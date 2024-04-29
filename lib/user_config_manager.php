@@ -77,7 +77,7 @@ class UserConfigManager {
             $name = $username;
         }
 
-        $this->user_config_file = $chats_dir."/".$chat_id.".json";
+        $this->user_config_file = "$chats_dir/$chat_id.json";
         $this->load($username, $name, $lang);
     }
 
@@ -88,7 +88,7 @@ class UserConfigManager {
                 if ($this->user_data === null) {
                     $error = json_last_error_msg();
                 } else {
-                    $error = "Could not read file: ".$this->user_config_file;
+                    $error = "Could not read file: $this->user_config_file";
                 }
                 Log::error($error);
                 http_response_code(500);
@@ -116,9 +116,9 @@ class UserConfigManager {
     private function save() {
         $res = file_put_contents($this->user_config_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
         if ($res === false) {
-            Log::error("Could not save user config file: ".$this->user_config_file);
+            Log::error("Could not save user config file: $this->user_config_file");
             http_response_code(500);
-            throw new Exception("Could not save user config file: ".$this->user_config_file);
+            throw new Exception("Could not save user config file: $this->user_config_file");
         }
     }
 
@@ -232,7 +232,7 @@ class UserConfigManager {
      * @return string The path to the backup file.
      */
     private function get_backup_file() {
-        return $this->user_config_file.".backup";
+        return "$this->user_config_file.backup";
     }
 
     /**
@@ -242,9 +242,9 @@ class UserConfigManager {
         $backup_file = $this->get_backup_file();
         $res = copy($this->user_config_file, $backup_file);
         if ($res === false) {
-            Log::error("Could not save backup of user config file: ".$this->user_config_file);
+            Log::error("Could not save backup of user config file: $this->user_config_file");
             http_response_code(500);
-            throw new Exception("Could not save backup of user config file: ".$this->user_config_file);
+            throw new Exception("Could not save backup of user config file: $this->user_config_file");
         }
     }
 
@@ -261,9 +261,9 @@ class UserConfigManager {
         $res = copy($backup_file, $this->user_config_file);
         unlink($backup_file);
         if ($res === false) {
-            Log::error("Could not restore backup of user config file: ".$this->user_config_file);
+            Log::error("Could not restore backup of user config file: $this->user_config_file");
             http_response_code(500);
-            throw new Exception("Could not restore backup of user config file: ".$this->user_config_file);
+            throw new Exception("Could not restore backup of user config file: $this->user_config_file");
         }
         # load the restored file into memory
         $this->load(null, null, null);  # values will be ignored if the file exists
@@ -283,9 +283,9 @@ class UserConfigManager {
         $this->save_backup();
         $res = unlink($this->user_config_file);
         if ($res === false) {
-            Log::error("Could not delete user config file: ".$this->user_config_file);
+            Log::error("Could not delete user config file: $this->user_config_file");
             http_response_code(500);
-            throw new Exception("Could not delete user config file: ".$this->user_config_file);
+            throw new Exception("Could not delete user config file: $this->user_config_file");
         }
         return true;
     }

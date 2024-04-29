@@ -129,7 +129,7 @@ class OpenAI {
             "response_format" => $response_format
         );
         $response = $this->send_request("audio/speech", $data);
-        Log::info("TTS of ".$message." with model ".$model." and voice ".$voice." at speed ".$speed." returned a response of length ".strlen($response));
+        Log::info("TTS of $message with model $model and voice $voice at speed $speed returned a response of length ".strlen($response));
         return $response;
     }
 
@@ -164,7 +164,7 @@ class OpenAI {
      * @return object|string The response object from the API or an error message (starts with "Error: ").
      */
     private function send_request($endpoint, $data, $field_name = null, $file_name = null, $file_content = null) {
-        $url = "https://api.openai.com/v1/".$endpoint;
+        $url = "https://api.openai.com/v1/$endpoint";
         $headers = array('Authorization: Bearer '.$this->api_key);
 
         $response = curl_post($url, $data, $headers, $field_name, $file_name, $file_content);

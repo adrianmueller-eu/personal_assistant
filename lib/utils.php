@@ -103,7 +103,7 @@ function time_diff($timeA, $timeB) {
     );
     foreach ($tokens as $unit => $text) {
         if ($time < $unit) continue;
-        // echo "1 ".$text." is about ".$unit." seconds, so ".$time." is ".$time / $unit." ".$text."s";
+        // echo "1 $text is about $unit seconds, so $time is $time / $unit ".$text."s";
         $numberOfUnits = round($time / $unit);
         return $numberOfUnits.' '.$text.(($numberOfUnits>1)?'s':'');
     }
@@ -120,7 +120,7 @@ function get_usage_string($user, $month) {
     } else {
         // Add a price estimate for each: $0.01 / 1K tokens for prompt, $0.03 / 1K tokens for completion
         $price_estimate = round($cnt_prompt / 1000 * 0.01 + $cnt_completion / 1000 * 0.03, 2);
-        $message .= $cnt_prompt." + ".$cnt_completion." = ".$cnt_total." tokens (~$".$price_estimate.")";
+        $message .= "$cnt_prompt + $cnt_completion = $cnt_total tokens (~$$price_estimate)";
     }
     return $message;
 };

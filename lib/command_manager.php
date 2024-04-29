@@ -97,7 +97,7 @@ class CommandManager {
                 return $command_info["function"]($command, $argument);
             }
         }
-        return "Command \"".$command."\" not found. Type /help to see the list of available commands.";
+        return "Command \"$command\" not found. Type /help to see the list of available commands.";
     }
 
     /**
@@ -108,7 +108,7 @@ class CommandManager {
     public function print_help() {
         $help = "Available commands:\n\n";
         foreach ($this->categories as $category) {
-            $help .= "*".$category."*\n";
+            $help .= "*$category*\n";
             foreach ($this->commands as $command_info) {
                 if ($command_info["category"] == $category) {
                     $help .= implode(", ", $command_info["alternatives"])." - ".$command_info["description"]."\n";

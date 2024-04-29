@@ -38,9 +38,9 @@ class GlobalConfigManager {
         if (!file_exists($this->global_config_file)){
             // Copy the template file
             if (copy(dirname($this->global_config_file)."/config_template.json", $this->global_config_file)) {
-                $error_message = "Global config file not found. A new one has been created at ".$this->global_config_file.". Please edit it and restart the assistant.";
+                $error_message = "Global config file not found. A new one has been created at $this->global_config_file. Please edit it and restart the assistant.";
             } else {
-                $error_message = "Global config file not found. A new one could not be created at ".$this->global_config_file.". Please create it manually and restart the assistant.";
+                $error_message = "Global config file not found. A new one could not be created at $this->global_config_file. Please create it manually and restart the assistant.";
             }
             Log::error($error_message);
             throw new Exception($error_message);
@@ -146,7 +146,7 @@ class GlobalConfigManager {
             }
         }
         # If the user's config was not found, log an error
-        Log::error("Could not delete the config for user ".$username." because it was not found.");
+        Log::error("Could not delete the config for user @$username because it was not found.");
     }
 
     /**

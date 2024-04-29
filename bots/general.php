@@ -64,10 +64,10 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         // Send the transcription to the user
         if (isset($update->voice) && $update->voice->duration > 0) {
             if (isset($update->forward_from) || isset($update->forward_sender_name) || isset($update->forward_date)) {
-                $telegram->send_message("/re ".$message);
+                $telegram->send_message("/re $message");
                 exit; // Don't automatically request a response
             } else {
-                $telegram->send_message("/user ".$message);
+                $telegram->send_message("/user $message");
             }
         } else {
             // If audio, just send the transcription
@@ -99,9 +99,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $sender = "";
 
         if ($sender != "")
-            $message = "/re ".$sender.":\n".$message."\n\nResponse:\n";
+            $message = "/re $sender:\n$message\n\nResponse:\n";
         else
-            $message = "/re ".$message;
+            $message = "/re $message";
     }
 
     // #######################
@@ -285,7 +285,7 @@ END:VTIMEZONE"));
                 $telegram->send_message("Please provide a task with the command.");
                 exit;
             }
-            $prompt = "Your task is to help the user achieve the following goal: \"".$task."\". "
+            $prompt = "Your task is to help the user achieve the following goal: \"$task\". "
                 ."Break down it into subtasks, negotiate a schedule, and provide live accountabilty at each step. "
                 ."Avoid generic advice, but instead find specific, actionable steps. "
                 ."As soon as the steps are clear, walk the user through them one by one to ensure they are completed. ";
@@ -303,7 +303,7 @@ END:VTIMEZONE"));
             if ($topic == "") {
                 $user_message = "Please create an Anki card of this.";
             } else {
-                $user_message = "Please create an Anki card about ".$topic.".";
+                $user_message = "Please create an Anki card about $topic.";
             }
             $user_config_manager->add_message("user", $user_message);
             // don't exit, to request a response from the model below
@@ -367,7 +367,7 @@ END:VTIMEZONE"));
         $command_manager->add_command(array("/model", "/gpt4", "/gpt3"), function($command, $model) use ($telegram, $user_config_manager) {
             $chat = $user_config_manager->get_config();
             if ($model == "") {
-                $telegram->send_message("You are currently talking to `".($chat->model)."`.\n\n"
+                $telegram->send_message("You are currently talking to `$chat->model`.\n\n"
                 ."You can change the model by providing the model name after the /model command. Some models are:\n"
                 ."- `gpt-4-vision-preview` (default)\n"
                 ."- `gpt-4-1106-preview`\n"
@@ -376,11 +376,11 @@ END:VTIMEZONE"));
                 ."- `gpt-3.5-turbo`\n\n"
                 ."For pricing, see https://openai.com/pricing.");
             } else if ($chat->model == $model) {
-                $telegram->send_message("You are already talking to `".($chat->model)."`.");
+                $telegram->send_message("You are already talking to `$chat->model`.");
             } else {
                 $chat->model = $model;
                 $user_config_manager->save_config($chat);
-                $telegram->send_message("You are now talking to `".($chat->model)."`.");
+                $telegram->send_message("You are now talking to `$chat->model`.");
             }
             exit;
         }, "Settings", "Model selection (default: `".UserConfigManager::$default_config["model"]."`)");
@@ -393,12 +393,12 @@ END:VTIMEZONE"));
                 if ($temperature >= 0 && $temperature <= 2) {
                     $chat->temperature = $temperature;
                     $user_config_manager->save_config($chat);
-                    $telegram->send_message("Temperature set to ".$chat->temperature.".");
+                    $telegram->send_message("Temperature set to $chat->temperature.");
                 } else {
                     $telegram->send_message("Temperature must be between 0 and 2.");
                 }
             } else {
-                $telegram->send_message("Temperature is currently set to ".$chat->temperature.". To set the temperature, you can provide a number between 0 and 2 with the command.");
+                $telegram->send_message("Temperature is currently set to $chat->temperature. To set the temperature, you can provide a number between 0 and 2 with the command.");
             }
             exit;
         }, "Settings", "Show the current temperature or change it (default: ".UserConfigManager::$default_config["temperature"].")");
@@ -410,7 +410,7 @@ END:VTIMEZONE"));
                 exit;
             }
             $user_config_manager->set_name($name);
-            $telegram->send_message("Your name has been set to ".$name.".");
+            $telegram->send_message("Your name has been set to $name.");
             exit;
         }, "Settings", "Set your name");
 
@@ -424,11 +424,11 @@ END:VTIMEZONE"));
             try {
                 new DateTimeZone($timezone);
             } catch (Exception $e) {
-                $telegram->send_message("The timezone \"".$timezone."\" is not valid. Please provide a valid timezone, e.g. \"/timezone Europe/Berlin\".");
+                $telegram->send_message("The timezone \"$timezone\" is not valid. Please provide a valid timezone, e.g. \"/timezone Europe/Berlin\".");
                 exit;
             }
             $user_config_manager->set_timezone($timezone);
-            $telegram->send_message("Your timezone has been set to \"".$timezone."\".");
+            $telegram->send_message("Your timezone has been set to \"$timezone\".");
             exit;
         }, "Settings", "Set your timezone");
 
@@ -446,7 +446,7 @@ END:VTIMEZONE"));
                 exit;
             }
             $user_config_manager->set_lang($lang);
-            $telegram->send_message("Your language has been set to \"".$lang."\".");
+            $telegram->send_message("Your language has been set to \"$lang\".");
             exit;
         }, "Settings", "Set your language");
 
@@ -457,7 +457,7 @@ END:VTIMEZONE"));
                 if ($intro == "") {
                     $telegram->send_message("You are using the default introductory system prompt. To set a custom intro prompt, please provide it with the command.");
                 } else {
-                    $telegram->send_message("Your current intro prompt is:\n\n\"".$intro."\"\n\nYou can change it by providing a new version after the /intro command. Use \"/intro reset\" to use the default prompt.");
+                    $telegram->send_message("Your current intro prompt is:\n\n\"$intro\"\n\nYou can change it by providing a new version after the /intro command. Use \"/intro reset\" to use the default prompt.");
                 }
                 exit;
             }
@@ -467,7 +467,7 @@ END:VTIMEZONE"));
                 exit;
             }
             $user_config_manager->set_intro($message);
-            $telegram->send_message("Your intro prompt has been set to:\n\n".$message);
+            $telegram->send_message("Your intro prompt has been set to:\n\n$message");
             exit;
         }, "Settings", "Set a custom initial system prompt");
 
@@ -499,7 +499,7 @@ END:VTIMEZONE"));
                     return $hello != "";
                 });
                 $user_config_manager->set_hellos($hellos);
-                $telegram->send_message("Your hello messages have been set to:\n\n".$message);
+                $telegram->send_message("Your hello messages have been set to:\n\n$message");
             }
             exit;
         }, "Settings", "Set your hello messages");
@@ -539,9 +539,9 @@ END:VTIMEZONE"));
                     if ($n == 0) {
                         $telegram->send_message("There are no messages to delete.");
                     } else if ($n == $n_messages) {
-                        $telegram->send_message("All ".$n." messages deleted.");
+                        $telegram->send_message("All $n messages deleted.");
                     } else {
-                        $telegram->send_message("Deleted the last ".$n." messages.");
+                        $telegram->send_message("Deleted the last $n messages.");
                     }
                 } else {
                     $telegram->send_message("You can only delete a positive number of messages.");
@@ -620,7 +620,7 @@ END:VTIMEZONE"));
                     exit;
                 }
                 $usage = get_usage_string($user_config_manager, $month);
-                $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n".$usage);
+                $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n$usage");
                 exit;
             }, "Chat history management", "Show your usage statistics");
         }
@@ -638,11 +638,11 @@ END:VTIMEZONE"));
                 }
                 $username = substr($username, 1);
                 if ($global_config_manager->is_allowed_user($username, "general")) {
-                    $telegram->send_message("User @".$username." is already in the list of authorized users.");
+                    $telegram->send_message("User @$username is already in the list of authorized users.");
                     exit;
                 }
                 $global_config_manager->add_allowed_user($username, "general");
-                $telegram->send_message("Added user @".$username." to the list of authorized users.");
+                $telegram->send_message("Added user @$username to the list of authorized users.");
                 exit;
             }, "Admin", "Add a user to access the bot (by username)");
 
@@ -657,7 +657,7 @@ END:VTIMEZONE"));
                     $username = substr($username, 1);
                 }
                 if (!$global_config_manager->is_allowed_user($username, "general")) {
-                    $telegram->send_message("User @".$username." is not in the list of authorized users.");
+                    $telegram->send_message("User @$username is not in the list of authorized users.");
                     exit;
                 }
                 try {
@@ -666,7 +666,7 @@ END:VTIMEZONE"));
                     $telegram->send_message("Error: ".json_encode($e), false);
                     exit;
                 }
-                $telegram->send_message("Removed user @".$username." from the list of authorized users.");
+                $telegram->send_message("Removed user @$username from the list of authorized users.");
                 exit;
             }, "Admin", "Remove a user from access to the bot (by username)");
 
@@ -675,13 +675,13 @@ END:VTIMEZONE"));
                 $categories = $global_config_manager->get_categories();
                 $message = "Lists of authorized users, by category:\n";
                 foreach ($categories as $category) {
-                    $message .= "\n*".$category."*:\n";
+                    $message .= "\n*$category*:\n";
                     $users = $global_config_manager->get_allowed_users($category);
                     if (count($users) == 0) {
                         $message .= "No users authorized for this category.\n";
                     } else {
                         foreach ($users as $user) {
-                            $message .= "@".$user."\n";
+                            $message .= "@$user\n";
                         }
                     }
                 }
@@ -698,7 +698,7 @@ END:VTIMEZONE"));
                         $job->status = "active" ? $arg == "on" : "inactive";
                     }
                     $global_config_manager->save_jobs($jobs);
-                    $telegram->send_message("All jobs successfully set \"".$arg."\".");
+                    $telegram->send_message("All jobs successfully set \"$arg\".");
                 } else if ($arg != "") {
                     // Toggle all jobs with name $arg
                     $cnt = 0;
@@ -710,7 +710,7 @@ END:VTIMEZONE"));
                     }
                     $global_config_manager->save_jobs($jobs);
                     if ($cnt == 0) {
-                        $telegram->send_message("No jobs with name \"".$arg."\" found.");
+                        $telegram->send_message("No jobs with name \"$arg\" found.");
                     } else {
                         $telegram->send_message($cnt." jobs successfully toggled.");
                     }
@@ -736,7 +736,7 @@ END:VTIMEZONE"));
                     exit;
                 }
                 $chatids = $global_config_manager->get_chatids();
-                $message = "Usage statistics for month ".$month.":\n\n";
+                $message = "Usage statistics for month $month:\n\n";
                 foreach ($chatids as $chatid) {
                     // Add a line for each user: @username (chatid): prompt + completion = total tokens
                     $user = new UserConfigManager($chatid);
@@ -748,7 +748,7 @@ END:VTIMEZONE"));
                     // add whether they use the default openai key
                     $user_api_key = $user->get_openai_api_key();
                     $is_default_openai_key = $user_api_key == "" || $user_api_key == $openai->api_key ? 'true' : 'false';
-                    $message .= "(".$chatid.", ".$is_default_openai_key."): ";
+                    $message .= "($chatid, $is_default_openai_key): ";
                     // add usage info
                     $message .= get_usage_string($user, $month)."\n";
                 }
@@ -773,7 +773,7 @@ END:VTIMEZONE"));
         // The command /image requests an image from the model
         $command_manager->add_command(array("/img"), function($command, $prompt) use ($telegram, $openai, $user_config_manager) {
             if ($prompt == "") {
-                $telegram->send_message("Please provide a prompt with command ".$command.".");
+                $telegram->send_message("Please provide a prompt with command $command.");
                 exit;
             }
             // If prompt is a URL, send the URL to telegram instead of requesting an image
@@ -820,7 +820,7 @@ END:VTIMEZONE"));
                 if (count($messages) > 0 && $messages[count($messages)-1]->role != "system") {
                     $prompt = $messages[count($messages)-1]->content;
                 } else {
-                    $telegram->send_message("Please provide a prompt with command ".$command.".");
+                    $telegram->send_message("Please provide a prompt with command $command.");
                     exit;
                 }
             }
@@ -868,11 +868,11 @@ END:VTIMEZONE"));
             // Send each message as a separate message
             foreach ($messages as $message) {
                 if (is_string($message->content))
-                    $telegram->send_message("/".$message->role." ".$message->content, false);
+                    $telegram->send_message("/$message->role $message->content", false);
                 else {
                     $image_url = $message->content[0]->image_url;
                     $caption = $message->content[1]->text;
-                    $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, false);
+                    $telegram->send_message("/$message->role $caption\n$image_url", false);
                 }
             }
             exit;
@@ -881,7 +881,7 @@ END:VTIMEZONE"));
         // The command /cnt outputs the number of messages in the chat history
         $command_manager->add_command(array("/cnt"), function($command, $_) use ($telegram, $user_config_manager) {
             $n_messages = count($user_config_manager->get_config()->messages);
-            $telegram->send_message("There are ".$n_messages." messages in the chat history.");
+            $telegram->send_message("There are $n_messages messages in the chat history.");
             exit;
         }, "Misc", "Count the number of messages in the chat history");
 
@@ -946,10 +946,10 @@ END:VTIMEZONE"));
             $body = urlencode($body);
         }
         // Build the mailto link
-        $mailto .= "?to=".$recipient."&subject=".urlencode($subject)."&body=".$body;
+        $mailto .= "?to=$recipient&subject=".urlencode($subject)."&body=$body";
         $user_config_manager->add_message("assistant", $response);
         // Add the mailto link to the response as a markdown link
-        $response .= "\n\n[Send mail]({$mailto})";
+        $response .= "\n\n[Send mail]($mailto)";
         $telegram->send_message($response);
     } else {
         $user_config_manager->add_message("assistant", $response);

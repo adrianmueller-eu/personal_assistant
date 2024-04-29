@@ -192,14 +192,14 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $name_string = "";
             } else {
                 if ($user_config_manager->get_lang() == "de") {
-                    $name_string = "(mein Name ist ".$name_string.") ";
+                    $name_string = " (mein Name ist $name_string)";
                 } else {
-                    $name_string = "(my name is ".$name_string.") ";
+                    $name_string = " (my name is $name_string)";
                 }
             }
             $mode_prompt = $mode_prompts[$session_info->mode ?? "none"];
             if ($user_config_manager->get_lang() == "de") {
-                $start_prompt = "Du bist eine psychotherapeutische Fachkraft, die mir ".$name_string."hilft, mich selbst zu verbinden "
+                $start_prompt = "Du bist eine psychotherapeutische Fachkraft, die mir$name_string hilft, mich selbst zu verbinden "
                     ."und zu heilen. Zeige Empathie und Mitgefühl, indem du meine Gefühle anerkennst und validierst. Dein Hauptziel "
                     ."ist es, mir einen sicheren, fürsorglichen und unterstützenden Raum zu bieten. Hilf mir, meine "
                     ."Gedanken, Gefühle und Erfahrungen zu erkunden, während du mich zu persönliche Weiterentwicklung und emotionale Heilung führst. "
@@ -208,7 +208,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."Ratschlägen zu geben, sondern bitte frage stattdessen um eigenen Meinungen und Ideen. Und bitte fragen, wenn etwas "
                     ."unklar ist oder wichtige Informationen fehlen. Die aktuelle Uhrzeit ist ".date("G:i").".";
             } else {
-                $start_prompt = "You are a therapist assisting me ".$name_string."to connect to "
+                $start_prompt = "You are a therapist assisting me$name_string to connect to "
                     ."myself and heal. Show empathy and compassion by acknowledging and validating my feelings. Your primary "
                     ."goal is to provide a safe, nurturing, and supportive environment for me. Help me explore my "
                     ."thoughts, feelings, and experiences, while guiding me towards personal growth and emotional healing. "
@@ -230,10 +230,10 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $profile = $session_info->profile;
                 if ($user_config_manager->get_lang() == "de") {
                     $profile_prompt = "Zu deiner eigenen Referenz, hier ist das Profil, das du nach "
-                    ."der letzten Sitzung (".$time_passed." her) geschrieben hast, als Grundlage für diese Sitzung:\n\n".$profile;
+                    ."der letzten Sitzung ($time_passed her) geschrieben hast, als Grundlage für diese Sitzung:\n\n$profile";
                 } else {
                     $profile_prompt = "For your own reference, here is the profile you previously wrote after "
-                    ."the last session (".$time_passed." ago) as a basis for this session:\n\n".$profile;
+                    ."the last session ($time_passed ago) as a basis for this session:\n\n$profile";
                 }
                 $chat->messages[] = array("role" => "system", "content" => $profile_prompt);
             }
@@ -299,9 +299,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 }
                 // Show the summary to the user
                 if ($user_config_manager->get_lang() == "de") {
-                    $telegram->send_message("Hier ist eine Zusammenfassung unserer Sitzung:\n\n".$summary);
+                    $telegram->send_message("Hier ist eine Zusammenfassung unserer Sitzung:\n\n$summary");
                 } else {
-                    $telegram->send_message("Here is a summary of our session:\n\n".$summary);
+                    $telegram->send_message("Here is a summary of our session:\n\n$summary");
                 }
 
                 // Profile update
@@ -312,13 +312,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
 
                     if ($user_config_manager->get_lang() == "de") {
                         $profile_update_prompt = "Danke für die Zusammenfassung. Lass uns jetzt das Profil mit den neuen Informationen aktualisieren, die du "
-                        ."in dieser Sitzung erhalten hast. Hier ist noch einmal das Profil, das du nach unserer vorherigen Sitzung geschrieben hast (".$time_passed." her):\n\n"
+                        ."in dieser Sitzung erhalten hast. Hier ist noch einmal das Profil, das du nach unserer vorherigen Sitzung geschrieben hast ($time_passed her):\n\n"
                         .$session_info->profile."\n\nDas Ziel ist es, eine detaillierte Beschreibung von mir zu haben, die für alles, was in der nächsten Sitzung ansteht, nützlich ist. "
                         ."Um ein ausführliches, umfassendes Profil nach vielen Sitzungen zu haben, vermeide es, relevante Informationen aus früheren Sitzungen zu entfernen, sondern "
                         ."integriere sie in ein detailliertes und informatives Gesamtbild.";
                     } else {
                         $profile_update_prompt = "Thank you for the summary. Now, let's update the profile with the new information you got "
-                        ."in this session. Here is again the profile you wrote after our previous session (".$time_passed." ago):\n\n"
+                        ."in this session. Here is again the profile you wrote after our previous session ($time_passed ago):\n\n"
                         .$session_info->profile."\n\nThe goal is to have a detailed description of me that is useful for whatever comes up in the next session. "
                         ."To have an elaborate, all-encompassing profile after many sessions, avoid removing relevant information from previous sessions, but "
                         ."integrate them into a detailed and informative bigger picture.";
@@ -379,9 +379,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             } else {
                 $date = date("d.m.y g:ia", $session_info->last_session_start);
                 if ($user_config_manager->get_lang() == "de") {
-                    $telegram->send_message("Hier ist dein aktuelles Profil (erstellt am ".$date."):\n\n".$session_info->profile);
+                    $telegram->send_message("Hier ist dein aktuelles Profil (erstellt am $date):\n\n$session_info->profile");
                 } else {
-                    $telegram->send_message("Here is your current profile (created ".$date."):\n\n".$session_info->profile);
+                    $telegram->send_message("Here is your current profile (created $date):\n\n$session_info->profile");
                 }
             }
             exit;
@@ -393,20 +393,20 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             $session_info = $user_config_manager->get_session_info("session");
             if ($mode == "") {
                 $mode_keys = array_keys($mode_prompts);
-                $telegram->send_message("The bot currently uses ".$session_info->mode.". To change it, use /mode <mode>. Valid modes are: \"".implode("\", \"", $mode_keys)."\".");
+                $telegram->send_message("The bot currently uses $session_info->mode. To change it, use /mode <mode>. Valid modes are: \"".implode("\", \"", $mode_keys)."\".");
             } else if ($session_info->running == true) {
                 $telegram->send_message("Please end the current session with /end before changing your mode.");
             } else {
                 // Get keys from $mode_prompts and check if $mode is a valid key
                 $mode_keys = array_keys($mode_prompts);
                 if (!in_array($mode, $mode_keys)) {
-                    $telegram->send_message("Sorry, I don't know the mode \"".$mode."\". Valid modes are: \"".implode("\", \"", $mode_keys)."\".");
+                    $telegram->send_message("Sorry, I don't know the mode \"$mode\". Valid modes are: \"".implode("\", \"", $mode_keys)."\".");
                     exit;
                 }
                 // Set the mode
                 $session_info->mode = $mode;
                 $user_config_manager->save_session_info("session", $session_info);
-                $telegram->send_message("Your mode has been set to ".$mode.".");
+                $telegram->send_message("Your mode has been set to $mode.");
             }
             exit;
         }, "Settings", "Show or set the current method");
@@ -421,7 +421,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $telegram->send_message("Please end the current session with /end before changing your name.");
             } else {
                 $user_config_manager->set_name($name);
-                $telegram->send_message("Your name has been set to ".$name.".");
+                $telegram->send_message("Your name has been set to $name.");
             }
             exit;
         }, "Settings", "Show or set your name");
@@ -436,11 +436,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             try {
                 new DateTimeZone($timezone);
             } catch (Exception $e) {
-                $telegram->send_message("The timezone \"".$timezone."\" is not valid. Please provide a valid timezone, e.g. \"/timezone Europe/Berlin\".");
+                $telegram->send_message("The timezone \"$timezone\" is not valid. Please provide a valid timezone, e.g. \"/timezone Europe/Berlin\".");
                 exit;
             }
             $user_config_manager->set_timezone($timezone);
-            $telegram->send_message("Your timezone has been set to \"".$timezone."\".");
+            $telegram->send_message("Your timezone has been set to \"$timezone\".");
             exit;
         }, "Settings", "Set your timezone");
 
@@ -462,7 +462,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 exit;
             }
             $user_config_manager->set_lang($lang);
-            $telegram->send_message("Your language has been set to \"".$lang."\".");
+            $telegram->send_message("Your language has been set to \"$lang\".");
             exit;
         }, "Settings", "Set your language");
 
@@ -572,7 +572,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     exit;
                 }
                 $usage = get_usage_string($user_config_manager, $month);
-                $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n".$usage);
+                $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n$usage");
                 exit;
             }, "Misc", "Show your usage statistics");
         }
@@ -612,11 +612,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 }
                 $username = substr($username, 1);
                 if ($global_config_manager->is_allowed_user($username, "general")) {
-                    $telegram->send_message("User @".$username." is already in the list of authorized users.");
+                    $telegram->send_message("User @$username is already in the list of authorized users.");
                     exit;
                 }
                 $global_config_manager->add_allowed_user($username, "general");
-                $telegram->send_message("Added user @".$username." to the list of authorized users.");
+                $telegram->send_message("Added user $username to the list of authorized users.");
                 exit;
             }, "Admin", "Add a user to access the bot");
 
@@ -631,7 +631,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $username = substr($username, 1);
                 }
                 if (!$global_config_manager->is_allowed_user($username, "general")) {
-                    $telegram->send_message("User @".$username." is not in the list of authorized users.");
+                    $telegram->send_message("User @$username is not in the list of authorized users.");
                     exit;
                 }
                 try {
@@ -640,7 +640,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $telegram->send_message("Error: ".json_encode($e), false);
                     exit;
                 }
-                $telegram->send_message("Removed user @".$username." from the list of authorized users.");
+                $telegram->send_message("Removed user @$username from the list of authorized users.");
                 exit;
             }, "Admin", "Remove a user from access to the bot");
 
@@ -649,13 +649,13 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $categories = $global_config_manager->get_categories();
                 $message = "Lists of authorized users, by category:\n";
                 foreach ($categories as $category) {
-                    $message .= "\n*".$category."*:\n";
+                    $message .= "\n*$category*:\n";
                     $users = $global_config_manager->get_allowed_users($category);
                     if (count($users) == 0) {
                         $message .= "No users authorized for this category.\n";
                     } else {
                         foreach ($users as $user) {
-                            $message .= "@".$user."\n";
+                            $message .= "@$user\n";
                         }
                     }
                 }
@@ -688,11 +688,11 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 // Send each message as a separate message
                 foreach ($messages as $message) {
                     if (is_string($message->content))
-                        $telegram->send_message("/".$message->role." ".$message->content, false);
+                        $telegram->send_message("/$message->role $message->content", false);
                     else {
                         $image_url = $message->content[0]->image_url;
                         $caption = $message->content[1]->text;
-                        $telegram->send_message("/".$message->role." ".$caption."\n".$image_url, false);
+                        $telegram->send_message("/$message->role $caption\n$image_url", false);
                     }
                 }
                 exit;
@@ -734,7 +734,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                         $job->status = "active" ? $arg == "on" : "inactive";
                     }
                     $global_config_manager->save_jobs($jobs);
-                    $telegram->send_message("All jobs successfully set \"".$arg."\".");
+                    $telegram->send_message("All jobs successfully set \"$arg\".");
                 } else if ($arg != "") {
                     // Toggle all jobs with name $arg
                     $cnt = 0;
@@ -746,7 +746,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     }
                     $global_config_manager->save_jobs($jobs);
                     if ($cnt == 0) {
-                        $telegram->send_message("No jobs with name \"".$arg."\" found.");
+                        $telegram->send_message("No jobs with name \"$arg\" found.");
                     } else {
                         $telegram->send_message($cnt." jobs successfully toggled.");
                     }
@@ -772,7 +772,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     exit;
                 }
                 $chatids = $global_config_manager->get_chatids();
-                $message = "Usage statistics for month ".$month.":\n\n";
+                $message = "Usage statistics for month $month:\n\n";
                 foreach ($chatids as $chatid) {
                     // Add a line for each user: @username (chatid): prompt + completion = total tokens
                     $user = new UserConfigManager($chatid);
@@ -784,7 +784,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     // add whether they use the default openai key
                     $user_api_key = $user->get_openai_api_key();
                     $is_default_openai_key = $user_api_key == "" || $user_api_key == $openai->api_key ? 'true' : 'false';
-                    $message .= "(".$chatid.", ".$is_default_openai_key."): ";
+                    $message .= "($chatid, $is_default_openai_key): ";
                     // add usage info
                     $message .= get_usage_string($user, $month)."\n";
                 }
@@ -838,7 +838,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }
     }
     else {
-        $telegram->send_message("Error: ".$response, false);
+        $telegram->send_message("Error: $response", false);
         $telegram->send_message("Sorry, I am having trouble connecting to the server. Please write /c to try again.");
     }
 }
