@@ -760,12 +760,8 @@ END:VTIMEZONE"));
         // ######################
 
         // The command /continue requests a response from the model
-        $command_manager->add_command(array("/continue", "/c"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
-            $chat = $user_config_manager->get_config();
-            $response = $openai->gpt($chat, $user_config_manager);
-            $user_config_manager->add_message("assistant", $response);
-            $telegram->send_message($response);
-            exit;
+        $command_manager->add_command(array("/continue", "/c"), function($command, $_) {
+            // request another response from the model below
         }, "Misc", "Request another response");
 
         // The command /image requests an image from the model
