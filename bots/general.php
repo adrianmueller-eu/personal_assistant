@@ -327,10 +327,10 @@ END:VTIMEZONE"));
                     ."In case the user requests a relative date, today is ".date("l, j.n").". "
                     ."Please don't write any other text than the mail itself, so it can be parsed easily. "
                     ."Use \".".$user_config_manager->get_name()." as sender name.\"\n\n"
-                    ."\"MAIL\n"
+                    ."MAIL\n"
                     ."To: [recipient]\n"
                     ."Subject: [subject]\n\n"
-                    ."Body:\n[body]\"";
+                    ."Body:\n[body]";
             if ($topic != "")
                 $user_config_manager->add_message("user", $topic);
             $user_config_manager->add_message("system", $prompt);
