@@ -77,6 +77,8 @@ class UserConfigManager {
             $name = $username;
         }
 
+        // replace - with _ in chat_id, to avoid issues with file names
+        $chat_id = str_replace("-", "_", $chat_id);
         $this->user_config_file = "$chats_dir/$chat_id.json";
         $this->load($username, $name, $lang);
     }

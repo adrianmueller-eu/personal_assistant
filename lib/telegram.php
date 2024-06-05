@@ -25,7 +25,7 @@ class Telegram {
             throw new Exception("Invalid Telegram token: ".$telegram_token);
         }
         // Check if the chat ID is valid
-        if (!preg_match("/^[0-9]+$/", $chat_id)) {
+        if (!preg_match("/^-?[0-9]+$/", $chat_id)) {
             throw new Exception("Invalid chat ID: ".$chat_id);
         }
         $this->telegram_token = $telegram_token;
