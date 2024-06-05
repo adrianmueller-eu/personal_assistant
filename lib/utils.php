@@ -118,8 +118,19 @@ function get_usage_string($user, $month) {
     if ($cnt_prompt == 0 && $cnt_completion == 0 && $cnt_total == 0) {
         $message .= "no data";
     } else {
-        // Add a price estimate for each: $0.01 / 1K tokens for prompt, $0.03 / 1K tokens for completion
-        $price_estimate = round($cnt_prompt / 1000 * 0.01 + $cnt_completion / 1000 * 0.03, 2);
+        // Add a price estimate for each
+        // $month < 2405, use 0.01, 0.03
+        // $month == 2405, use 0.075, 0.02
+        // $month > 2405, use 0.005, 0.01
+        $month = intval($month);
+        if ($month < 2405) {
+            $price_estimate = round($cnt_prompt / 1000 * 0.010 + $cnt_completion / 1000 * 0.03, 2);
+        } else if ($month == 2405) {
+            $price_estimate = round($cnt_prompt / 1000 * 0.0075 + $cnt_completion / 1000 * 0.02, 2);
+        } else {
+            $price_estimate = round($cnt_prompt / 1000 * 0.005 + $cnt_completion / 1000 * 0.01, 2);
+        }
+        // $price_estimate = round($cnt_prompt / 1000 * 0.01 + $cnt_completion / 1000 * 0.03, 2);
         $message .= "$cnt_prompt + $cnt_completion = $cnt_total tokens (~$$price_estimate)";
     }
     return $message;

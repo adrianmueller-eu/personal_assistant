@@ -54,7 +54,7 @@ class UserConfigManager {
     private $user_data;
 
     static $default_config = array(
-        "model" => "gpt-4-vision-preview",
+        "model" => "gpt-4o",
         "temperature" => 0.9,
         "messages" => array(),
     );

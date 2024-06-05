@@ -24,8 +24,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     else if (isset($update->photo)) {
         $chat = $user_config_manager->get_config();
         // Check if the model can see
-        if ($chat->model != "gpt-4-vision-preview") {
-            $telegram->send_message("Error: You can only send images if you are talking to `gpt-4-vision-preview`. Try /gpt4v.");
+        if (substr($chat->model, 0, 5) == "gpt-3") {
+            $telegram->send_message("Error: You can't send images if you are talking to $chat->model. Try /gpt4.");
             exit;
         }
         $file_id = end($update->photo)->file_id;
@@ -37,7 +37,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }
 
         $message = array(
-            array("type" => "image_url", "image_url" => $file_url),
+            array("type" => "image_url", "image_url" => array("url" => $file_url)),
             array("type" => "text", "text" => $caption),
         );
     } else if (isset($update->voice)) {
@@ -218,7 +218,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."is unclear to you or some important information is missing. The current time is ".date("g:ia").".";
             }
             $chat = (object) array(
-                "model" => "gpt-4-vision-preview",
+                "model" => UserConfigManager::$default_config['model'],
                 "temperature" => 0.5,
                 "messages" => array(
                     array("role" => "system", "content" => $start_prompt),
@@ -690,7 +690,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     if (is_string($message->content))
                         $telegram->send_message("/$message->role $message->content", false);
                     else {
-                        $image_url = $message->content[0]->image_url;
+                        $image_url = $message->content[0]->image_url->url;
                         $caption = $message->content[1]->text;
                         $telegram->send_message("/$message->role $caption\n$image_url", false);
                     }

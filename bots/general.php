@@ -25,8 +25,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     else if (isset($update->photo)) {
         $chat = $user_config_manager->get_config();
         // Check if the model can see
-        if ($chat->model != "gpt-4-vision-preview") {
-            $telegram->send_message("Error: You can only send images if you are talking to `gpt-4-vision-preview`. Try /gpt4v.");
+        if (substr($chat->model, 0, 5) == "gpt-3") {
+            $telegram->send_message("Error: You can't send images if you are talking to $chat->model. Try /gpt4.");
             exit;
         }
         $file_id = end($update->photo)->file_id;
@@ -38,7 +38,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }
 
         $message = array(
-            array("type" => "image_url", "image_url" => $file_url),
+            array("type" => "image_url", "image_url" => array("url" => $file_url)),
             array("type" => "text", "text" => $caption),
         );
     } else if (isset($update->voice) || isset($update->audio)) {
@@ -356,10 +356,10 @@ END:VTIMEZONE"));
         // Shortcuts for preset commands
         switch ($message) {
             case "/gpt4":
-                $message = "/model gpt-4-vision-preview";
+                $message = "/model gpt-4o";
                 break;
             case "/gpt3":
-                $message = "/model gpt-3.5-turbo-1106";
+                $message = "/model gpt-3.5-turbo";
                 break;
         }
 
@@ -369,12 +369,10 @@ END:VTIMEZONE"));
             if ($model == "") {
                 $telegram->send_message("You are currently talking to `$chat->model`.\n\n"
                 ."You can change the model by providing the model name after the /model command. Some models are:\n"
-                ."- `gpt-4-vision-preview` (default)\n"
-                ."- `gpt-4-1106-preview`\n"
-                ."- `gpt-3.5-turbo-1106`\n"
-                ."- `gpt-4`\n"
-                ."- `gpt-3.5-turbo`\n\n"
-                ."For pricing, see https://openai.com/pricing.");
+                ."- `gpt-4o` (default)\n"
+                ."- `gpt-4-turbo`\n"
+                ."- `gpt-3.5-turbo`\n"
+                ."For pricing, see https://openai.com/pricing. For more models, see https://platform.openai.com/docs/models.");
             } else if ($chat->model == $model) {
                 $telegram->send_message("You are already talking to `$chat->model`.");
             } else {
@@ -804,7 +802,7 @@ END:VTIMEZONE"));
             }
             // Add the image to the chat history
             $user_config_manager->add_message("assistant", array(
-                array("type" => "image_url", "image_url" => $image_url),
+                array("type" => "image_url", "image_url" => array("url" => $image_url)),
                 array("type" => "text", "text" => $prompt),
             ));
             // Show the image to the user
@@ -870,7 +868,7 @@ END:VTIMEZONE"));
                 if (is_string($message->content))
                     $telegram->send_message("/$message->role $message->content", false);
                 else {
-                    $image_url = $message->content[0]->image_url;
+                    $image_url = $message->content[0]->image_url->url;
                     $caption = $message->content[1]->text;
                     $telegram->send_message("/$message->role $caption\n$image_url", false);
                 }
