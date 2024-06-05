@@ -875,7 +875,16 @@ END:VTIMEZONE"));
         // The command /cnt outputs the number of messages in the chat history
         $command_manager->add_command(array("/cnt"), function($command, $_) use ($telegram, $user_config_manager) {
             $n_messages = count($user_config_manager->get_config()->messages);
-            $telegram->send_message("There are $n_messages messages in the chat history.");
+            switch ($n_messages) {
+                case 0:
+                    $telegram->send_message("There are no messages in the chat history.");
+                    break;
+                case 1:
+                    $telegram->send_message("There is 1 message in the chat history.");
+                    break;
+                default:
+                    $telegram->send_message("There are $n_messages messages in the chat history.");
+            }
             exit;
         }, "Misc", "Count the number of messages in the chat history");
 
