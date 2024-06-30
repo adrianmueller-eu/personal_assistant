@@ -151,7 +151,6 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 ."If you recommend resources, please carefully ensure they actually exist. "
                 ."Avoid showing warnings or information regarding your capabilities. "
                 ."You can use Telegram Markdown and emojis to format and enrich your messages. "
-                // ."You can generate an image (with DALLE) by starting your message with /image followed by a description of the image. "
                 ."Spread love! ❤️✨");
             }
             if ($show_message) {
