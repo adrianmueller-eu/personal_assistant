@@ -399,6 +399,42 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             exit;
         }, "Settings", "Show or set the current method");
 
+        // Shortcuts for models
+        $shortcuts = array(
+            "/gpt4o" => "gpt-4o",
+            "/gpt4turbo" => "gpt-4-turbo",
+            "/gpt35turbo" => "gpt-3.5-turbo",
+            "/claude35sonnet" => "claude-3-5-sonnet-20240620",
+            "/claude3opus" => "claude-3-opus-20240229",
+            "/claude3sonnet" => "claude-3-sonnet-20240229",
+            "/claude3haiku" => "claude-3-haiku-20240307"
+        );
+
+        // The command /model shows the current model and allows to change it
+        $command_manager->add_command(array_merge(array("/model"), array_keys($shortcuts)), function($command, $model) use ($telegram, $user_config_manager, $shortcuts) {
+            $chat = $user_config_manager->get_config();
+            if (isset($shortcuts[$command])) {
+                $model = $shortcuts[$command];
+            }
+            if ($model == "") {
+                $telegram->send_message("You are currently talking to `$chat->model`.\n\n"
+                ."You can change the model by providing the model name after the /model command. "
+                ."The following shortcuts are available:\n\n"
+                .implode("\n", array_map(function($key, $value) {
+                    return "$key -> `$value`";
+                }, array_keys($shortcuts), $shortcuts))."\n\n"
+                ."Other options are other [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://openai.com/pricing)) and "
+                ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models).");
+            } else if ($chat->model == $model) {
+                $telegram->send_message("You are already talking to `$chat->model`.");
+            } else {
+                $chat->model = $model;
+                $user_config_manager->save_config($chat);
+                $telegram->send_message("You are now talking to `$chat->model`.");
+            }
+            exit;
+        }, "Settings", "Model selection (default: `".UserConfigManager::$default_config["model"]."`)");
+
         // The command /name allows the user to change their name
         $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {
             // Check if session is running
