@@ -41,6 +41,7 @@ require_once __DIR__."/utils.php";
  *     },
  *     "intro": "Please always add emojis to your messages.",
  *     "openai_api_key": "sk-1234567890",
+ *     "anthropic_api_key": "sk-1234567890",
  *     "time_zone": "UTC",
  *     "last_seen": "2024-01-01 12:00:00 UTC",
  *     "hellos": [],
@@ -107,6 +108,7 @@ class UserConfigManager {
                 "sessions" => (object) array(),
                 "tts_config" => (object) self::$default_tts_config,
                 "openai_api_key" => "",
+                "anthropic_api_key" => "",
                 "time_zone" => "Europe/Helsinki",
                 "last_seen" => date("Y-m-d H:i:s e"),
                 "counters" => (object) array(),
@@ -442,6 +444,25 @@ class UserConfigManager {
      */
     public function get_openai_api_key() {
         return $this->user_data->openai_api_key;
+    }
+
+    /**
+     * Set the Anthropic API key of the user.
+     * 
+     * @param string $anthropic_api_key The Anthropic API key of the user.
+     */
+    public function set_anthropic_api_key($anthropic_api_key) {
+        $this->user_data->anthropic_api_key = $anthropic_api_key;
+        $this->save();
+    }
+
+    /**
+     * Get the Anthropic API key of the user.
+     * 
+     * @return string The Anthropic API key of the user.
+     */
+    public function get_anthropic_api_key() {
+        return $this->user_data->anthropic_api_key;
     }
 
     /**

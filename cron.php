@@ -108,7 +108,7 @@ for ($i = 0; $i < count($jobs); $i++) {
             $config = clone $user_config_manager->get_config();
             // Create a new OpenAI object with the user's API key
             $openai_api_key = $user_config_manager->get_openai_api_key();
-            if ($user_openai_api_key == null || $user_openai_api_key == "") {
+            if (!$user_openai_api_key) {
                 $user_config_manager->set_openai_api_key($openai_api_key);
             } else {
                 $openai_api_key = $user_openai_api_key;

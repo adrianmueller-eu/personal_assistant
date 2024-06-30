@@ -16,7 +16,7 @@ require_once __DIR__."/bots/general.php";
 require_once __DIR__."/lib/utils.php";
 require_once __DIR__."/lib/logger.php";
 require_once __DIR__."/lib/telegram.php";
-require_once __DIR__."/lib/openai.php";
+require_once __DIR__."/lib/LLM_connector.php";
 require_once __DIR__."/lib/user_config_manager.php";
 require_once __DIR__."/lib/global_config_manager.php";
 require_once __DIR__."/lib/command_manager.php";
@@ -44,11 +44,6 @@ if ($secret_token == null || $secret_token == "") {
 $chat_id_admin = $global_config_manager->get("TELEGRAM_ADMIN_CHAT_ID");
 if ($chat_id_admin == null || $chat_id_admin == "") {
     Log::error("TELEGRAM_ADMIN_CHAT_ID is not set.");
-    exit;
-}
-$openai_api_key = $global_config_manager->get("OPENAI_API_KEY");
-if ($openai_api_key == null || $openai_api_key == "") {
-    Log::error("OPENAI_API_KEY is not set.");
     exit;
 }
 
@@ -139,59 +134,54 @@ $is_admin = $chat_id == $chat_id_admin;
 $DEBUG = $DEBUG && $is_admin;  // Only allow debugging for the admin
 $telegram = new Telegram($telegram_token, $chat_id, $DEBUG);
 
-// Get the user's OpenAI API key
-// if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
 $user_config_manager = new UserConfigManager($chat_id, $username, $name, $lang);
-$user_openai_api_key = $user_config_manager->get_openai_api_key();
-if ($user_openai_api_key == null || $user_openai_api_key == "") {
-    if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
-        $user_config_manager->set_openai_api_key($openai_api_key);
-        $openai = new OpenAI($openai_api_key, $DEBUG);
-    } else {
-        $openai = null;
+if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
+    if (!$user_config_manager->get_openai_api_key()) {
+        $user_config_manager->set_openai_api_key($global_config_manager->get("OPENAI_API_KEY"));
+    }
+    if (!$user_config_manager->get_anthropic_api_key()) {
+        $user_config_manager->set_anthropic_api_key($global_config_manager->get("ANTHROPIC_API_KEY"));
+    }
+
+    $llm = new LLMConnector($user_config_manager, $DEBUG);
+
+    // Set the time zone to give the correct time to the model
+    date_default_timezone_set($user_config_manager->get_timezone());
+
+    // Update last message time
+    $user_config_manager->update_last_seen(date("Y-m-d H:i:s e"));
+
+    try {
+        // # if not seen before, add and inform admin
+        // if (!$global_config_manager->is_allowed_user($chat_id, "seen")) {
+        //     $global_config_manager->add_allowed_user($chat_id, "seen");
+        //     if ($username != null && $username != "")
+        //         $telegram_admin->send_message("New user: @$username (chat_id: $chat_id)", false);
+        //     else if ($name != null && $name != "")
+        //         $telegram_admin->send_message("New user: $name (chat_id: $chat_id)", false);
+        //     else
+        //         $telegram_admin->send_message("New user: (chat_id: $chat_id)", false);
+        // }
+        run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin, 
+                            $global_config_manager, $is_admin, $DEBUG);
+    } catch (Exception $e) {
+        Log::error($e->getMessage());
+        throw $e;
     }
 } else {
-    $openai = new OpenAI($user_openai_api_key, $DEBUG);
+    // if $update->text contains "chatid", send the chat_id to the user
+    if (isset($update->text) && strpos($update->text, "chatid") !== false)
+        $telegram->send_message("Your chat_id is: $chat_id", false);
+    else
+        $telegram->send_message("I'm sorry, I'm not allowed to talk with you :/", false);
+
+    // Tell me ($chat_id_admin) that someone tried to talk to the bot
+    // This could be used to spam the admin
+    if ($username != null && $username != "")
+        $telegram_admin->send_message("@$username tried to talk to me (chat_id: $chat_id)", false);
+    else if ($name != null && $name != "")
+        $telegram_admin->send_message("$name tried to talk to me (chat_id: $chat_id)", false);
+    else
+        $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: $chat_id)", false);
 }
-
-// Set the time zone to give the correct time to the model
-date_default_timezone_set($user_config_manager->get_timezone());
-
-// Update last message time
-$user_config_manager->update_last_seen(date("Y-m-d H:i:s e"));
-
-try {
-    # if not seen before, add and inform admin
-    if (!$global_config_manager->is_allowed_user($chat_id, "seen")) {
-        $global_config_manager->add_allowed_user($chat_id, "seen");
-        if ($username != null && $username != "")
-            $telegram_admin->send_message("New user: @$username (chat_id: $chat_id)", false);
-        else if ($name != null && $name != "")
-            $telegram_admin->send_message("New user: $name (chat_id: $chat_id)", false);
-        else
-            $telegram_admin->send_message("New user: (chat_id: $chat_id)", false);
-    }
-    run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, 
-                        $global_config_manager, $is_admin, $DEBUG);
-} catch (Exception $e) {
-    Log::error($e->getMessage());
-    throw $e;
-}
-// }
-// else {
-//     // if $update->text contains "chatid", send the chat_id to the user
-//     if (isset($update->text) && strpos($update->text, "chatid") !== false)
-//         $telegram->send_message("Your chat_id is: $chat_id", false);
-//     else
-//         $telegram->send_message("I'm sorry, I'm not allowed to talk with you :/", false);
-
-//     // Tell me ($chat_id_admin) that someone tried to talk to the bot
-//     // This could be used to spam the admin
-//     if ($username != null && $username != "")
-//         $telegram_admin->send_message("@$username tried to talk to me (chat_id: $chat_id)", false);
-//     else if ($name != null && $name != "")
-//         $telegram_admin->send_message("$name tried to talk to me (chat_id: $chat_id)", false);
-//     else
-//         $telegram_admin->send_message("Someone without username or name tried to talk to me (chat_id: $chat_id)", false);
-// }
 ?>

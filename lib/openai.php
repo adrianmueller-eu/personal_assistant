@@ -7,16 +7,17 @@ require_once __DIR__."/utils.php";
  * This class manages the connection to the OpenAI API.
  */
 class OpenAI {
-    public $api_key;
+    public $user;
     public $DEBUG;
 
     /**
      * Create a new OpenAI instance.
      * 
-     * @param string $api_key The OpenAI API key.
+     * @param UserConfigManager $user The user to use for the requests.
+     * @param bool $DEBUG Whether to log debug messages.
      */
-    public function __construct($api_key, $DEBUG = False) {
-        $this->api_key = $api_key;
+    public function __construct($user, $DEBUG = False) {
+        $this->user = $user;
         $this->DEBUG = $DEBUG;
     }
 
@@ -24,10 +25,9 @@ class OpenAI {
      * Send a request to the OpenAI API to create a chat completion.
      * 
      * @param object|array $data The data to send to the OpenAI API.
-     * @param UserConfigManager $user_config_manager The user config manager, to count the usage.
      * @return string The response from GPT or an error message (starts with "Error: ").
      */
-    public function gpt($data, $user_config_manager) {
+    public function gpt($data) {
         // Request a chat completion from OpenAI
         // The response has the following format:
         // $server_output = '{
@@ -62,9 +62,8 @@ class OpenAI {
             // Get a month year string
             $month = date("ym");
             // Count the usages
-            $user_config_manager->increment("openai_".$month."_chat_prompt_tokens", $response->usage->prompt_tokens);
-            $user_config_manager->increment("openai_".$month."_chat_completion_tokens", $response->usage->completion_tokens);
-            $user_config_manager->increment("openai_".$month."_chat_total_tokens", $response->usage->total_tokens);
+            $this->user->increment("openai_".$month."_chat_prompt_tokens", $response->usage->prompt_tokens);
+            $this->user->increment("openai_".$month."_chat_completion_tokens", $response->usage->completion_tokens);
             return $response->choices[0]->message->content;
         }
         return $response;
@@ -164,8 +163,15 @@ class OpenAI {
      * @return object|string The response object from the API or an error message (starts with "Error: ").
      */
     private function send_request($endpoint, $data, $field_name = null, $file_name = null, $file_content = null) {
+        $apikey = $this->user->get_openai_api_key();
+        if (!$apikey) {
+            return "Error: You need to set your OpenAI API key to talk with me. Use /openaiapikey to set your OpenAI API key. "
+            ."You can get your API key from https://platform.openai.com/account/api-keys. "
+            ."The API key will stored securely, not be shared with anyone, and only used to generate responses for you. "
+            ."The developer will not be responsible for any damage caused by using this bot.";
+        }
         $url = "https://api.openai.com/v1/$endpoint";
-        $headers = array('Authorization: Bearer '.$this->api_key);
+        $headers = array('Authorization: Bearer '.$apikey);
 
         $response = curl_post($url, $data, $headers, $field_name, $file_name, $file_content);
         if ($this->DEBUG) {

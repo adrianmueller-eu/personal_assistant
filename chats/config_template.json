@@ -1,9 +1,11 @@
 {
     "config": {
         "TELEGRAM_BOT_TOKEN": "",
+        "TELEGRAM_BOT_USERNAME": "",
         "TELEGRAM_BOT_SECRET": "",
         "TELEGRAM_ADMIN_CHAT_ID": "",
-        "OPENAI_API_KEY": ""
+        "OPENAI_API_KEY": "",
+        "ANTHROPIC_API_KEY": ""
     },
     "users": {
         "general": [],

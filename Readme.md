@@ -1,4 +1,4 @@
-A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](https://platform.openai.com/docs/api-reference/) to generate a swift interaction experience.
+A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](https://platform.openai.com/docs/api-reference/) or [Anthropic API](https://docs.anthropic.com/en/api/) to generate a swift interaction experience.
 
 ## Features
 
@@ -10,6 +10,7 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
 - [x] Requesting images from the AI (using DALLE)
 - [x] ASR and TTS
 - [x] Sending reminders to the user (using Cron)
+- [x] Support for Anthropic API
 
 General bot
 - [x] Several presets for different use cases
@@ -63,8 +64,11 @@ Mental health bot
         ```
     6. Send a message with `chatid` to the bot. It will reply with a message that contains your chat ID.
     7. Put the chat ID into `TELEGRAM_ADMIN_CHAT_ID`.
-3. Set up the **OpenAI API** connection
+3. Set up the **OpenAI/Anthropic API** connection (since Anthropic doesn't support audio processing yet, you might want an OpenAI connection anyway)
     1. Create an [OpenAI account](https://beta.openai.com/signup)
     2. Create an [OpenAI API key](https://beta.openai.com/account/api-keys) (you will have to set up the billing)
     3. Put it into the `OPENAI_API_KEY` variable.
+    4. Create an [Anthropic account](https://console.anthropic.com)
+    5. Create an [Anthropic API key](https://console.anthropic.com/settings/keys) (again, needs billing)
+    6. Put it into `ANTHROPIC_API_KEY`.
 4. Enjoy :)

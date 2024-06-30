@@ -6,18 +6,14 @@
  * @param object $update The update object
  * @param UserConfigManager $user_config_manager The user config manager
  * @param Telegram $telegram The Telegram manager for the user
- * @param OpenAI|null $openai The OpenAI object. `null` if the user hasn't set an API key
+ * @param LLMConnector $llm The LMMConnector object
  * @param Telegram $telegram_admin The Telegram manager for the admin
  * @param GlobalConfigManager $global_config_manager The global config manager
  * @param bool $is_admin Whether the user is an admin
  * @param bool $DEBUG Whether to enable debug mode
  * @return void
  */
-function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
-    if ($openai == null && !(isset($update->text) && ($update->text == "/start" || substr($update->text, 0, 13) == "/openaiapikey"))) {
-        $telegram->send_message("You need to set your OpenAI API key to talk with me. Use /openaiapikey to set your OpenAI API key. You can get your API key from https://platform.openai.com/account/api-keys. I promise I won't share your API key with anyone and I will only use it to generate responses for you.");
-        exit;
-    }
+function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
     if (isset($update->text)) {
         $message = $update->text;
     }
@@ -49,8 +45,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }
 
-        // 2. Transcribe with $openai->whisper
-        $message = $openai->whisper($file, language: $user_config_manager->get_lang());
+        // 2. Transcribe
+        $message = $llm->asr($file);
 
         // 3. Add the transcription to the chat history
         if (substr($message, 0, 7) == "Error: ") {
@@ -137,7 +133,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             );
         }
 
-        $command_manager->add_command(array("/start"), function($command, $_) use ($telegram, $user_config_manager, $openai, $mode_prompts) {
+        $command_manager->add_command(array("/start"), function($command, $_) use ($telegram, $user_config_manager, $llm, $mode_prompts) {
             $session_info = $user_config_manager->get_session_info("session");
             // If there is a session running, don't start a new one
             if ($session_info->running === true) {
@@ -151,7 +147,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             if ($session_info->cnt == 0) {
                 if ($user_config_manager->get_lang() == "de") {
                     $message = "Hallo! Ich bin hier, um deine mentale Gesundheit zu unterstützen. "
-                    ."Ich bin mit OpenAI verbunden, um dir einen sicheren Raum zu bieten, um über deine Gefühle und Erfahrungen zu sprechen. "
+                    ."Ich bin hier, um dir einen sicheren Raum zu bieten, um über deine Gefühle und Erfahrungen zu sprechen. "
                     ."Du kannst eine Sitzung beginnen, indem du mir sagst, was dir auf dem Herzen liegt, oder indem du /start verwendest.\n\n"
                     ."**Bitte beende jede Sitzung mit /end**, um zu aktualisieren, was ich über dich weiß. "
                     ."Du kannst den Befehl /profile verwenden, um die Informationen einzusehen, die ich über dich gesammelt habe. "
@@ -159,11 +155,9 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."*Haftungsausschluss: Bitte beachte, dass dies keinen professionellen Rat ersetzt. "
                     ."Jegliche Auswirkungen (psychologisch, finanziell, oder anderweitig), die durch die Nutzung dieses Dienstes verursacht werden, liegen nicht in der Verantwortung des Entwicklers. "
                     ."Wenn du in einer Krise bist oder glaubst, dass du einen Notfall hast, rufe bitte sofort einen Arzt oder die Notdienste an.*";
-                    $openai_message = "Bitte beginne, indem du deinen OpenAI API-Schlüssel mit dem Befehl /openaiapikey einrichtest. Du kannst deinen API-Schlüssel von https://platform.openai.com/account/api-keys erhalten."
-                    ."Wenn du bereit bist, bin ich hier, um mit dir zu chatten.";
                 } else {
                     $message = "Welcome! I am here to support your mental health. "
-                    ."I am connected to OpenAI to provide you with a safe space to talk about your feelings and experiences. "
+                    ."I am here to provide you with a safe space to talk about your feelings and experiences. "
                     ."You can start a session by telling me what's on your mind or using /start.\n\n"
                     ."**Please end every session with /end** to update what I know about you. "
                     ."You can use /profile to see the information I collected about you. "
@@ -171,14 +165,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     ."*Disclaimer: Please note that this is not a substitute for professional help. "
                     ."This bot is offered as is, and any impact (psychologically, financially, or otherwise) caused by the use of it is not the responsibility of the developer."
                     ."If you are in crisis or you think you may have an emergency, please call a doctor or emergency services immediately.*";
-                    $openai_message = "Please start by setting your OpenAI API key using the command /openaiapikey. You can get your API key from https://platform.openai.com/account/api-keys."
-                    ."If you are ready, I am here to chat with you.";
                 }
                 $telegram->send_message($message);
-                if ($openai == null) {
-                    $telegram->send_message($openai_message);
-                    exit;
-                }
             }
             else {
                 if ($user_config_manager->get_lang() == "de") {
@@ -250,7 +238,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Mental health", "Start a new session");
 
         // The command /end ends the current session
-        $command_manager->add_command(array("/end", "/endskip"), function($command, $arg) use ($telegram, $openai, $user_config_manager) {
+        $command_manager->add_command(array("/end", "/endskip"), function($command, $arg) use ($telegram, $llm, $user_config_manager) {
             $session_info = $user_config_manager->get_session_info("session");
             $chat = $user_config_manager->get_config();
             // Check if there is a session running
@@ -288,7 +276,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                 $chat->messages = array_merge($chat->messages, array(
                     array("role" => "system", "content" => $summary_prompt)
                 ));
-                $summary = $openai->gpt($chat, $user_config_manager);
+                $summary = $llm->message($chat);
                 if (substr($summary, 0, 7) == "Error: ") {
                     if ($user_config_manager->get_lang() == "de") {
                         $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
@@ -327,7 +315,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                         array("role" => "assistant", "content" => $summary),
                         array("role" => "system", "content" => $profile_update_prompt)
                     ));
-                    $new_profile = $openai->gpt($chat, $user_config_manager);
+                    $new_profile = $llm->message($chat);
                     if (substr($new_profile, 0, 7) == "Error: ") {
                         if ($user_config_manager->get_lang() == "de") {
                             $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
@@ -552,7 +540,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Settings", "Set your own OpenAI API key");
 
         // The command /c allows to request another response from the model
-        $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $openai, $user_config_manager, $DEBUG) {
+        $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $user_config_manager, $DEBUG) {
             // Check if session is running
             $session_info = $user_config_manager->get_session_info("session");
             if ($session_info->running == false) {
@@ -762,7 +750,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             }, "Admin", "Job management. Use \"/jobs <name>\" to toggle all jobs with name <name>, \"/jobs on\" to set all jobs to active, and \"/jobs off\" to set all jobs to inactive. No argument lists all jobs.");
 
             // The command /usage prints the usage statistics of all users for a given month
-            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager, $openai) {
+            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
                 // If monthstring is not in format "ym", send an error message
                 if ($month == "") {
                     $month = date("ym");
@@ -781,10 +769,6 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
                     $message .= '- ';
                     if ($username != "")
                         $message .= "@".$user->get_username()." ";
-                    // add whether they use the default openai key
-                    $user_api_key = $user->get_openai_api_key();
-                    $is_default_openai_key = $user_api_key == "" || $user_api_key == $openai->api_key ? 'true' : 'false';
-                    $message .= "($chatid, $is_default_openai_key): ";
                     // add usage info
                     $message .= get_usage_string($user, $month)."\n";
                 }
@@ -806,7 +790,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
     }
 
     $chat = $user_config_manager->get_config();
-    $response = $openai->gpt($chat, $user_config_manager);
+    $response = $llm->message($chat);
 
     // Append GPT's response to the messages array, except if it starts with "Error: "
     if (substr($response, 0, 7) != "Error: ") {
@@ -817,7 +801,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         if ($session_info->voice_mode == true) {
             // Generate the voice message
             $tts_config = $user_config_manager->get_tts_config();
-            $audio_data = $openai->tts($response, $tts_config->model, $tts_config->voice, $tts_config->speed, response_format: "opus");  // telegram only supports opus
+            $audio_data = $llm->tts($response, $tts_config->model, $tts_config->voice, $tts_config->speed, response_format: "opus");  // telegram only supports opus
             if ($audio_data == "") {
                 $telegram->send_message("WTF-Error: Could not generate audio. Please try again later.");
                 exit;

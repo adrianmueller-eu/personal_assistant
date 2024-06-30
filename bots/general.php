@@ -6,19 +6,14 @@
  * @param object $update The update object
  * @param UserConfigManager $user_config_manager The user config manager
  * @param Telegram $telegram The Telegram manager for the user
- * @param OpenAI|null $openai The OpenAI object. `null` if the user hasn't set an API key
+ * @param LLMConnector $llm The LMMConnector object
  * @param Telegram $telegram_admin The Telegram manager for the admin
  * @param GlobalConfigManager $global_config_manager The global config manager
  * @param bool $is_admin Whether the user is an admin
  * @param bool $DEBUG Whether to enable debug mode
  * @return void
  */
-function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
-    if ($openai == null && !(isset($update->text) && $update->text == "/openaiapikey")) {
-        $telegram->send_message("Error: You need to set your OpenAI API key to use this bot. Use /openaiapikey to set your API key. "
-        ."It will stored securely, not be shared with anyone, and only used to generate responses for you. The developer will not be responsible for any damage caused by using this bot.");
-        exit;
-    }
+function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
     if (isset($update->text)) {
         $message = $update->text;
     }
@@ -54,8 +49,8 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             exit;
         }
 
-        // Transcribe with $openai->whisper
-        $message = $openai->whisper($file, language: $user_config_manager->get_lang());
+        // Transcribe
+        $message = $llm->asr($file);
 
         if (substr($message, 0, 7) == "Error: ") {
             $telegram->send_message($message, false);
@@ -171,7 +166,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Presets", "Start a new conversation with a generic personal assistant");
 
         // The command /responder writes a response to a given message
-        $command_manager->add_command(array("/responder", "/re"), function($command, $message) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/responder", "/re"), function($command, $message) use ($telegram, $user_config_manager, $llm) {
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0.7;
             $chat["messages"] = array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me, "
@@ -180,7 +175,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // If the message is not empty, process the request one-time without saving the config
             if ($message != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $message);
-                $response = $openai->gpt($chat, $user_config_manager);
+                $response = $llm->message($chat);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
                     $telegram->send_message($response, false);
@@ -196,7 +191,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Presets", "Suggests responses to messages from others. Give a message with the command to preserve the previous conversation.");
 
         // The command /translator translates a given text
-        $command_manager->add_command(array("/translator", "/trans"), function($command, $text) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/translator", "/trans"), function($command, $text) use ($telegram, $user_config_manager, $llm) {
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0.7;
             $chat["messages"] = array(array("role" => "system", "content" => "Translate the messages sent to you into English, ensuring "
@@ -204,7 +199,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
             // If the text is not empty, process the request one-time without saving the config
             if ($text != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $text);
-                $response = $openai->gpt($chat, $user_config_manager);
+                $response = $llm->message($chat);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
                     $telegram->send_message($response, false);
@@ -220,7 +215,7 @@ function run_bot($update, $user_config_manager, $telegram, $openai, $telegram_ad
         }, "Presets", "Translate messages into English. Give the text with the command to preserve the previous conversation.");
 
         // The command /event converts event descriptions to an iCalendar file
-        $command_manager->add_command(array("/event"), function($command, $description) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/event"), function($command, $description) use ($telegram, $user_config_manager, $llm) {
             $timezone = date("e");
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0;
@@ -233,7 +228,7 @@ END:VTIMEZONE"));
             // If the description is not empty, process the request one-time without saving the config
             if ($description != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $description);
-                $response = $openai->gpt($chat, $user_config_manager);
+                $response = $llm->message($chat);
 
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
@@ -254,7 +249,7 @@ END:VTIMEZONE"));
         }, "Presets", "Converts an event description to iCalendar format. Provide a description with the command to preserve the previous conversation.");
 
         // The command /code is a programming assistant
-        $command_manager->add_command(array("/program"), function($command, $query) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/program"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0.5;
             $chat["messages"] = array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
@@ -263,7 +258,7 @@ END:VTIMEZONE"));
             // If the query is not empty, process the request one-time without saving the config
             if ($query != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $query);
-                $response = $openai->gpt($chat, $user_config_manager);
+                $response = $llm->message($chat);
                 // If the response starts with "Error: ", it is an error message
                 if (substr($response, 0, 7) == "Error: ") {
                     $telegram->send_message($response, false);
@@ -293,7 +288,7 @@ END:VTIMEZONE"));
         }, "Presets", "Helps the user to break down a task and track immediate progress (preserves the chat history)");
 
         // The command /anki adds a command to create an Anki flashcard from the previous text
-        $command_manager->add_command(array("/anki"), function($command, $topic) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/anki"), function($command, $topic) use ($user_config_manager) {
             // Prompt the model to write an Anki flashcard
             $prompt = "Your task is to write an Anki flashcard. Provide a concise summary with highlights of key words or phrases. "
                       ."Use HTML, but write it in one line (since Anki automatically converts newlines into <br> tags) and avoid <div> tags."
@@ -310,7 +305,7 @@ END:VTIMEZONE"));
         }, "Shortcuts", "Request an Anki flashcard based on the previous conversation. You can provide a message with the command to clarify the topic.");
 
         // The command /todo is a shortcut to extract actionable items out of the previous conversation
-        $command_manager->add_command(array("/todo"), function($command, $_) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/todo"), function($command, $_) use ($user_config_manager) {
             // Prompt the model to write a todo list
             $prompt = "Please create a consolidated list of specific, actionable items based on the previous conversation. "
                     ."Keep the points concise, but specific and informative. "
@@ -320,7 +315,7 @@ END:VTIMEZONE"));
         }, "Shortcuts", "Extract a list of actionable items from the previous conversation");
 
         // The command /mail builds a mail based on the previous conversation
-        $command_manager->add_command(array("/mail"), function($command, $topic) use ($telegram, $user_config_manager, $openai) {
+        $command_manager->add_command(array("/mail"), function($command, $topic) use ($user_config_manager) {
             // Prompt the model to write a mail
             $prompt = "You task is to prepare a mail based on the previous conversation using the template below. "
                     ."Keep your response concise and compact. Your voice is casual and kind. "
@@ -353,26 +348,33 @@ END:VTIMEZONE"));
         // ##########################
         // ### Commands: Settings ###
         // ##########################
-        // Shortcuts for preset commands
-        switch ($message) {
-            case "/gpt4":
-                $message = "/model gpt-4o";
-                break;
-            case "/gpt3":
-                $message = "/model gpt-3.5-turbo";
-                break;
-        }
+
+        // Shotcuts for models
+        $shortcuts = array(
+            "/gpt4o" => "gpt-4o",
+            "/gpt4turbo" => "gpt-4-turbo",
+            "/gpt35turbo" => "gpt-3.5-turbo",
+            "/claude35sonnet" => "claude-3-5-sonnet-20240620",
+            "/claude3opus" => "claude-3-opus-20240229",
+            "/claude3sonnet" => "claude-3-sonnet-20240229",
+            "/claude3haiku" => "claude-3-haiku-20240307"
+        );
 
         // The command /model shows the current model and allows to change it
-        $command_manager->add_command(array("/model", "/gpt4", "/gpt3"), function($command, $model) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array_merge(array("/model"), array_keys($shortcuts)), function($command, $model) use ($telegram, $user_config_manager, $shortcuts) {
             $chat = $user_config_manager->get_config();
+            if (isset($shortcuts[$command])) {
+                $model = $shortcuts[$command];
+            }
             if ($model == "") {
                 $telegram->send_message("You are currently talking to `$chat->model`.\n\n"
-                ."You can change the model by providing the model name after the /model command. Some models are:\n"
-                ."- `gpt-4o` (default)\n"
-                ."- `gpt-4-turbo`\n"
-                ."- `gpt-3.5-turbo`\n"
-                ."For pricing, see https://openai.com/pricing. For more models, see https://platform.openai.com/docs/models.");
+                ."You can change the model by providing the model name after the /model command. "
+                ."The following shortcuts are available:\n\n"
+                .implode("\n", array_map(function($key, $value) {
+                    return "$key -> `$value`";
+                }, array_keys($shortcuts), $shortcuts))."\n\n"
+                ."Other options are other [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://openai.com/pricing)) and "
+                ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models).");
             } else if ($chat->model == $model) {
                 $telegram->send_message("You are already talking to `$chat->model`.");
             } else {
@@ -724,7 +726,7 @@ END:VTIMEZONE"));
             }, "Admin", "Job management. Use \"/jobs <name>\" to toggle all jobs with name <name>, \"/jobs on\" to set all jobs to active, and \"/jobs off\" to set all jobs to inactive. No argument lists all jobs.");
 
             // The command /usage prints the usage statistics of all users for a given month
-            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager, $openai) {
+            $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
                 // If monthstring is not in format "ym", send an error message
                 if ($month == "") {
                     $month = date("ym");
@@ -743,10 +745,6 @@ END:VTIMEZONE"));
                     $message .= '- ';
                     if ($username != "")
                         $message .= "@".$user->get_username()." ";
-                    // add whether they use the default openai key
-                    $user_api_key = $user->get_openai_api_key();
-                    $is_default_openai_key = $user_api_key == "" || $user_api_key == $openai->api_key ? 'true' : 'false';
-                    $message .= "($chatid, $is_default_openai_key): ";
                     // add usage info
                     $message .= get_usage_string($user, $month)."\n";
                 }
@@ -765,7 +763,7 @@ END:VTIMEZONE"));
         }, "Misc", "Request another response");
 
         // The command /image requests an image from the model
-        $command_manager->add_command(array("/img"), function($command, $prompt) use ($telegram, $openai, $user_config_manager) {
+        $command_manager->add_command(array("/img"), function($command, $prompt) use ($telegram, $llm, $user_config_manager) {
             if ($prompt == "") {
                 $telegram->send_message("Please provide a prompt with command $command.");
                 exit;
@@ -784,7 +782,7 @@ END:VTIMEZONE"));
                 $model = "dall-e-3";
                 $prompt = substr($prompt, 7);
             }
-            $image_url = $openai->dalle($prompt, $model);
+            $image_url = $llm->image($prompt, $model);
             if ($image_url == "") {
                 $telegram->send_message("WTF-Error: Could not generate an image. Please try again later.");
                 exit;
@@ -807,7 +805,7 @@ END:VTIMEZONE"));
         }, "Misc", "Request an image. If the prompt starts with `dalle2` or `dalle3`, use the corresponding model (default: `dalle2`). If the prompt is a URL, show that picture instead of generating a one.");
 
         // The command /tts requests a text-to-speech conversion from the model
-        $command_manager->add_command(array("/tts"), function($command, $prompt) use ($telegram, $openai, $user_config_manager, $DEBUG) {
+        $command_manager->add_command(array("/tts"), function($command, $prompt) use ($telegram, $llm, $user_config_manager, $DEBUG) {
             if ($prompt == "") {
                 // If the last message is not a system message, use it as prompt
                 $messages = $user_config_manager->get_config()->messages;
@@ -819,7 +817,7 @@ END:VTIMEZONE"));
                 }
             }
             $tts_config = $user_config_manager->get_tts_config();
-            $audio_data = $openai->tts($prompt, $tts_config->model, $tts_config->voice, $tts_config->speed, response_format: "opus");  // telegram only supports opus
+            $audio_data = $llm->tts($prompt, $tts_config->model, $tts_config->voice, $tts_config->speed, response_format: "opus");  // telegram only supports opus
             if ($audio_data == "") {
                 $telegram->send_message("WTF-Error: Could not generate audio. Please try again later.");
                 exit;
@@ -904,9 +902,9 @@ END:VTIMEZONE"));
     // ### Main interaction loop ###
     // #############################
 
-    // $telegram->send_message("Sending message to OpenAI: ".$message);
+    // $telegram->send_message("Sending message: ".$message);
     $chat = $user_config_manager->get_config();
-    $response = $openai->gpt($chat, $user_config_manager);
+    $response = $llm->message($chat);
 
     // Show error messages
     if (substr($response, 0, 7) == "Error: ") {
