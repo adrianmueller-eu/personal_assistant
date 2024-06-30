@@ -332,11 +332,8 @@ END:VTIMEZONE"));
 
         // The command /math prompts the bot to format Latex equations nicely
         $command_manager->add_command(array("/math"), function($command, $_) use ($telegram, $user_config_manager) {
-            $user_config_manager->add_message("system",
-                "If you write LaTeX equations, please don't use \\(\\)/\\[\\] or $$, but instead use single ticks ` for inline equations "
-                ."and triple ticks ``` for block equations, in order to avoid conflicts with Markdown and to make the equations easier to read and copy. "
-                ."You can also assume the LaTeX physics package is loaded, so you can use the commands \\bra, \\ket, etc.");
-            $telegram->send_message("Math mode activated.");
+            $active = $user_config_manager->toggle_math_mode();
+            $telegram->send_message("Math mode ".($active ? "activated" : "deactivated").".");
             exit;
         }, "Shortcuts", "Add a system message for better formatting of LaTeX equations");
 
@@ -910,6 +907,52 @@ END:VTIMEZONE"));
         $telegram->send_message($response, false);
         exit;
     }
+
+    // If math mode is set, replace the Latex response with the Markdown version
+    if ($user_config_manager->is_math_mode_active()) {
+        // $telegram->send_message("Original response: $response", false);
+
+        // For each \[ find the corresponding \] (might be on later lines) and replace both by ```
+        $latex = "";
+        $start = 0;
+        while (($start < strlen($response) && $start = strpos($response, "\\[", $start)) !== false) {
+            $end = strpos($response, "\\]", $start+2);
+            if ($end === false) {
+                $end = strlen($response);
+            }
+            $latex = substr($response, $start, $end - $start + 2);
+            $latex_new = substr($latex, 2, strlen($latex)-4);
+            $latex_new = trim($latex_new);
+            $response = str_replace($latex, "```\n$latex_new\n```", $response);
+            $start = $end;
+        }
+        $response = preg_replace('/ *```/', '```', $response);
+
+        // For each $$ find the corresponding $$ (might be on later lines) and replace both by ```
+        $latex = "";
+        $start = 0;
+        while (($start < strlen($response) && $start = strpos($response, "\$\$", $start)) !== false) {
+            $end = strpos($response, "\$\$", $start+2);
+            if ($end === false) {
+                $end = strlen($response);
+            }
+            $latex = substr($response, $start, $end - $start + 2);
+            $latex_new = substr($latex, 2, strlen($latex)-4);
+            $latex_new = trim($latex_new);
+            $response = str_replace($latex, "```\n$latex_new\n```", $response);
+            $start = $end;
+        }
+        $response = preg_replace('/ *```/', '```', $response);
+
+        // For each \( find the corresponding \) and replace both by `
+        $response = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $response);
+        // Same for $ and $
+        $response = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $response);
+    }
+    // Replace all ** outside of code blocks by *
+    $response = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $response);
+    // Replace headings with bold text
+    $response = preg_replace('/^#+ (.*)$/m', '*$1*', $response);
 
     // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
     if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {

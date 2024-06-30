@@ -44,6 +44,7 @@ require_once __DIR__."/utils.php";
  *     "anthropic_api_key": "sk-1234567890",
  *     "time_zone": "UTC",
  *     "last_seen": "2024-01-01 12:00:00 UTC",
+ *     "math_mode": false,
  *     "hellos": [],
  *     "counters": {}
  * }
@@ -111,6 +112,7 @@ class UserConfigManager {
                 "anthropic_api_key" => "",
                 "time_zone" => "Europe/Helsinki",
                 "last_seen" => date("Y-m-d H:i:s e"),
+                "math_mode" => false,
                 "counters" => (object) array(),
             );
             $this->save(); // Keep this
@@ -492,6 +494,26 @@ class UserConfigManager {
     public function update_last_seen($last_seen) {
         $this->user_data->last_seen = $last_seen;
         $this->save();
+    }
+
+    /**
+     * Toggle the math mode.
+     * 
+     * @return bool The new value of the math mode.
+     */
+    public function toggle_math_mode() {
+        $this->user_data->math_mode = !$this->user_data->math_mode;
+        $this->save();
+        return $this->user_data->math_mode;
+    }
+
+    /**
+     * Get whether math mode is active.
+     * 
+     * @return bool Whether math mode is active.
+     */
+    public function is_math_mode_active() {
+        return $this->user_data->math_mode;
     }
 }
 
