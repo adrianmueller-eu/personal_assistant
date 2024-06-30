@@ -22,7 +22,7 @@ Mental health bot
 
 #### Ideas for the future 🔮
 - [ ] Use a database instead of files (the `chats` folder)
-- [ ] Use abstract classes to connect to different platforms (e.g. [Whatsapp](https://business.whatsapp.com/developers/developer-hub), [Discord](https://discord.com/developers/applications), [Matrix](https://matrix.org/faq/#bots), etc.) or to other AIs (any examples here would be outdated tomorrow)
+- [ ] Connect to other platforms than Telegram (e.g. ~~[Whatsapp](https://business.whatsapp.com/developers/developer-hub)~~, [Discord](https://discord.com/developers/applications), [Matrix](https://matrix.org/faq/#bots), etc.) or to other AIs (any examples here would be outdated tomorrow)
 
 General bot
 - [ ] Enable to search, scrape webpages, and send them back to the AI
