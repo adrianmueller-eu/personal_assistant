@@ -90,7 +90,7 @@ class UserConfigManager {
             $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
             if ($this->user_data === null || $this->user_data === false) {
                 if ($this->user_data === null) {
-                    $error = json_last_error_msg();
+                    $error = "JSON error: ".json_last_error_msg();
                 } else {
                     $error = "Could not read file: $this->user_config_file";
                 }

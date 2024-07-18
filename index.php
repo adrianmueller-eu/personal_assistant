@@ -110,7 +110,7 @@ $telegram_admin = new Telegram($telegram_token, $chat_id_admin, $DEBUG);
 
 if ($DEBUG) {
     Log::debug($update);
-    $telegram_admin->send_message("Message received:\n\n".json_encode($update, JSON_PRETTY_PRINT), false);
+    // $telegram_admin->send_message("Message received:\n\n".json_encode($update, JSON_PRETTY_PRINT), false);
 }
 
 // Avoid processing the same message twice by checking whether update_id was already processed

@@ -27,11 +27,16 @@ class Log {
     public static function echo($message, $echo_level) {
         if (self::$echo_level < $echo_level)
             return;
-
         if (is_string($message))
-            echo $message.PHP_EOL;
+            $message = $message.PHP_EOL;
         else
-            echo json_encode($message, JSON_PRETTY_PRINT).PHP_EOL;
+            $message = json_encode($message, JSON_PRETTY_PRINT).PHP_EOL;
+
+        if ($echo_level > 1) {
+            file_put_contents("php://stdout", $message);
+        } else {
+            file_put_contents("php://stderr", $message);
+        }
     }
 
     /**

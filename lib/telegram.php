@@ -153,6 +153,13 @@ class Telegram {
      * @return void
      */
     public function send_message($message, $is_markdown = true) {
+        if (!$message) {
+            Log::error(array(
+                "interface" => "telegram",
+                "message" => "Empty message",
+            ));
+            return;
+        }
         $messages = $this->split_message($message);
 
         foreach ($messages as $m) {

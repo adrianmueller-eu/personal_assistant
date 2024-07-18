@@ -71,6 +71,16 @@ class Anthropic {
             // Count the usages
             $this->user->increment("anthropic_".$month."_chat_input_tokens", $response->usage->input_tokens);
             $this->user->increment("anthropic_".$month."_chat_output_tokens", $response->usage->output_tokens);
+            // see if content[0] exists
+            if (!isset($response->content[0]->text)) {
+                Log::error(array(
+                    "interface" => "anthropic",
+                    "endpoint" => "messages",
+                    "data" => $data,
+                    "response" => $response,
+                ));
+                return "Error: The response from Anthropic is not in the expected format: ".json_encode($response);
+            }
             return $response->content[0]->text;
         }
         return $response;
