@@ -691,7 +691,7 @@ END:VTIMEZONE"));
                 if ($arg == "on" || $arg == "off") {
                     // Set all jobs to active or inactive
                     foreach ($jobs as $job) {
-                        $job->status = "active" ? $arg == "on" : "inactive";
+                        $job->status = $arg == "on" ? "active" : "inactive";
                     }
                     $global_config_manager->save_jobs($jobs);
                     $telegram->send_message("All jobs successfully set \"$arg\".");
