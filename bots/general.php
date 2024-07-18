@@ -908,52 +908,6 @@ END:VTIMEZONE"));
         exit;
     }
 
-    // If math mode is set, replace the Latex response with the Markdown version
-    if ($user_config_manager->is_math_mode_active()) {
-        // $telegram->send_message("Original response: $response", false);
-
-        // For each \[ find the corresponding \] (might be on later lines) and replace both by ```
-        $latex = "";
-        $start = 0;
-        while (($start < strlen($response) && $start = strpos($response, "\\[", $start)) !== false) {
-            $end = strpos($response, "\\]", $start+2);
-            if ($end === false) {
-                $end = strlen($response);
-            }
-            $latex = substr($response, $start, $end - $start + 2);
-            $latex_new = substr($latex, 2, strlen($latex)-4);
-            $latex_new = trim($latex_new);
-            $response = str_replace($latex, "```\n$latex_new\n```", $response);
-            $start = $end;
-        }
-        $response = preg_replace('/ *```/', '```', $response);
-
-        // For each $$ find the corresponding $$ (might be on later lines) and replace both by ```
-        $latex = "";
-        $start = 0;
-        while (($start < strlen($response) && $start = strpos($response, "\$\$", $start)) !== false) {
-            $end = strpos($response, "\$\$", $start+2);
-            if ($end === false) {
-                $end = strlen($response);
-            }
-            $latex = substr($response, $start, $end - $start + 2);
-            $latex_new = substr($latex, 2, strlen($latex)-4);
-            $latex_new = trim($latex_new);
-            $response = str_replace($latex, "```\n$latex_new\n```", $response);
-            $start = $end;
-        }
-        $response = preg_replace('/ *```/', '```', $response);
-
-        // For each \( find the corresponding \) and replace both by `
-        $response = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $response);
-        // Same for $ and $
-        $response = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $response);
-    }
-    // Replace all ** outside of code blocks by *
-    $response = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $response);
-    // Replace headings with bold text
-    $response = preg_replace('/^#+ (.*)$/m', '*$1*', $response);
-
     // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
     if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
         $user_config_manager->add_message("assistant", $response);
@@ -996,6 +950,7 @@ END:VTIMEZONE"));
         $telegram->send_message($response);
     } else {
         $user_config_manager->add_message("assistant", $response);
+        $response = $telegram->format_message($response, $user_config_manager->is_math_mode_active());
         $telegram->send_message($response);
     }
 }

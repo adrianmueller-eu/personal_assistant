@@ -245,5 +245,82 @@ class Telegram {
     public function get_chat_id() {
         return $this->chat_id;
     }
+
+    public function format_message($response, $math_mode = false) {
+        // If math mode is set, replace the Latex response with the Markdown version
+        if ($math_mode) {
+            // $this->send_message("Original response: $response", false);
+
+            // For each \[ find the corresponding \] (might be on later lines) and replace both by ```
+            $start = 0;
+            while (($start < strlen($response) && $start = strpos($response, "\\[", $start)) !== false) {
+                $end = strpos($response, "\\]", $start+2);
+                if ($end === false) {
+                    $end = strlen($response);
+                }
+                $latex = substr($response, $start, $end - $start + 2);
+                $latex_new = substr($latex, 2, strlen($latex)-4);
+                $latex_new = trim($latex_new);
+                $response = str_replace($latex, "```\n$latex_new\n```", $response);
+                $start = $end;
+            }
+            $response = preg_replace('/ *```/', '```', $response);
+
+            // For each $$ find the corresponding $$ (might be on later lines) and replace both by ```
+            $start = 0;
+            while (($start < strlen($response) && $start = strpos($response, "\$\$", $start)) !== false) {
+                $end = strpos($response, "\$\$", $start+2);
+                if ($end === false) {
+                    $end = strlen($response);
+                }
+                $latex = substr($response, $start, $end - $start + 2);
+                $latex_new = substr($latex, 2, strlen($latex)-4);
+                $latex_new = trim($latex_new);
+                $response = str_replace($latex, "```\n$latex_new\n```", $response);
+                $start = $end;
+            }
+            $response = preg_replace('/ *```/', '```', $response);
+
+            // For each \( find the corresponding \) and replace both by `
+            $response = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $response);
+            // Same for $ and $
+            $response = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $response);
+            // Surround all words containing underscores with backticks, if they are not already in a code block
+            $response_new = "";
+            $lines = explode("\n", $response);
+            $is_in_code_block = False;
+            for ($i = 0; $i < count($lines); $i++) {
+                if (strpos($lines[$i], "```") !== false) {
+                    $is_in_code_block = !$is_in_code_block;
+                }
+                if ($is_in_code_block) {
+                    $response_new .= $lines[$i];
+                } else {
+                    $matches = array();
+                    preg_match_all('/(?<!`)(\b\w+_[a-zA-Z0-9_]*\w+\b)(?!`)/', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
+                    $response_new .= $lines[$i];
+                    $offset = 0;
+                    foreach ($matches[1] as $match) {
+                        $start = $match[1] + $offset;
+                        $end = $start + strlen($match[0]);
+                        $count_before = substr_count(substr($lines[$i], 0, $start), '`');
+                        $count_after = substr_count(substr($lines[$i], 0, $end), '`');
+                        if ($count_before % 2 == 0 && $count_after % 2 == 0) {
+                            $response_new = substr($response_new, 0, $start)."`".$match[0]."`".substr($response_new, $end);
+                            $offset += 2;
+                        }
+                    }
+                }
+                $response_new .= "\n";
+            }
+            // remove trailing newline
+            $response = substr($response_new, 0, -1);
+        }
+        // Replace all ** outside of code blocks by *
+        $response = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $response);
+        // Replace headings with bold text
+        $response = preg_replace('/^#+ (.*)$/m', '*$1*', $response);
+        return $response;
+    }
 }
 ?>
