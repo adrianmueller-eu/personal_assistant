@@ -33,9 +33,12 @@ class LLMConnector {
             $data = (object) $data;
         }
         if (str_starts_with($data->model, "gpt-")) {
+            // unset($data->system); // Would also need to undo the base64 -> better just copy the object for claude (also more readable data file)
             $openai = new OpenAI($this->user, $this->DEBUG);
             return $openai->gpt($data);
         } else if (str_starts_with($data->model, "claude-")) {
+            // copy data object to avoid modifying the original object
+            $data = json_decode(json_encode($data));
             // download and base64 encode any image
             // Before, it looks like this:
             // {
@@ -94,7 +97,6 @@ class LLMConnector {
                     $i--;
                 }
             }
-            // return "Error: ".json_encode($data);
             $data->system = $system_message;
             $anthropic = new Anthropic($this->user, $this->DEBUG);
             return $anthropic->claude($data);
