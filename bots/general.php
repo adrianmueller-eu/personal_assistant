@@ -289,7 +289,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }, "Presets", "Remove a character from the conversation. Provide the name of the character with the command.");
 
         // The command /characters shows the current character descriptions
-        $command_manager->add_command(array("/characters", "/room"), function($command, $_) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/room"), function($command, $_) use ($telegram, $user_config_manager) {
             $chat = $user_config_manager->get_config();
             if (count($chat->messages) == 0) {
                 $telegram->send_message("You are not in a conversation.");
