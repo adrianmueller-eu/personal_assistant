@@ -138,6 +138,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 ."Consider their background and experiences that shape their perspective. The goal is to capture the essence of how "
                 ."these characters would authentically express themselves in a dialogue, rather than just listing traits. "
                 ."Aim for a concise description that will allow for a realistic and engaging conversation with these characters."
+                ."If the request is generic or abstract, keep the descriptions general and adaptable to various contexts without inventing names or other specific details."
                 ."Don't write anything else before or after the character descriptions, only output the character descriptions.";
             if ($previous_descriptions != "") {
                 # ask it to append the new character description to the previous ones
@@ -183,7 +184,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     ."If asked about topics outside a character's expertise or experience, have them respond realistically, which may include admitting "
                     ."uncertainty or redirecting the conversation to their areas of interest.\n\n"
                     ."In multi-character scenarios, characters may interact with or respond to each other's comments if it's natural for them to do so. "
-                    ."The user can address questions or comments to specific characters or to the group as a whole. Remember to maintain each character's "
+                    ."The user can address questions or comments to specific characters or to the group as a whole. Not every character has to respond every time. "
+                    ."It might often be enough to just hear from one or two characters with the most relevant perspectives. Remember to maintain each character's "
                     ."unique voice and perspective throughout the entire conversation, whether it's a one-on-one dialogue or a group discussion.");
                 $user_config_manager->save_config($config);
                 # Tell the user
