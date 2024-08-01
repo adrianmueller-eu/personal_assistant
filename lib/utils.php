@@ -112,28 +112,21 @@ function time_diff($timeA, $timeB) {
 function get_usage_string($user, $month) {
     $message = "";
     // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
-    $cnt_prompt = $user->get_counter("openai_".$month."_chat_prompt_tokens");
-    $cnt_completion = $user->get_counter("openai_".$month."_chat_completion_tokens");
-    $cnt_total = $user->get_counter("openai_".$month."_chat_total_tokens");
-    if ($cnt_prompt == 0 && $cnt_completion == 0 && $cnt_total == 0) {
+    $cnt_prompt_openai     = $user->get_counter("openai_".$month."_chat_prompt_tokens");
+    $cnt_completion_openai = $user->get_counter("openai_".$month."_chat_completion_tokens");
+    $cnt_prompt_anthropic     = $user->get_counter("anthropic_".$month."_chat_input_tokens");
+    $cnt_completion_anthropic = $user->get_counter("anthropic_".$month."_chat_output_tokens");
+    $cnt_prompt = $cnt_prompt_openai + $cnt_prompt_anthropic;
+    $cnt_completion = $cnt_completion_openai + $cnt_completion_anthropic;
+    if ($cnt_prompt == 0 && $cnt_completion == 0) {
         $message .= "no data";
     } else {
-        // Add a price estimate for each
-        // $month < 2405, use 0.01, 0.03
-        // $month == 2405, use 0.075, 0.02
-        // $month > 2405, use 0.005, 0.01
-        $month = intval($month);
-        if ($month < 2405) {
-            $price_estimate = round($cnt_prompt / 1000 * 0.010 + $cnt_completion / 1000 * 0.03, 2);
-        } else if ($month == 2405) {
-            $price_estimate = round($cnt_prompt / 1000 * 0.0075 + $cnt_completion / 1000 * 0.02, 2);
-        } else {
-            $price_estimate = round($cnt_prompt / 1000 * 0.005 + $cnt_completion / 1000 * 0.01, 2);
-        }
-        // $price_estimate = round($cnt_prompt / 1000 * 0.01 + $cnt_completion / 1000 * 0.03, 2);
-        $message .= "$cnt_prompt + $cnt_completion = $cnt_total tokens (~$$price_estimate)";
+        $input_cost = 5;
+        $output_cost = 15;
+        $price_estimate = round($cnt_prompt / 600000 * $input_cost + $cnt_completion / 600000 * $output_cost, 2);
+        $message .= "$cnt_prompt + $cnt_completion tokens (~$$price_estimate)";
+        $message .= "\n\nCosts are rough estimates based on ".$input_cost."€ / 1M input and ".$output_cost."€ / 1M output tokens. "
+            ."Actual costs are different, since prices depend on the model and are constantly changing. See /model for more details.";
     }
     return $message;
 };
-
-?>
