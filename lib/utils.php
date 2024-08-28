@@ -123,8 +123,8 @@ function get_usage_string($user, $month) {
     } else {
         $input_cost = 5;
         $output_cost = 15;
-        $price_estimate = round($cnt_prompt / 600000 * $input_cost + $cnt_completion / 600000 * $output_cost, 2);
-        $message .= "$cnt_prompt + $cnt_completion tokens (~$$price_estimate)";
+        $price_estimate = round($cnt_prompt / 1000000 * $input_cost + $cnt_completion / 1000000 * $output_cost, 2);
+        $message .= "$cnt_prompt + $cnt_completion tokens (~".$price_estimate."€)";
         $message .= "\n\nCosts are rough estimates based on ".$input_cost."€ / 1M input and ".$output_cost."€ / 1M output tokens. "
             ."Actual costs are different, since prices depend on the model and are constantly changing. See /model for more details.";
     }
