@@ -109,7 +109,7 @@ function time_diff($timeA, $timeB) {
     }
 }
 
-function get_usage_string($user, $month) {
+function get_usage_string($user, $month, $show_info) {
     $message = "";
     // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
     $cnt_prompt_openai     = $user->get_counter("openai_".$month."_chat_prompt_tokens");
@@ -125,8 +125,10 @@ function get_usage_string($user, $month) {
         $output_cost = 15;
         $price_estimate = round($cnt_prompt / 1000000 * $input_cost + $cnt_completion / 1000000 * $output_cost, 2);
         $message .= "$cnt_prompt + $cnt_completion tokens (~".$price_estimate."€)";
-        $message .= "\n\nCosts are rough estimates based on ".$input_cost."€ / 1M input and ".$output_cost."€ / 1M output tokens. "
+        if ($show_info) {
+            $message .= "\n\nCosts are rough estimates based on ".$input_cost."€ / 1M input and ".$output_cost."€ / 1M output tokens. "
             ."Actual costs are different, since prices depend on the model and are constantly changing. See /model for more details.";
+        }
     }
     return $message;
 };

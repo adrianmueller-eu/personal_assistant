@@ -773,7 +773,7 @@ END:VTIMEZONE"));
                     $telegram->send_message("Please provide a month in the format \"YYMM\".");
                     exit;
                 }
-                $usage = get_usage_string($user_config_manager, $month);
+                $usage = get_usage_string($user_config_manager, $month, true);
                 $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n$usage");
                 exit;
             }, "Chat history management", "Show your usage statistics");
@@ -890,7 +890,7 @@ END:VTIMEZONE"));
                     exit;
                 }
                 $chatids = $global_config_manager->get_chatids();
-                $message = "Usage statistics for month $month:\n\n";
+                $message = "Usage statistics for month $month:\n";
                 foreach ($chatids as $chatid) {
                     // Add a line for each user: @username (chatid): prompt + completion = total tokens
                     $user = new UserConfigManager($chatid);
@@ -900,7 +900,7 @@ END:VTIMEZONE"));
                     if ($username != "")
                         $message .= "@".$user->get_username()." ";
                     // add usage info
-                    $message .= get_usage_string($user, $month)."\n";
+                    $message .= get_usage_string($user, $month, false)."\n";
                 }
                 $telegram->send_message($message);
                 exit;
