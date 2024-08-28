@@ -127,8 +127,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // #########################
         // ### Commands: Presets ###
         // #########################
-        $get_character_description = function($new_character, $previous_descriptions="") use ($telegram, $llm) {
-            $telegram->send_message("Trying to find $new_character...");
+        $get_character_description = function($new_character, $previous_descriptions="", $show_message=true) use ($telegram, $llm) {
+            if ($show_message) {
+                $telegram->send_message("Trying to find $new_character...");
+            }
             # Request a character description
             $prompt = "Create a character description based on the following information given by the user: $new_character\n\nIf they mentioned multiple "
                 ."characters, please generate a description for each of them, otherwise only one.\n\n"
@@ -161,10 +163,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         };
 
         // The command is /start or /reset resets the bot and sends a welcome message
-        $reset = function($command, $new_character, $show_message = true) use ($get_character_description, $telegram, $user_config_manager) {
+        $reset = function($command, $new_character, $show_message = true) use ($get_character_description, $telegram, $user_config_manager, $llm) {
             # first create potential new character descriptions
             if ($new_character) {
-                $description = $get_character_description($new_character);
+                $description = $get_character_description($new_character, "", $show_message);
             }
             # save config intro backup file
             $user_config_manager->save_backup();
@@ -189,7 +191,16 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     ."unique voice and perspective throughout the entire conversation, whether it's a one-on-one dialogue or a group discussion.");
                 $user_config_manager->save_config($config);
                 # Tell the user
-                $telegram->send_message("You are now in a conversation room with $new_character :)");
+                if ($show_message) {
+                    # Ask the AI to write a short information for the user who they are talking with
+                    $config->messages[] = (object) array("role" => "user", "content" => "Who joined the scene? Please respond with one sentence in the format \"You are now in a conversation room with ...\" with no other text before or after.");
+                    $joined = $llm->message($config);
+                    if (substr($joined, 0, 7) == "Error: ") {
+                        $telegram->send_message("You are now in a conversation room with $new_character :)");
+                    } else {
+                        $telegram->send_message($joined);
+                    }
+                }
             } else {
                 $intro = $user_config_manager->get_intro();
                 if ($intro != "") {
@@ -205,7 +216,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     ."Feel free to give recommendations (actions, books, papers, etc.) that seem useful and appropriate. "
                     ."If you recommend resources, please carefully ensure they actually exist. "
                     ."Avoid showing warnings or information regarding your capabilities. "
-                    ."You can use Telegram Markdown and emojis to format and enrich your messages. "
+                    ."You can use Markdown and emojis to format and enrich your messages. "
                     ."Spread love! ❤️✨");
                 }
                 if ($show_message) {
@@ -221,26 +232,34 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }, "Presets", "Start a new conversation. You may provide a description who you want to talk with.");
 
         // The command /invite invites another character to the conversation
-        $command_manager->add_command(array("/invite"), function($command, $new_character) use ($telegram, $user_config_manager, $reset, $get_character_description) {
+        $command_manager->add_command(array("/invite"), function($command, $new_character) use ($telegram, $user_config_manager, $llm, $reset, $get_character_description) {
             if ($new_character == "") {
                 $telegram->send_message("Please provide a description of the character you want to invite into the conversation.");
                 exit;
             }
             $chat = $user_config_manager->get_config();
             if (count($chat->messages) == 0) {
-                $reset($command, $new_character, false);
+                $reset($command, $new_character, true);
             } else if (count($chat->messages) == 1 || (count($chat->messages) > 1 && substr($chat->messages[1]->content, 0, 25) != "Character description(s):")) {
                 # prepend a generic and kind personal assistant to $new_character request
                 $new_character = "generic compassionate personal assistant (PA) and $new_character";
-                $reset($command, $new_character, false);
+                $reset($command, $new_character, true);
             } else if (substr($chat->messages[1]->content, 0, 25) == "Character description(s):") {
                 $current_description = substr($chat->messages[1]->content, 25);
                 $description = $get_character_description($new_character, $current_description);
                 $chat->messages[1]->content = "Character description(s):\n$description";
-                $telegram->send_message("$new_character joined the conversation.");
-                # append "$new_character joined the conversation." to the last message of the chat to inform the AI
+                # ask AI to write a short information for the user who joined the conversation
+                $chat2 = (object) UserConfigManager::$default_config;
+                $chat2->messages[] = (object) array("role" => "user", "content" => "Previous character description(s):\n\n$current_description\n\nNew character description(s):\n\n$description\n\n"
+                    ."Please analyze the descriptions above and inform us: who joined the scene? Respond with one short sentence with no other text before or after.");
+                $joined = $llm->message($chat2);
+                if (substr($joined, 0, 7) == "Error: ") {
+                    $joined = "$new_character joined the conversation.";
+                }
+                $telegram->send_message($joined);
+                # append $joined to the last message of the chat to inform the AI
                 $last_message = $chat->messages[count($chat->messages) - 1];
-                $last_message->content .= "\n\n$new_character joined the conversation.";
+                $last_message->content .= "\n\n$joined";
                 $chat->messages[count($chat->messages) - 1] = $last_message;
                 $user_config_manager->save_config($chat);
             }
