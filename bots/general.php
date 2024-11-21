@@ -1024,7 +1024,7 @@ END:VTIMEZONE"));
         }, "Misc", "Dump the data saved in the permanent storage");
 
         // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
-        $command_manager->add_command(array("/dm"), function($command, $n) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/dm", "/dmf"), function($command, $n) use ($telegram, $user_config_manager) {
             $messages = $user_config_manager->get_config()->messages;
             // Check if there are messages
             if (count($messages) == 0) {
@@ -1040,12 +1040,17 @@ END:VTIMEZONE"));
             }
             // Send each message as a separate message
             foreach ($messages as $message) {
-                if (is_string($message->content))
-                    $telegram->send_message("/$message->role $message->content", false);
-                else {
+                if (is_string($message->content)) {
+                    $content = $message->content;
+                    if ($command == "/dmf")
+                        $content = $telegram->format_message($message->content, math_mode: $user_config_manager->is_math_mode_active());
+                    $telegram->send_message("/$message->role $content", $command == "/dmf");
+                } else {
                     $image_url = $message->content[0]->image_url->url;
                     $caption = $message->content[1]->text;
-                    $telegram->send_message("/$message->role $caption\n$image_url", false);
+                    if ($command == "/dmf")
+                        $caption = $telegram->format_message($caption, math_mode: $user_config_manager->is_math_mode_active());
+                    $telegram->send_message("/$message->role $caption\n$image_url", $command == "/dmf");
                 }
             }
             exit;
