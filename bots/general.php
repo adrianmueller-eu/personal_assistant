@@ -337,12 +337,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($message != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $message);
                 $response = $llm->message($chat);
-                // If the response starts with "Error: ", it is an error message
-                if (substr($response, 0, 7) == "Error: ") {
-                    $telegram->send_message($response, false);
-                } else {
-                    $telegram->send_message($response);
-                }
+                $has_error = substr($response, 0, 7) == "Error: ";
+                $telegram->send_message($response, !$has_error);
             } else {
                 $user_config_manager->save_backup();
                 $user_config_manager->save_config($chat);
@@ -361,12 +357,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($text != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $text);
                 $response = $llm->message($chat);
-                // If the response starts with "Error: ", it is an error message
-                if (substr($response, 0, 7) == "Error: ") {
-                    $telegram->send_message($response, false);
-                } else {
-                    $telegram->send_message($response);
-                }
+                $has_error = substr($response, 0, 7) == "Error: ";
+                $telegram->send_message($response, !$has_error);
             } else {
                 $user_config_manager->save_backup();
                 $user_config_manager->save_config($chat);
@@ -420,12 +412,8 @@ END:VTIMEZONE"));
             if ($query != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $query);
                 $response = $llm->message($chat);
-                // If the response starts with "Error: ", it is an error message
-                if (substr($response, 0, 7) == "Error: ") {
-                    $telegram->send_message($response, false);
-                } else {
-                    $telegram->send_message($response);
-                }
+                $has_error = substr($response, 0, 7) == "Error: ";
+                $telegram->send_message($response, !$has_error);
             } else {
                 $user_config_manager->save_backup();
                 $user_config_manager->save_config($chat);
