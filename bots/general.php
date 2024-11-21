@@ -475,14 +475,28 @@ END:VTIMEZONE"));
         }, "Shortcuts", "Request an Anki flashcard based on the previous conversation. You can provide a message with the command to clarify the topic.");
 
         // The command /todo is a shortcut to extract actionable items out of the previous conversation
-        $command_manager->add_command(array("/todo"), function($command, $_) use ($user_config_manager) {
+        $command_manager->add_command(array("/todo"), function($command, $info) use ($user_config_manager) {
+            $source_str = "";
+            $n_messages = count($user_config_manager->get_config()->messages);
+            if ($n_messages > 1 && $info != "") {
+                $source_str .= "the previous conversation and further information by the user given below";
+            }
+            elseif ($n_messages > 1) {
+                $source_str .= "the previous conversation";
+            }
+            elseif ($info != "") {
+                $source_str .= "the information by the user given below";
+            }
             // Prompt the model to write a todo list
-            $prompt = "Please create a consolidated list of specific, actionable items based on the previous conversation. "
+            $prompt = "Please create a consolidated list of specific, actionable items based on $source_str. "
                     ."Keep the points concise, but specific and informative. "
-                    ."If there is important information missing, don't provide an actual answer, but instead ask for what you'd need to know first. ";
+                    ."If there is important information missing, don't provide an actual answer, but instead ask for what you'd need to know first.";
+            if ($info != "") {
+                $prompt .= " Here is further information given by the user:\n\n$info";
+            }
             $user_config_manager->add_message("system", $prompt);
             // don't exit, to request a response from the model below
-        }, "Shortcuts", "Extract a list of actionable items from the previous conversation");
+        }, "Shortcuts", "Extract a list of actionable items from the previous conversation. You can provide a message with the command for more information.");
 
         // The command /mail builds a mail based on the previous conversation
         $command_manager->add_command(array("/mail"), function($command, $topic) use ($user_config_manager) {
