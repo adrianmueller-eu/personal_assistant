@@ -532,9 +532,10 @@ END:VTIMEZONE"));
 
         // Shotcuts for models
         $shortcuts = array(
-            "/gpt4o" => "gpt-4o",
+            "/gpt4o" => "gpt-4o-2024-08-06",
+            "/gpt4omini" => "gpt-4o-mini",
             "/gpt4turbo" => "gpt-4-turbo",
-            "/gpt35turbo" => "gpt-3.5-turbo",
+            "/gpt35turbo" => "gpt-3.5-turbo-0125",
             "/claude35sonnet" => "claude-3-5-sonnet-20240620",
             "/claude3opus" => "claude-3-opus-20240229",
             "/claude3sonnet" => "claude-3-sonnet-20240229",

@@ -404,7 +404,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Shortcuts for models
         $shortcuts = array(
-            "/gpt4o" => "gpt-4o",
+            "/gpt4o" => "gpt-4o-2024-08-06",
+            "/gpt4omini" => "gpt-4o-mini",
             "/gpt4turbo" => "gpt-4-turbo",
             "/gpt35turbo" => "gpt-3.5-turbo",
             "/claude35sonnet" => "claude-3-5-sonnet-20240620",
