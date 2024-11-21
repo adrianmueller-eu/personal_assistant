@@ -195,8 +195,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 # Tell the user
                 if ($show_message) {
                     # Ask the AI to write a short information for the user who they are talking with
-                    $config->messages[] = (object) array("role" => "user", "content" => "Who joined the scene? Please respond with one sentence in the format \"You are now in a conversation room with ...\" with no other text before or after.");
-                    $joined = $llm->message($config);
+                    $config2 = (object) UserConfigManager::$default_config;
+                    $config2->messages = $config->messages;
+                    $config2->messages[] = (object) array("role" => "user", "content" => "Who joined the scene? Please respond with one sentence in the format \"You are now in a conversation room with ...\" with no other text before or after.");
+                    $joined = $llm->message($config2);
                     if (substr($joined, 0, 7) == "Error: ") {
                         $telegram->send_message("You are now in a conversation room with $new_character :)");
                     } else {
