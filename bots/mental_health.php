@@ -385,6 +385,9 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             } else if ($session_info->running == true) {
                 $telegram->send_message("Please end the current session with /end before changing your mode.");
             } else {
+                if (strlen($mode) == 3) {
+                    $mode = strtoupper($mode);
+                }
                 // Get keys from $mode_prompts and check if $mode is a valid key
                 $mode_keys = array_keys($mode_prompts);
                 if (!in_array($mode, $mode_keys)) {
