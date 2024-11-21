@@ -104,14 +104,16 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
     // #######################
 
     if (is_string($message)) {
-        // If starts with "." or "\", it's probably a typo for a command
-        if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\" && !(substr($message, 1, 1) == "." || substr($message, 1, 1) == "\\"))) {
-            // Shorten the message if it's too long
-            if (strlen($message) > 100) {
-                $message = substr($message, 0, 100)."...";
+        // If starts with "." or "\", it might be a typo for a command
+        if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\")) {
+            // Remove everything after the first space-like character
+            $potential_command = preg_replace("/\s.*/", "", $message);
+            // If it only contains word-characters, it might be a command
+            $potential_command = substr($potential_command, 1);
+            if (!preg_match("/[^A-Za-z0-9]/", $potential_command)) {
+                $telegram->send_message("Did you mean the command /$potential_command ? If not, escape the first character with '\\'.\nNothing was added to the chat history.", false);
+                exit;
             }
-            $telegram->send_message("Did you mean the command /".substr($message, 1)." ? If not, escape the first character with '\\'.");
-            exit;
         }
     }
 
