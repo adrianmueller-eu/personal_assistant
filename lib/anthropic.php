@@ -9,6 +9,8 @@ require_once __DIR__."/utils.php";
 class Anthropic {
     public $DEBUG;
     public $user;
+    private $RETRY_CNT = 0;
+    private $MAX_RETRY = 4;
 
     /**
      * Create a new instance.
@@ -131,6 +133,12 @@ class Anthropic {
                 "data" => $data,
                 "response" => $response,
             ));
+            // Retry the request if the error is a temporary error
+            if ($response->error->type == "overloaded_error" && $this->RETRY_CNT < $this->MAX_RETRY) {
+                $this->RETRY_CNT++;
+                sleep(5*$this->RETRY_CNT);
+                return $this->send_request($endpoint, $data);
+            }
             // Return the error message
             return 'Error: '.$response->error->message;
         }
