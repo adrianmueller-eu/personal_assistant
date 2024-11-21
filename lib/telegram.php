@@ -292,41 +292,39 @@ class Telegram {
             $response = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $response);
             // Same for $ and $
             $response = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $response);
-            // Surround all words containing underscores with backticks, if they are not already in a code block
-            $response_new = "";
-            $lines = explode("\n", $response);
-            $is_in_code_block = False;
-            for ($i = 0; $i < count($lines); $i++) {
-                if (strpos($lines[$i], "```") !== false) {
-                    $is_in_code_block = !$is_in_code_block;
-                }
-                if ($is_in_code_block) {
-                    $response_new .= $lines[$i];
-                } else {
-                    $matches = array();
-                    preg_match_all('/(?<!`)(\b\w+_[a-zA-Z0-9_]*\w+\b)(?!`)/', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
-                    $response_new .= $lines[$i];
-                    $offset = 0;
-                    foreach ($matches[1] as $match) {
-                        $start = $match[1] + $offset;
-                        $end = $start + strlen($match[0]);
-                        $count_before = substr_count(substr($lines[$i], 0, $start), '`');
-                        $count_after = substr_count(substr($lines[$i], 0, $end), '`');
-                        if ($count_before % 2 == 0 && $count_after % 2 == 0) {
-                            $response_new = substr($response_new, 0, $start)."`".$match[0]."`".substr($response_new, $end);
-                            $offset += 2;
-                        }
+        }
+        // If a text is not already in a code block
+        $response_new = "";
+        $lines = explode("\n", $response);
+        $is_in_code_block = False;
+        for ($i = 0; $i < count($lines); $i++) {
+            if (strpos($lines[$i], "```") !== false) {
+                $is_in_code_block = !$is_in_code_block;
+            }
+            if (!$is_in_code_block) {
+                // Surround all words containing underscores with backticks
+                $matches = array();
+                preg_match_all('/(?<!`)(\b\w+_[a-zA-Z0-9_]*\w+\b)(?!`)/', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
+                $offset = 0;
+                foreach ($matches[1] as $match) {
+                    $start = $match[1] + $offset;
+                    $end = $start + strlen($match[0]);
+                    $count_before = substr_count(substr($lines[$i], 0, $start), '`');
+                    $count_after = substr_count(substr($lines[$i], 0, $end), '`');
+                    if ($count_before % 2 == 0 && $count_after % 2 == 0) {
+                        $lines[$i] = substr($lines[$i], 0, $start)."`".$match[0]."`".substr($lines[$i], $end);
+                        $offset += 2;
                     }
                 }
-                $response_new .= "\n";
+                // Replace all ** outside of code blocks by *
+                $lines[$i] = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $lines[$i]);
+                // Replace headings (a line beginning with at least one #) by bold text
+                $lines[$i] = preg_replace('/^#+ (.*)$/', '*$1*', $lines[$i]);
             }
-            // remove trailing newline
-            $response = substr($response_new, 0, -1);
+            $response_new .= $lines[$i]."\n";
         }
-        // Replace all ** outside of code blocks by *
-        $response = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $response);
-        // Replace headings with bold text
-        $response = preg_replace('/^#+ (.*)$/m', '*$1*', $response);
+        // remove trailing newline
+        $response = substr($response_new, 0, -1);
         return $response;
     }
 }
