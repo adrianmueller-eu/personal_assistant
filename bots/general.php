@@ -420,7 +420,28 @@ END:VTIMEZONE"));
                 $telegram->send_message("Chat history reset. I will support you in writing code.");
             }
             exit;
-        }, "Presets", "Programming assistant. Add a query to preserve the previous conversation.");
+        }, "Presets", "Programming assistant. Add a query to ignore and preserve the previous conversation.");
+
+        // The command /typo is a typo and grammar assistant
+        $command_manager->add_command(array("/typo"), function($command, $text) use ($telegram, $user_config_manager, $llm) {
+            $prompt = "Please review the following scientific text and provide specific feedback on areas that could be improved. "
+                ."Correct any typos, grammatical errors, or whatever else you notice. Do NOT repeat or write a corrected verison of the entire text. "
+                ."Keep your answer concise and ensure the correctness of each suggestion.";
+            $chat = UserConfigManager::$default_config;
+            $chat["messages"] = array(array("role" => "system", "content" => $prompt));
+            // If the text is not empty, process the request one-time without saving the config
+            if ($text != "") {
+                $chat["messages"][] = array("role" => "user", "content" => $text);
+                $response = $llm->message($chat);
+                $has_error = substr($response, 0, 7) == "Error: ";
+                $telegram->send_message($response, !$has_error);
+            } else {
+                $user_config_manager->save_backup();
+                $user_config_manager->save_config($chat);
+                $telegram->send_message("Chat history reset. I am now a typo and grammar assistant.");
+            }
+            exit;
+        }, "Presets", "Typo and grammar assistant. Provide a text to ignore and preserve the previous conversation.");
 
         // The command /task helps the user to break down a task and track progress
         $command_manager->add_command(array("/task"), function($command, $task) use ($telegram, $user_config_manager, $reset) {
