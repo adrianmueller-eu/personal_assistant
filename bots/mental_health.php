@@ -693,10 +693,23 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
             // Command /cnt outputs the number of messages in the chat history
             $command_manager->add_command(array("/cnt"), function($command, $_) use ($telegram, $user_config_manager) {
-                $chat = $user_config_manager->get_config();
-                $telegram->send_message("There are ".count($chat->messages)." messages in the chat history.");
-                exit;
-            }, "Admin", "Output the number of messages in the chat history");
+                $messages = $user_config_manager->get_config()->messages;
+                $n_messages = count($messages);
+                $all_messages = implode("\n", array_map(function($message) {
+                    return $message->content;
+                }, $messages));
+                $n_words = str_word_count($all_messages);
+                switch ($n_messages) {
+                    case 0:
+                        $telegram->send_message("There are no messages (0 words) in the chat history.");
+                        break;
+                    case 1:
+                        $telegram->send_message("There is 1 message ($n_words words) in the chat history.");
+                        break;
+                    default:
+                        $telegram->send_message("There are $n_messages messages ($n_words words) in the chat history.");
+                }
+            }, "Admin", "Output the number of messages and words in the chat history");
 
             // The command /dumpmessages outputs the messages in a form that could be used to recreate the chat history
             $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $n) use ($telegram, $user_config_manager) {
