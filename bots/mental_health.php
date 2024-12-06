@@ -404,11 +404,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Shortcuts for models
         $shortcuts = array(
-            "/gpt4o" => "gpt-4o-2024-08-06",
+            "/gpt4o" => "gpt-4o",
             "/gpt4omini" => "gpt-4o-mini",
             "/gpt4turbo" => "gpt-4-turbo",
-            "/gpt35turbo" => "gpt-3.5-turbo",
             "/claude35sonnet" => "claude-3-5-sonnet-20240620",
+            "/claude35haiku" => "claude-3-5-haiku-20241022",
             "/claude3opus" => "claude-3-opus-20240229",
             "/claude3sonnet" => "claude-3-sonnet-20240229",
             "/claude3haiku" => "claude-3-haiku-20240307"
@@ -427,7 +427,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 .implode("\n", array_map(function($key, $value) {
                     return "$key -> `$value`";
                 }, array_keys($shortcuts), $shortcuts))."\n\n"
-                ."Other options are other [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://openai.com/pricing)) and "
+                ."Other options are other [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://openai.com/api/pricing/)) and "
                 ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models).");
             } else if ($chat->model == $model) {
                 $telegram->send_message("You are already talking to `$chat->model`.");

@@ -32,7 +32,7 @@ class LLMConnector {
         if (is_array($data)) {
             $data = (object) $data;
         }
-        if (str_starts_with($data->model, "gpt-")) {
+        if (str_starts_with($data->model, "gpt-") || str_starts_with($data->model, "o")) {
             // unset($data->system); // Would also need to undo the base64 -> better just copy the object for claude (also more readable data file)
             $openai = new OpenAI($this->user, $this->DEBUG);
             return $openai->gpt($data);
