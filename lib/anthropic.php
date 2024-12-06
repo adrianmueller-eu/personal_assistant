@@ -132,6 +132,7 @@ class Anthropic {
                 "endpoint" => $endpoint,
                 "data" => $data,
                 "response" => $response,
+                "retry" => $this->RETRY_CNT,
             ));
             // Retry the request if the error is a temporary error
             if ($response->error->type == "overloaded_error" && $this->RETRY_CNT < $this->MAX_RETRY) {
