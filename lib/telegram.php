@@ -153,10 +153,10 @@ class Telegram {
      * @return void
      */
     public function send_message($message, $is_markdown = true) {
-        if (!$message) {
+        if (empty($message) || trim($message) == "") {
             Log::error(array(
                 "interface" => "telegram",
-                "message" => "Empty message",
+                "message" => "Empty message [$message]",
             ));
             return;
         }
