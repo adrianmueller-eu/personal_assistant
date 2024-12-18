@@ -287,11 +287,6 @@ class Telegram {
                 $start = $end;
             }
             $response = preg_replace('/ *```/', '```', $response);
-
-            // For each \( find the corresponding \) and replace both by `
-            $response = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $response);
-            // Same for $ and $
-            $response = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $response);
         }
         // If a text is not already in a code block
         $response_new = "";
@@ -319,7 +314,14 @@ class Telegram {
                 // Replace all ** outside of code blocks by *
                 $lines[$i] = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $lines[$i]);
                 // Replace headings (a line beginning with at least one #) by bold text
-                $lines[$i] = preg_replace('/^#+ (.*)$/', '*$1*', $lines[$i]);
+                $lines[$i] = preg_replace('/^(#+ .*)$/', '*$1*', $lines[$i]);
+
+                if ($math_mode) {
+                    // For each \( find the corresponding \) and replace both by `
+                    $lines[$i] = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $lines[$i]);
+                    // Same for $ and $
+                    $lines[$i] = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $lines[$i]);
+                }
             }
             $response_new .= $lines[$i]."\n";
         }
