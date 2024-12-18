@@ -12,6 +12,7 @@ if ($DEBUG) {
 // Set here the bot you want to use
 require_once __DIR__."/bots/general.php";
 // require_once __DIR__."/bots/mental_health.php";
+// require_once __DIR__."/bots/voice_bot.php";
 
 require_once __DIR__."/lib/utils.php";
 require_once __DIR__."/lib/logger.php";
