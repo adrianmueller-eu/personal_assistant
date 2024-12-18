@@ -37,8 +37,7 @@ class LLMConnector {
             $openai = new OpenAI($this->user, $this->DEBUG);
             return $openai->gpt($data);
         } else if (str_starts_with($data->model, "claude-")) {
-            // copy data object to avoid modifying the original object
-            $data = json_decode(json_encode($data));
+            $data = json_decode(json_encode($data));  // copy data object to avoid modifying the original object
             // download and base64 encode any image
             // Before, it looks like this:
             // {
@@ -97,8 +96,59 @@ class LLMConnector {
                     $i--;
                 }
             }
-            $data->system = $system_message;
+            // set prompt caching for every sixth message
+            $cached = 0;
+            for ($i = 0; $i < count($data->messages); $i++) {
+                if ($i % 6 == 4) {
+                    if (is_string($data->messages[$i]->content)) {
+                        $data->messages[$i]->content = array((object) array(
+                            "type" => "text",
+                            "text" => $data->messages[$i]->content,
+                            "cache_control" => (object) array("type" => "ephemeral")
+                        ));
+                        $cached++;
+                    }
+                    // images
+                    else if (isset($data->messages[$i]->content[1]->type)) {
+                        $data->messages[$i]->content[1]->cache_control = (object) array("type" => "ephemeral");
+                        $cached++;
+                    }
+                    else if (isset($data->messages[$i]->content[0]->type)) {
+                        $data->messages[$i]->content[0]->cache_control = (object) array("type" => "ephemeral");
+                        $cached++;
+                    }
+                }
+            }
+            // remove cache control from the first messages if there are too many cached messages
+            for ($i = 4; $i < count($data->messages) && $cached > 4; $i += 6) {
+                if (isset($data->messages[$i]->content[0]->cache_control)) {
+                    unset($data->messages[$i]->content[0]->cache_control);
+                    $cached--;
+                }
+            }
+
             $anthropic = new Anthropic($this->user, $this->DEBUG);
+            if ($this->DEBUG) {
+                // for debugging, get the indices of all cached messages
+                $cached_indices = array();
+                for ($i = 0; $i < count($data->messages); $i++) {
+                    if (isset($data->messages[$i]->content[0]->cache_control)) {
+                        array_push($cached_indices, $i);
+                    }
+                }
+                $cached_indices = implode(", ", $cached_indices);
+                // for ($i = 0; $i < count($data->messages); $i++) {
+                //     // replace messages' text content with its length
+                //     if (is_string($data->messages[$i]->content)) {
+                //         $data->messages[$i]->content = strlen(json_encode($data->messages[$i]->content));
+                //     }
+                //     else if (isset($data->messages[$i]->content[0]->type) && $data->messages[$i]->content[0]->type == "text") {
+                //         $data->messages[$i]->content[0]->text = strlen(json_encode($data->messages[$i]->content));
+                //     }
+                // }
+                // return json_encode($data)."\n\[$cached cached \[$cached_indices]]";
+                return $anthropic->claude($data)."\n\[$cached cached \[$cached_indices]]";
+            }
             return $anthropic->claude($data);
         } else {
             return "Error: Invalid model.";
@@ -116,8 +166,6 @@ class LLMConnector {
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->dalle($prompt, $model);
     }
-
-
 
     /**
      * Send a request to generate a text-to-speech audio file.
