@@ -263,7 +263,7 @@ class Telegram {
             while (($start < strlen($response) && $start = strpos($response, "\\[", $start)) !== false) {
                 $end = strpos($response, "\\]", $start+2);
                 if ($end === false) {
-                    $end = strlen($response);
+                    break;
                 }
                 $latex = substr($response, $start, $end - $start + 2);
                 $latex_new = substr($latex, 2, strlen($latex)-4);
