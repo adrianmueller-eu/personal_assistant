@@ -104,6 +104,9 @@ Log::info($content);
 $update = json_decode($content, false);
 // Ignore non-message updates
 if (!isset($update->message) || !isset($update->update_id)) {
+    if ($DEBUG) {
+        echo "Incorrect json?\n";
+    }
     exit;
 }
 
