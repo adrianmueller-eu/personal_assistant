@@ -42,7 +42,7 @@ function curl_post($url, $data, $headers = array(), $field_name = null, $file_na
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $response = json_decode($server_output, false);
     if ($http_code != 200 || $server_output === false) {
-        if (isset($response->description)) {
+        if (is_object($response) && str_contains($server_output, "error")) {
             $response->http_code = $http_code;
         }
         else if (is_string($server_output)) {
