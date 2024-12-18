@@ -79,23 +79,23 @@ class Telegram {
             "data" => $data,
         ));
         if ($endpoint == "sendMessage") {
-            if (is_string($server_output)) {
+            if (is_object($server_output) && !$server_output->ok) {
                 // Try again without parse mode if $server_output is a string that contains "can't parse entities"
-                if (isset($data->parse_mode) && strpos($server_output, "can't parse entities") !== false) {
+                if (isset($data->parse_mode) && strpos($server_output->description, "can't parse entities") !== false) {
                     $this->send_message($data->text, false);
                 }
                 // Try again after a few seconds
                 else if ($this->RETRY_CNT < $this->MAX_RETRY) {
                     $this->RETRY_CNT++;
                     sleep(5*$this->RETRY_CNT);
-                    $this->send_message("[Retry ".$this->RETRY_CNT."] ".$data->text, isset($data->parse_mode));
+                    $this->send_message("\[Retry $this->RETRY_CNT] $data->text", isset($data->parse_mode));
                 }
             }
             // else, silently fail
         } else if (is_string($server_output)) {
             $this->send_message($server_output, false);
         } else {
-            $this->send_message("Error: [/".$endpoint."] ".json_encode($server_output, JSON_PRETTY_PRINT), false);
+            $this->send_message("Error: [/$endpoint] ".json_encode($server_output, JSON_PRETTY_PRINT), false);
         }
         // echo json_encode($server_output);
         return null;
