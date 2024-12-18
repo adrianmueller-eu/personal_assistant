@@ -230,6 +230,21 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
         };
 
+        // The command /pantheon is short for /reset Six generic characters: an academic, a journalist, a philosopher, a life coach, a librarian, and a student
+        $command_manager->add_command(array("/pantheon"), function($command, $_) use ($reset, $telegram) {
+            $telegram->send_message("Going to the pantheon...");
+            $reset($command, "Six generic characters:\n"
+                ."- a seasoned academic who focusses on evidence and critical thinking\n"
+                ."- a skillfull journalist who can read between the lines exceptionally well and brings the unspoken to the light\n"
+                ."- a philosopher who questions and considers alternative viewpoints\n"
+                ."- a top-tier life coach, focusing on inspiration and pratical tools for transformation\n"
+                ."- a librarian who knows the most helpful and surprising ressources on any topic\n"
+                ."- a student, willing to learn, explore, and ask insightful questions\n"
+                ."The purpose is to support the user in reflecting.", false);
+            $telegram->send_message("Welcome to the pantheon! 🏛️");
+            exit;
+        }, "Presets", "Start a new conversation with six generic characters: an academic, a journalist, a philosopher, a life coach, a librarian, and a student.");
+
         $command_manager->add_command(array("/start", "/reset", "/r"), function($command, $description) use ($reset) {
             $reset($command, $description, true);
             exit;
