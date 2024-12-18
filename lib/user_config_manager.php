@@ -54,6 +54,7 @@ class UserConfigManager {
 
     private $user_config_file;
     private $user_data;
+    private $DEBUG;
 
     static $default_config = array(
         "model" => "gpt-4o",
@@ -73,7 +74,7 @@ class UserConfigManager {
      * @param string $name The name of the user. Will only be used if the config is not yet created.
      * @param string $lang The language code of the user. Will only be used if the config is not yet created.
      */
-    public function __construct($chat_id, $username = null, $name = null, $lang = "en") {
+    public function __construct($chat_id, $username = null, $name = null, $lang = "en", $DEBUG = false) {
         $chats_dir = __DIR__."/../chats";
         if ($name === null || $name === "") {
             $name = $username;
@@ -83,6 +84,7 @@ class UserConfigManager {
         $chat_id = str_replace("-", "_", $chat_id);
         $this->user_config_file = "$chats_dir/$chat_id.json";
         $this->load($username, $name, $lang);
+        $this->DEBUG = $DEBUG;
     }
 
     private function load($username, $name, $lang) {
@@ -170,6 +172,12 @@ class UserConfigManager {
         }
         if (is_string($content) && trim($content) === "") {
             return;
+        }
+        // if the *last* line of content ends with ], remove the last line
+        if ($this->DEBUG && is_string($content) && substr($content, -1) === "]") {
+            $content = explode("\n", $content);
+            array_pop($content);
+            $content = implode("\n", $content);
         }
         $chat = $this->get_config();
         // Add the message

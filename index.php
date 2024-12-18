@@ -138,7 +138,7 @@ $is_admin = $chat_id == $chat_id_admin;
 $DEBUG = $DEBUG && $is_admin;  // Only allow debugging for the admin
 $telegram = new Telegram($telegram_token, $chat_id, $DEBUG);
 
-$user_config_manager = new UserConfigManager($chat_id, $username, $name, $lang);
+$user_config_manager = new UserConfigManager($chat_id, $username, $name, $lang, $DEBUG);
 if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) {
     if (!$user_config_manager->get_openai_api_key()) {
         $user_config_manager->set_openai_api_key($global_config_manager->get("OPENAI_API_KEY"));
