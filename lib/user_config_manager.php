@@ -216,11 +216,15 @@ class UserConfigManager {
      * @param string $key The key of the session.
      * @return object|null The session info object or null if the session does not exist.
      */
-    public function get_session_info($key) {
+    public function get_session($key) {
         if (!isset($this->user_data->sessions->$key)) {
             return null;
         }
         return $this->user_data->sessions->$key;
+    }
+
+    public function get_sessions() {
+        return $this->user_data->sessions;
     }
 
     /**
@@ -229,9 +233,22 @@ class UserConfigManager {
      * @param string $key The key of the session.
      * @param object|array $session_info The session info object.
      */
-    public function save_session_info($key, $session_info) {
-        $this->user_data->sessions->$key = $session_info;
-        $this->save();
+    public function save_session($key='last', $session_info=null) {
+        if ($session_info === null) {
+            $session_info = $this->get_config();
+        }
+        if (isset($session_info->messages) && count($session_info->messages) <= 1) {
+            return;
+        }
+        $this->user_data->sessions->$key = json_decode(json_encode($session_info));
+    }
+
+    public function delete_session($key) {
+        if (!isset($this->user_data->sessions->$key)) {
+            return false;
+        }
+        unset($this->user_data->sessions->$key);
+        return true;
     }
 
     /**
@@ -239,48 +256,6 @@ class UserConfigManager {
      */
     public function get_file() {
         return $this->user_config_file;
-    }
-
-    /**
-     * @return string The path to the backup file.
-     */
-    private function get_backup_file() {
-        return "$this->user_config_file.backup";
-    }
-
-    /**
-     * Save a backup of the current user config file.
-     */
-    public function save_backup() {
-        $backup_file = $this->get_backup_file();
-        $res = copy($this->user_config_file, $backup_file);
-        if ($res === false) {
-            Log::error("Could not save backup of user config file: $this->user_config_file");
-            http_response_code(500);
-            throw new Exception("Could not save backup of user config file: $this->user_config_file");
-        }
-    }
-
-    /**
-     * Restore the backup of the user config file.
-     * 
-     * @return bool True if the backup file exists and was restored, false otherwise. Throws an exception if the backup file exists but could not be restored.
-     */
-    public function restore_backup() {
-        $backup_file = $this->get_backup_file();
-        if (!file_exists($backup_file)) {
-            return false;
-        }
-        $res = copy($backup_file, $this->user_config_file);
-        unlink($backup_file);
-        if ($res === false) {
-            Log::error("Could not restore backup of user config file: $this->user_config_file");
-            http_response_code(500);
-            throw new Exception("Could not restore backup of user config file: $this->user_config_file");
-        }
-        # load the restored file into memory
-        $this->load(null, null, null);  # values will be ignored if the file exists
-        return true;
     }
 
     /**
@@ -292,8 +267,6 @@ class UserConfigManager {
         if (!file_exists($this->user_config_file)) {
             return false;
         }
-        # Make a backup before deleting
-        $this->save_backup();
         $res = unlink($this->user_config_file);
         if ($res === false) {
             Log::error("Could not delete user config file: $this->user_config_file");

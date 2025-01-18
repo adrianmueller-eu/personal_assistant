@@ -78,7 +78,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }
     }
 
-    $session_info = $user_config_manager->get_session_info("session");
+    $session_info = $user_config_manager->get_session("session");
     // Initialize session info if it doesn't exist
     if ($session_info == null) {
         $session_info = (object) array(
@@ -90,7 +90,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             "mode" => "none",
             "voice_mode" => false
         );
-        $user_config_manager->save_session_info("session", $session_info);
+        $user_config_manager->save_session("session", $session_info);
     }
     // If there is no session running, start one
     if ((!is_string($message) || substr($message, 0, 1) != "/") && $session_info->running == false) {
@@ -134,7 +134,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }
 
         $command_manager->add_command(array("/start"), function($command, $_) use ($telegram, $user_config_manager, $llm, $mode_prompts) {
-            $session_info = $user_config_manager->get_session_info("session");
+            $session_info = $user_config_manager->get_session("session");
             // If there is a session running, don't start a new one
             if ($session_info->running === true) {
                 $telegram->send_message("You are already in a session. Please /end the session first to start a new one.");
@@ -233,13 +233,13 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             // Save the chat history
             $user_config_manager->save_config($chat);
             // Save the session info
-            $user_config_manager->save_session_info("session", $session_info);
+            $user_config_manager->save_session("session", $session_info);
             // No exit here to generate an initial response
         }, "Mental health", "Start a new session");
 
         // The command /end ends the current session
         $command_manager->add_command(array("/end", "/endskip"), function($command, $arg) use ($telegram, $llm, $user_config_manager) {
-            $session_info = $user_config_manager->get_session_info("session");
+            $session_info = $user_config_manager->get_session("session");
             $chat = $user_config_manager->get_config();
             // Check if there is a session running
             if ($session_info->running == false) {
@@ -337,7 +337,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
             // Save the chat history and the new profile
             $user_config_manager->save_config($chat);
-            $user_config_manager->save_session_info("session", $session_info);
+            $user_config_manager->save_session("session", $session_info);
             if ($user_config_manager->get_lang() == "de") {
                 $telegram->send_message("Sitzung beendet. Vielen Dank, dass du heute bei mir warst.");
             } else {
@@ -348,7 +348,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // The command /profile shows the profile of the user
         $command_manager->add_command(array("/profile"), function($command, $_) use ($telegram, $user_config_manager) {
-            $session_info = $user_config_manager->get_session_info("session");
+            $session_info = $user_config_manager->get_session("session");
             if ($session_info->profile == "") {
                 if ($user_config_manager->get_lang() == "de") {
                     $message = "Es wurde noch kein Profil erstellt. ";
@@ -378,7 +378,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // The command /mode allows the user to change the mode
         $command_manager->add_command(array("/mode"), function($command, $mode) use ($telegram, $user_config_manager, $mode_prompts) {
             // Check if session is running
-            $session_info = $user_config_manager->get_session_info("session");
+            $session_info = $user_config_manager->get_session("session");
             if ($mode == "") {
                 $mode_keys = array_keys($mode_prompts);
                 $telegram->send_message("The bot currently uses $session_info->mode. To change it, use /mode <mode>. Valid modes are: \"".implode("\", \"", $mode_keys)."\".");
@@ -396,7 +396,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 }
                 // Set the mode
                 $session_info->mode = $mode;
-                $user_config_manager->save_session_info("session", $session_info);
+                $user_config_manager->save_session("session", $session_info);
                 $telegram->send_message("Your mode has been set to $mode.");
             }
             exit;
@@ -442,7 +442,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // The command /name allows the user to change their name
         $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {
             // Check if session is running
-            $session_info = $user_config_manager->get_session_info("session");
+            $session_info = $user_config_manager->get_session("session");
             if ($name == "") {
                 $telegram->send_message("Your name is currently set to ".$user_config_manager->get_name().". To set your name, you can provide a name with the command, e.g. \"/name Joe\".");
             } else if ($session_info->running == true) {
@@ -582,7 +582,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // The command /c allows to request another response from the model
         $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $user_config_manager, $DEBUG) {
             // Check if session is running
-            $session_info = $user_config_manager->get_session_info("session");
+            $session_info = $user_config_manager->get_session("session");
             if ($session_info->running == false) {
                 $telegram->send_message("Please start a new session with /start first.");
                 exit;
@@ -613,20 +613,20 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             // The command /voice requests a text-to-speech conversion from the model
             $command_manager->add_command(array("/voice"), function($command, $arg) use ($telegram, $user_config_manager) {
                 // Check if voice mode is active
-                $session_info = $user_config_manager->get_session_info("session");
+                $session_info = $user_config_manager->get_session("session");
                 if (!isset($session_info->voice_mode)) {
                     $session_info->voice_mode = false;
-                    $user_config_manager->save_session_info("session", $session_info);
+                    $user_config_manager->save_session("session", $session_info);
                 }
                 if ($session_info->voice_mode == false) {
                     // Turn on voice mode
                     $session_info->voice_mode = true;
-                    $user_config_manager->save_session_info("session", $session_info);
+                    $user_config_manager->save_session("session", $session_info);
                     $telegram->send_message("Voice mode is now active. I will send my responses as voice messages. To turn it off, simply write /voice again.");
                 } else {
                     // Turn off voice mode
                     $session_info->voice_mode = false;
-                    $user_config_manager->save_session_info("session", $session_info);
+                    $user_config_manager->save_session("session", $session_info);
                     $telegram->send_message("Voice mode is now inactive. I will send my responses as text messages. To turn it on, simply write /voice again.");
                 }
                 exit;
@@ -850,7 +850,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         $user_config_manager->add_message("assistant", $response);
 
         // Check if voice mode is active
-        $session_info = $user_config_manager->get_session_info("session");
+        $session_info = $user_config_manager->get_session("session");
         if ($session_info->voice_mode == true) {
             // Generate the voice message
             $tts_config = $user_config_manager->get_tts_config();

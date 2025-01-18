@@ -166,8 +166,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // The command is /start or /reset resets the bot and sends a welcome message
         $reset = function($command, $new_character, $show_message = true) use ($get_character_description, $telegram, $user_config_manager, $llm) {
-            # save config intro backup file
-            $user_config_manager->save_backup();
+            $user_config_manager->save_session();
             $user_config_manager->clear_messages();
             if ($new_character) {
                 # create new character descriptions
@@ -269,10 +268,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 $user_config_manager->add_message("user", "Previous character description(s):\n\n$current_description\n\nNew character description(s):\n\n$description\n\n"
                     ."Please analyze the descriptions above and inform us: who joined the scene? Respond with one short sentence with no other text before or after.");
                 $joined = $llm->message($chat);
-                $user_config_manager->delete_messages(1);
                 if (substr($joined, 0, 7) == "Error: ") {
                     $joined = "$new_character joined the conversation.";
                 }
+                $user_config_manager->delete_messages(1);
                 $telegram->send_message($joined);
                 # append $joined to the last message of the chat to inform the AI
                 $last_message = $chat->messages[count($chat->messages) - 1];
@@ -349,7 +348,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 $has_error = substr($response, 0, 7) == "Error: ";
                 $telegram->send_message($response, !$has_error);
             } else {
-                $user_config_manager->save_backup();
+                $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a message responder.");
             }
@@ -369,7 +368,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 $has_error = substr($response, 0, 7) == "Error: ";
                 $telegram->send_message($response, !$has_error);
             } else {
-                $user_config_manager->save_backup();
+                $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a translator.");
             }
@@ -403,7 +402,7 @@ END:VTIMEZONE"));
                     $telegram->send_message($response);
                 }
             } else {
-                $user_config_manager->save_backup();
+                $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
             }
@@ -424,7 +423,7 @@ END:VTIMEZONE"));
                 $has_error = substr($response, 0, 7) == "Error: ";
                 $telegram->send_message($response, !$has_error);
             } else {
-                $user_config_manager->save_backup();
+                $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I will support you in writing code.");
             }
@@ -445,7 +444,7 @@ END:VTIMEZONE"));
                 $has_error = substr($response, 0, 7) == "Error: ";
                 $telegram->send_message($response, !$has_error);
             } else {
-                $user_config_manager->save_backup();
+                $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
                 $telegram->send_message("Chat history reset. I am now a typo and grammar assistant.");
             }
@@ -776,29 +775,64 @@ END:VTIMEZONE"));
             exit;
         }, "Chat history management", "Add a message with \"system\" role to the internal chat history");
 
-        // The command /restore restores the chat history from the backup file
-        $command_manager->add_command(array("/restore"), function($command, $confirmation) use ($telegram, $user_config_manager) {
-            // Ask for confirmation with "yes"
-            if ($confirmation != "yes") {
-                $telegram->send_message("Are you sure you want to restore the chat history from the backup file? This will delete the current chat history. If you are sure, please confirm with \"/restore yes\".");
+        // The command /save saves the chat history to a given session name
+        $command_manager->add_command(array("/save"), function($command, $session) use ($telegram, $user_config_manager) {
+            if ($session == "") {
+                $telegram->send_message("Please provide a session name with the command.");
                 exit;
             }
-
-            // Restore the backup
-            try {
-                if(!$user_config_manager->restore_backup()) {
-                    $telegram->send_message("There is no backup file to restore.");
-                    exit;
-                }
-            } catch (Exception $e) {
-                $telegram->send_message("Error: ".json_encode($e), false);
-                exit;
-            }
-
-            $n_messages = count($user_config_manager->get_config()->messages);
-            $telegram->send_message("Chat history restored from backup ({$n_messages} messages)");
+            $config = $user_config_manager->get_config();
+            $user_config_manager->save_session($session, $config);
+            $n_messages = count($config->messages);
+            $telegram->send_message("Chat history saved as `$session` ({$n_messages} messages)");
             exit;
-        }, "Chat history management", "Restore the chat history from the backup file");
+        }, "Chat history management", "Save the chat history to a session");
+
+        // The command /restore restores the chat history from the backup file
+        $command_manager->add_command(array("/restore"), function($command, $session) use ($telegram, $user_config_manager) {
+            if ($session == "") {
+                $session = "last";
+            }
+            // Restore the session
+            $new = $user_config_manager->get_session($session);
+            if ($new === null) {
+                $telegram->send_message("Session `$session` not found. Use command \sessions to see available sessions. Chat history not changed.");
+                exit;
+            }
+            $user_config_manager->save_session();
+            $user_config_manager->save_config($new);
+            $n_messages = count($new->messages);
+            $telegram->send_message("Session `$session` restored ({$n_messages} messages)");
+            exit;
+        }, "Chat history management", "Restore the a session (default: last)");
+
+        // The command /sessions lists all available sessions
+        $command_manager->add_command(array("/sessions"), function($command, $_) use ($telegram, $user_config_manager) {
+            $sessions = $user_config_manager->get_sessions();
+            $message = "Available sessions:\n";
+            // Print session names and number of messages
+            foreach ($sessions as $name => $config) {
+                $n_messages = count($config->messages);
+                $message .= "- `$name` ($n_messages messages)\n";
+            }
+            $message = substr($message, 0, -1);  // Delete the last newline
+            $telegram->send_message($message);
+            exit;
+        }, "Chat history management", "List all available sessions");
+
+        // The command /drop deletes a session
+        $command_manager->add_command(array("/drop"), function($command, $session) use ($telegram, $user_config_manager) {
+            if ($session == "") {
+                $telegram->send_message("Please provide a session name with the command.");
+                exit;
+            }
+            if ($user_config_manager->delete_session($session)) {
+                $telegram->send_message("Session `$session` deleted.");
+            } else {
+                $telegram->send_message("Session `$session` not found.");
+            }
+            exit;
+        }, "Chat history management", "Delete a session");
 
         if (!$is_admin) {
             // The command /usage allows the user to see their usage statistics
