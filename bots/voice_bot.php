@@ -28,14 +28,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }
 
         // Transcribe
-        $message = $llm->asr($file);
-
-        if (substr($message, 0, 7) == "Error: ") {
-            $telegram->send_message($message, false);
-            exit;
-        }
-        // Send the transcription to the user
-        $telegram->send_message($message);
+        $transcription = $llm->asr($file);
+        $is_error = substr($transcription, 0, 7) == "Error: ";
+        $telegram->send_message($transcription, !$is_error);
+        exit;
     }
 
     $message = $update->text ?? "";
