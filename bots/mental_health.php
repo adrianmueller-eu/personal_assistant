@@ -87,7 +87,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             "profile" => "",
             "last_session_start" => null,
             "cnt" => 0,
-            "mode" => "none",
+            "mode" => "IFS",
             "voice_mode" => false
         );
         $user_config_manager->save_session("session", $session_info);
