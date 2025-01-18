@@ -87,6 +87,10 @@ class UserConfigManager {
         $this->DEBUG = $DEBUG;
     }
 
+    public function __destruct() {
+        $this->save();
+    }
+
     private function load($username, $name, $lang) {
         if (file_exists($this->user_config_file)) {
             $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
@@ -117,7 +121,6 @@ class UserConfigManager {
                 "math_mode" => false,
                 "counters" => (object) array(),
             );
-            $this->save(); // Keep this
         }
     }
 
@@ -155,7 +158,6 @@ class UserConfigManager {
             }
         }
         $this->user_data->config = $config;
-        $this->save();
     }
 
     /**
@@ -185,7 +187,6 @@ class UserConfigManager {
             "role" => $role,
             "content" => $content,
         );
-        $this->save_config($chat);
     }
 
     /**
@@ -200,7 +201,6 @@ class UserConfigManager {
         // n must not be greater than the actual number of messages
         $n = min($n, count($chat->messages));
         $chat->messages = array_slice($chat->messages, 0, -$n);
-        $this->save_config($chat);
         // Return the number of actually deleted messages
         return $n;
     }
@@ -208,7 +208,6 @@ class UserConfigManager {
     public function clear_messages() {
         $chat = $this->get_config();
         $chat->messages = array();
-        $this->save_config($chat);
     }
 
     /**
@@ -318,7 +317,6 @@ class UserConfigManager {
      */
     public function set_name($name) {
         $this->user_data->name = $name;
-        $this->save();
     }
 
     /**
@@ -342,7 +340,6 @@ class UserConfigManager {
      */
     public function set_lang($lang) {
         $this->user_data->lang = $lang;
-        $this->save();
     }
 
     /**
@@ -361,7 +358,6 @@ class UserConfigManager {
      */
     public function set_intro($intro) {
         $this->user_data->intro = $intro;
-        $this->save();
     }
 
     /**
@@ -380,7 +376,6 @@ class UserConfigManager {
      */
     public function set_hellos($hellos) {
         $this->user_data->hellos = $hellos;
-        $this->save();
     }
 
     /**
@@ -407,7 +402,6 @@ class UserConfigManager {
      */
     public function save_tts_config($tts_config) {
         $this->user_data->tts_config = $tts_config;
-        $this->save();
     }
 
     /**
@@ -421,7 +415,6 @@ class UserConfigManager {
             $this->user_data->counters->$name = 0;
         }
         $this->user_data->counters->$name += $cnt;
-        $this->save();
     }
 
     /**
@@ -444,7 +437,6 @@ class UserConfigManager {
      */
     public function set_openai_api_key($openai_api_key) {
         $this->user_data->openai_api_key = $openai_api_key;
-        $this->save();
     }
 
     /**
@@ -463,7 +455,6 @@ class UserConfigManager {
      */
     public function set_anthropic_api_key($anthropic_api_key) {
         $this->user_data->anthropic_api_key = $anthropic_api_key;
-        $this->save();
     }
 
     /**
@@ -482,7 +473,6 @@ class UserConfigManager {
      */
     public function set_timezone($time_zone) {
         $this->user_data->time_zone = $time_zone;
-        $this->save();
     }
 
     /**
@@ -501,7 +491,6 @@ class UserConfigManager {
      */
     public function update_last_seen($last_seen) {
         $this->user_data->last_seen = $last_seen;
-        $this->save();
     }
 
     /**
@@ -511,7 +500,6 @@ class UserConfigManager {
      */
     public function toggle_math_mode() {
         $this->user_data->math_mode = !$this->user_data->math_mode;
-        $this->save();
         return $this->user_data->math_mode;
     }
 
