@@ -113,7 +113,7 @@ class Log {
      * @param string $update_id The update ID to append to the log file.
      */
     public static function update_id($update_id) {
-        self::_log(self::$update_id_log_file, $update_id, False);
+        self::_log(self::$update_id_log_file, $update_id, True);
     }
 
     /**
