@@ -321,6 +321,8 @@ class Telegram {
                     $lines[$i] = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $lines[$i]);
                     // Same for $ and $
                     $lines[$i] = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $lines[$i]);
+                    // Replace * preceded or followed by a digit or paranthesis (any of )(][ ) by \*
+                    $lines[$i] = preg_replace('/(?<=[0-9\(\)\[\]])\*(?=[0-9\(\)\[\]])/', '\\*', $lines[$i]);
                 }
             }
             $response_new .= $lines[$i]."\n";
