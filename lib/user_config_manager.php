@@ -276,6 +276,35 @@ class UserConfigManager {
         return true;
     }
 
+    public function save_backup() {
+        $backup_file = $this->user_config_file.".bak";
+        $res = file_put_contents($backup_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
+        if ($res === false) {
+            Log::error("Could not save user config backup file: $backup_file");
+            http_response_code(500);
+            throw new Exception("Could not save user config backup file: $backup_file");
+        }
+    }
+
+    public function restore_backup() {
+        $backup_file = $this->user_config_file.".bak";
+        if (!file_exists($backup_file)) {
+            return false;
+        }
+        $this->user_data = json_decode(file_get_contents($backup_file), false);
+        if ($this->user_data === null || $this->user_data === false) {
+            if ($this->user_data === null) {
+                $error = "JSON error: ".json_last_error_msg();
+            } else {
+                $error = "Could not read file: $backup_file";
+            }
+            Log::error($error);
+            http_response_code(500);
+            throw new Exception($error);
+        }
+        return true;
+    }
+
     /**
      * @return string The name of the user.
      */

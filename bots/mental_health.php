@@ -502,9 +502,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 exit;
             }
 
+            $user_config_manager->save_backup(); // Make backup before deleting
             $file_path = $user_config_manager->get_file();
-            // Save in backup before deleting
-            $user_config_manager->save_backup();
             unlink($file_path); // Delete the file to create the default config on next message
 
             $telegram->send_message("Your configuration has been reset to the default settings. You can start a new session with /start.");
