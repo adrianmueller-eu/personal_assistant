@@ -299,9 +299,9 @@ class Telegram {
             if (!$is_in_code_block) {
                 // Surround all words containing underscores with backticks
                 $matches = array();
-                preg_match_all('/(?<!`)(\b\w+_[a-zA-Z0-9_]*\w+\b)(?!`)/', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
+                preg_match_all('/(?<!`)([^ ]+_[^ ]+)(?!`)/u', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
                 $offset = 0;
-                foreach ($matches[1] as $match) {
+                foreach ($matches[0] as $match) {
                     $start = $match[1] + $offset;
                     $end = $start + strlen($match[0]);
                     $count_before = substr_count(substr($lines[$i], 0, $start), '`');
