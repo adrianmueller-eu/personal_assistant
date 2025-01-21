@@ -801,6 +801,7 @@ END:VTIMEZONE"));
             }
             $user_config_manager->save_session();
             $user_config_manager->save_config($new);
+            $user_config_manager->delete_session($session);
             $n_messages = count($new->messages);
             $telegram->send_message("Session `$session` restored ({$n_messages} messages)");
             exit;
