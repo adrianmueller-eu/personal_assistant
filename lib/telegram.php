@@ -108,9 +108,12 @@ class Telegram {
      * @param int $max_length The maximum length of each message.
      * @return array The messages of maximum $max_length characters.
      */
-    private function split_message($message, $max_length = 4096) {
+    private function split_message($message, $max_length = 4096, $max_messages=10) {
         if (strlen($message) < $max_length)
             return array($message);
+        if (strlen($message) > $max_length * $max_messages) {
+            return array("Error: Message too long to send (".strlen($message)." characters).");
+        }
 
         // Split message into multiple messages via new lines
         $messages = explode("\n", $message);
