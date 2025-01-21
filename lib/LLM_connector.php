@@ -109,10 +109,6 @@ class LLMConnector {
                         $cached++;
                     }
                     // images
-                    else if (isset($data->messages[$i]->content[1]->type)) {
-                        $data->messages[$i]->content[1]->cache_control = (object) array("type" => "ephemeral");
-                        $cached++;
-                    }
                     else if (isset($data->messages[$i]->content[0]->type)) {
                         $data->messages[$i]->content[0]->cache_control = (object) array("type" => "ephemeral");
                         $cached++;
@@ -142,12 +138,20 @@ class LLMConnector {
                 //     if (is_string($data->messages[$i]->content)) {
                 //         $data->messages[$i]->content = strlen(json_encode($data->messages[$i]->content));
                 //     }
-                //     else if (isset($data->messages[$i]->content[0]->type) && $data->messages[$i]->content[0]->type == "text") {
-                //         $data->messages[$i]->content[0]->text = strlen(json_encode($data->messages[$i]->content));
+                //     else {
+                //         for ($j = 0; $j < count($data->messages[$i]->content); $j++) {
+                //             $c = (object) $data->messages[$i]->content[$j];
+                //             foreach ($c as $key => $value) {
+                //                 if ($key != "cache_control" && $key != "type") {
+                //                     $c->$key = strlen(json_encode($value));
+                //                 }
+                //             }
+                //             $data->messages[$i]->content[$j] = $c;
+                //         }
                 //     }
                 // }
-                // return json_encode($data)."\n\[$cached cached \[$cached_indices]]";
-                return $anthropic->claude($data)."\n\[$cached cached \[$cached_indices]]";
+                // echo json_encode(value: $data)."\n\[$cached cached: $cached_indices]";
+                return $anthropic->claude(data: $data)."\n\[$cached cached: $cached_indices]";
             }
             return $anthropic->claude($data);
         } else {
