@@ -647,7 +647,7 @@ END:VTIMEZONE"));
                 if ($intro == "") {
                     $telegram->send_message("You are using the default introductory system prompt. To set a custom intro prompt, please provide it with the command.");
                 } else {
-                    $telegram->send_message("Your current intro prompt is:\n\n\"$intro\"\n\nYou can change it by providing a new version after the /intro command. Use \"/intro reset\" to use the default prompt.");
+                    $telegram->send_message("Your current intro prompt is:\n\n`/intro $intro`\n\nYou can change it by providing a new version after the /intro command. Use \"/intro reset\" to use the default prompt.");
                 }
                 exit;
             }
@@ -657,7 +657,7 @@ END:VTIMEZONE"));
                 exit;
             }
             $user_config_manager->set_intro($message);
-            $telegram->send_message("Your intro prompt has been set to:\n\n$message");
+            $telegram->send_message("Your intro prompt has been updated.");
             exit;
         }, "Settings", "Set a custom initial system prompt");
 
