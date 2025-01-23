@@ -300,9 +300,18 @@ class Telegram {
                 $is_in_code_block = !$is_in_code_block;
             }
             if (!$is_in_code_block) {
+                if ($math_mode) {
+                    // For each \( find the corresponding \) and replace both by `
+                    $lines[$i] = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $lines[$i]);
+                    // Same for $ and $
+                    $lines[$i] = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $lines[$i]);
+                    // Replace * preceded or followed by a digit or paranthesis (any of )(][ ) by \*
+                    $lines[$i] = preg_replace('/(?<=[0-9\(\)\[\]])\*(?=[0-9\(\)\[\]])/', '\\*', $lines[$i]);
+                }
+
                 // Surround all words containing underscores with backticks
                 $matches = array();
-                preg_match_all('/(?<!`)([^ ]+_[^ ]+)(?!`)/u', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
+                preg_match_all('/(?<!`)([^ `]+_[^ `]+)(?!`)/u', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
                 $offset = 0;
                 foreach ($matches[0] as $match) {
                     $start = $match[1] + $offset;
@@ -318,15 +327,6 @@ class Telegram {
                 $lines[$i] = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $lines[$i]);
                 // Replace headings (a line beginning with at least one #) by bold text
                 $lines[$i] = preg_replace('/^(#+ .*)$/', '*$1*', $lines[$i]);
-
-                if ($math_mode) {
-                    // For each \( find the corresponding \) and replace both by `
-                    $lines[$i] = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $lines[$i]);
-                    // Same for $ and $
-                    $lines[$i] = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $lines[$i]);
-                    // Replace * preceded or followed by a digit or paranthesis (any of )(][ ) by \*
-                    $lines[$i] = preg_replace('/(?<=[0-9\(\)\[\]])\*(?=[0-9\(\)\[\]])/', '\\*', $lines[$i]);
-                }
             }
             $response_new .= $lines[$i]."\n";
         }
