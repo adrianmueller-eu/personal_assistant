@@ -88,14 +88,17 @@ class LLMConnector {
                 }
             }
             // aggregate all system messages as a single message
-            $system_message = "";
+            $system_message = array();
             for ($i = 0; $i < count($data->messages); $i++) {
                 if ($data->messages[$i]->role == "system") {
-                    $system_message .= $data->messages[$i]->content."\n\n";
+                    $system_message[] = $data->messages[$i]->content;
                     array_splice($data->messages, $i, 1);
                     $i--;
                 }
             }
+            $system_message = implode("\n\n", $system_message);
+            $data->system = $system_message;
+
             // set prompt caching for every sixth message
             $cached = 0;
             for ($i = 0; $i < count($data->messages); $i++) {
