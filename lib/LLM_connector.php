@@ -136,25 +136,27 @@ class LLMConnector {
                     }
                 }
                 $cached_indices = implode(", ", $cached_indices);
-                // for ($i = 0; $i < count($data->messages); $i++) {
+
+                // $data_copy = json_decode(json_encode($data));
+                // for ($i = 0; $i < count($data_copy->messages); $i++) {
                 //     // replace messages' text content with its length
-                //     if (is_string($data->messages[$i]->content)) {
-                //         $data->messages[$i]->content = strlen(json_encode($data->messages[$i]->content));
+                //     if (is_string($data_copy->messages[$i]->content)) {
+                //         $data_copy->messages[$i]->content = strlen(json_encode($data_copy->messages[$i]->content));
                 //     }
                 //     else {
-                //         for ($j = 0; $j < count($data->messages[$i]->content); $j++) {
-                //             $c = (object) $data->messages[$i]->content[$j];
+                //         for ($j = 0; $j < count($data_copy->messages[$i]->content); $j++) {
+                //             $c = (object) $data_copy->messages[$i]->content[$j];
                 //             foreach ($c as $key => $value) {
                 //                 if ($key != "cache_control" && $key != "type") {
                 //                     $c->$key = strlen(json_encode($value));
                 //                 }
                 //             }
-                //             $data->messages[$i]->content[$j] = $c;
+                //             $data_copy->messages[$i]->content[$j] = $c;
                 //         }
                 //     }
                 // }
-                // echo json_encode(value: $data)."\n\[$cached cached: $cached_indices]";
-                return $anthropic->claude(data: $data)."\n\[$cached cached: $cached_indices]";
+                // echo json_encode(value: $data_copy)."\n\[$cached cached: $cached_indices]";
+                return $anthropic->claude(data: $data);
             }
             return $anthropic->claude($data);
         } else {

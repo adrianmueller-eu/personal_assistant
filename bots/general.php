@@ -80,7 +80,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
     if ($DEBUG) {
         // $telegram->send_message("You said: ".json_encode($message, JSON_PRETTY_PRINT));
-        echo "You said: ".json_encode($message, JSON_PRETTY_PRINT);
+        echo "You said: ".json_encode($message, JSON_PRETTY_PRINT)."\n";
     }
 
     // If it is forwarded, put "/re " in front
