@@ -146,6 +146,9 @@ if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) 
     if (!$user_config_manager->get_anthropic_api_key()) {
         $user_config_manager->set_anthropic_api_key($global_config_manager->get("ANTHROPIC_API_KEY"));
     }
+    if (!$user_config_manager->get_openrouter_api_key()) {
+        $user_config_manager->set_openrouter_api_key($global_config_manager->get("OPENROUTER_API_KEY"));
+    }
 
     $llm = new LLMConnector($user_config_manager, $DEBUG);
 

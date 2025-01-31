@@ -404,14 +404,17 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Shortcuts for models
         $shortcuts = array(
+            "/gpt4o1preview" => "o1-preview",
+            "/gpt4o1mini" => "o1-mini",
             "/gpt4o" => "gpt-4o",
             "/gpt4omini" => "gpt-4o-mini",
             "/gpt4turbo" => "gpt-4-turbo",
-            "/claude35sonnet" => "claude-3-5-sonnet-20240620",
-            "/claude35haiku" => "claude-3-5-haiku-20241022",
-            "/claude3opus" => "claude-3-opus-20240229",
-            "/claude3sonnet" => "claude-3-sonnet-20240229",
-            "/claude3haiku" => "claude-3-haiku-20240307"
+            "/claude35sonnet" => "claude-3-5-sonnet-latest",
+            "/claude35haiku" => "claude-3-5-haiku-latest",
+            "/googlegeminiflash15" => "google/gemini-flash-1.5",
+            "/googlegeminiflash20free" => "google/gemini-2.0-flash-exp:free",
+            "/deepseekr1" => "deepseek/deepseek-r1",
+            "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
         );
 
         // The command /model shows the current model and allows to change it
@@ -577,6 +580,28 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $telegram->send_message("Your new OpenAI API key has been set.");
             exit;
         }, "Settings", "Set your own OpenAI API key");
+
+        // The command /anthropicapikey allows the user to set their custom Anthropic API key
+        $command_manager->add_command(array("/anthropicapikey"), function($command, $key) use ($telegram, $user_config_manager) {
+            if ($key == "") {
+                $telegram->send_message("Provide an API key with the command, e.g. \"/anthropicapikey abc123\".");
+                exit;
+            }
+            $user_config_manager->set_anthropic_api_key($key);
+            $telegram->send_message("Your new Anthropic API key has been set.");
+            exit;
+        }, "Settings", "Set your own Anthropic API key");
+
+        // The command /openrouterapikey allows the user to set their custom OpenAI Router API key
+        $command_manager->add_command(array("/openrouterapikey"), function($command, $key) use ($telegram, $user_config_manager) {
+            if ($key == "") {
+                $telegram->send_message("Provide an API key with the command, e.g. \"/openrouterapikey abc123\".");
+                exit;
+            }
+            $user_config_manager->set_openrouter_api_key($key);
+            $telegram->send_message("Your new OpenAI Router API key has been set.");
+            exit;
+        }, "Settings", "Set your own OpenAI Router API key");
 
         // The command /c allows to request another response from the model
         $command_manager->add_command(array("/c"), function($command, $_) use ($telegram, $user_config_manager, $DEBUG) {

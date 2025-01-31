@@ -112,12 +112,21 @@ function time_diff($timeA, $timeB) {
 function get_usage_string($user, $month, $show_info) {
     $message = "";
     // Read the counters "openai_chat_prompt_tokens", "openai_chat_completion_tokens", and "openai_chat_total_tokens"
-    $cnt_prompt_openai     = $user->get_counter("openai_".$month."_chat_prompt_tokens");
-    $cnt_completion_openai = $user->get_counter("openai_".$month."_chat_completion_tokens");
-    $cnt_prompt_anthropic     = $user->get_counter("anthropic_".$month."_chat_input_tokens");
-    $cnt_completion_anthropic = $user->get_counter("anthropic_".$month."_chat_output_tokens");
-    $cnt_prompt = $cnt_prompt_openai + $cnt_prompt_anthropic;
-    $cnt_completion = $cnt_completion_openai + $cnt_completion_anthropic;
+    $counters = $user->get_counters();
+    // Add all counters ending with "_prompt_tokens" and contains "$month"
+    $cnt_prompt = 0;
+    foreach ($counters as $key => $value) {
+        if (str_ends_with($key, "_prompt_tokens") && str_contains($key, $month)) {
+            $cnt_prompt += $value;
+        }
+    }
+    // Add all counters ending with "_completion_tokens"
+    $cnt_completion = 0;
+    foreach ($counters as $key => $value) {
+        if (str_ends_with($key, "_completion_tokens") && str_contains($key, $month)) {
+            $cnt_completion += $value;
+        }
+    }
     if ($cnt_prompt == 0 && $cnt_completion == 0) {
         $message .= "no data";
     } else {
@@ -127,7 +136,7 @@ function get_usage_string($user, $month, $show_info) {
         $message .= "$cnt_prompt + $cnt_completion tokens (~".$price_estimate."€)";
         if ($show_info) {
             $message .= "\n\nCosts are rough estimates based on ".$input_cost."€ / 1M input and ".$output_cost."€ / 1M output tokens. "
-            ."Actual costs are different, since prices depend on the model and are constantly changing. See /model for more details.";
+            ."Actual costs are different (likely lower), since prices depend on the model and are constantly changing. See /model for more details.";
         }
     }
     return $message;

@@ -74,6 +74,28 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             exit;
         }, "Settings", "Set your OpenAI own API key");
 
+        // The command /anthropicapikey allows the user to set their custom Anthropic API key
+        $command_manager->add_command(array("/anthropicapikey"), function($command, $key) use ($telegram, $user_config_manager) {
+            if ($key == "") {
+                $telegram->send_message("Provide an API key with the command, e.g. \"/anthropicapikey abc123\".");
+                exit;
+            }
+            $user_config_manager->set_anthropic_api_key($key);
+            $telegram->send_message("Your new Anthropic API key has been set.");
+            exit;
+        }, "Settings", "Set your own Anthropic API key");
+
+        // The command /openrouterapikey allows the user to set their custom OpenAI Router API key
+        $command_manager->add_command(array("/openrouterapikey"), function($command, $key) use ($telegram, $user_config_manager) {
+            if ($key == "") {
+                $telegram->send_message("Provide an API key with the command, e.g. \"/openrouterapikey abc123\".");
+                exit;
+            }
+            $user_config_manager->set_openrouter_api_key($key);
+            $telegram->send_message("Your new OpenAI Router API key has been set.");
+            exit;
+        }, "Settings", "Set your own OpenAI Router API key");
+
         $response = $command_manager->run_command($message);
         if (is_string($response) && $response != "") {
             $telegram->send_message("Info: $response");

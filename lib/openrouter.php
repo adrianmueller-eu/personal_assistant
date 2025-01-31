@@ -1,0 +1,103 @@
+<?php
+
+require_once __DIR__."/logger.php";
+require_once __DIR__."/utils.php";
+
+/**
+ * This class manages the connection to the OpenRouter API.
+ */
+class OpenRouter {
+    public $user;
+    public $DEBUG;
+
+    /**
+     * Create a new OpenRouter instance.
+     * 
+     * @param UserConfigManager $user The user to use for the requests.
+     * @param bool $DEBUG Whether to log debug messages.
+     */
+    public function __construct($user, $DEBUG = False) {
+        $this->user = $user;
+        $this->DEBUG = $DEBUG;
+    }
+
+    /**
+     * Send a request to the OpenRouter API to create a chat completion.
+     * 
+     * @param object|array $data The data to send to the OpenRouter API.
+     * @return string The response from GPT or an error message (starts with "Error: ").
+     */
+    public function message($data) {
+        $response = $this->send_request("chat/completions", $data);
+        if (isset($response->choices)) {
+            // model
+            $model = $data->model;
+            // Get a month year string
+            $month = date("ym");
+            // Count the usages
+            $this->user->increment("OpenRouter_".$month."_".$model."_prompt_tokens", $response->usage->prompt_tokens);
+            $this->user->increment("OpenRouter_".$month."_".$model."_completion_tokens", $response->usage->completion_tokens);
+            return $response->choices[0]->message->content;
+        }
+        return $response;
+    }
+
+    /**
+     * Send a request to the OpenRouter API.
+     * 
+     * @param string $endpoint The endpoint to send the request to.
+     * @param object|array $data The data to send.
+     * @param string $field_name (optional) The name of the field with the file content.
+     * @param string $file_name (optional) The name of the file to send.
+     * @param string $file_content (optional) The content of the file to send.
+     * @return object|string The response object from the API or an error message (starts with "Error: ").
+     */
+    private function send_request($endpoint, $data, $field_name = null, $file_name = null, $file_content = null) {
+        $apikey = $this->user->get_OpenRouter_api_key();
+        if (!$apikey) {
+            return "Error: You need to set your OpenRouter API key to talk with me. Use /Openrouterapikey to set your OpenRouter API key. "
+            ."You can get your API key from https://openrouter.ai/keys. "
+            ."The API key will stored securely, not be shared with anyone, and only used to generate responses for you. "
+            ."The developer will not be responsible for any damage caused by using this bot.";
+        }
+        $url = "https://openrouter.ai/api/v1/$endpoint";
+        $headers = array('Authorization: Bearer '.$apikey);
+
+        $response = curl_post($url, $data, $headers, $field_name, $file_name, $file_content);
+        if ($this->DEBUG) {
+            $response_log = json_encode($response);
+            if (strlen($response_log) > 10000) {
+                $response_log = substr($response_log, 0, 10000)."...";
+            }
+            Log::debug(array(
+                "interface" => "OpenRouter",
+                "endpoint" => $endpoint,
+                "data" => $data,
+                "response" => $response_log,
+            ));
+        }
+
+        // {
+        //     "error": {
+        //         "message": "0.1 is not of type number - temperature",
+        //         "type": "invalid_request_error",
+        //         "param": null,
+        //         "code": null
+        //     }
+        // }
+        if (isset($response->error)) {
+            if (is_string($data)) {
+                $data = json_decode($data);
+            }
+            Log::error(array(
+                "interface" => "OpenRouter",
+                "endpoint" => $endpoint,
+                "data" => $data,
+                "response" => $response,
+            ));
+            // Return the error message
+            return 'Error: '.$response->error->message;
+        }
+        return $response;
+    }
+}

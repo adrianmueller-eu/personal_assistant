@@ -6,11 +6,12 @@ A [Telegram bot](https://core.telegram.org/bots/api) using the [OpenAI API](http
 - [x] Connect to Telegram API and OpenAI API
 - [x] Store the chat history of the current session
 - [x] Admin commands for adding and removing users
-- [x] Sending images to the AI
-- [x] Requesting images from the AI (using DALLE)
-- [x] ASR and TTS
+- [x] Sending images
+- [x] Requesting images (using DALLE)
+- [x] ASR and TTS (using OpenAI)
 - [x] Sending reminders to the user (using Cron)
 - [x] Support for Anthropic API
+- [x] Support for OpenRouter API
 
 General bot
 - [x] Several presets for different use cases

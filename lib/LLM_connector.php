@@ -4,6 +4,7 @@ require_once __DIR__."/logger.php";
 require_once __DIR__."/utils.php";
 require_once __DIR__."/openai.php";
 require_once __DIR__."/anthropic.php";
+require_once __DIR__."/openrouter.php";
 
 /**
  * This class manages the connection to the large language models (LLM).
@@ -32,7 +33,8 @@ class LLMConnector {
         if (is_array($data)) {
             $data = (object) $data;
         }
-        if (str_starts_with($data->model, "gpt-") || str_starts_with($data->model, "o")) {
+
+        if (str_starts_with($data->model, "gpt-") || preg_match("/^o\d/", $data->model)) {
             // unset($data->system); // Would also need to undo the base64 -> better just copy the object for claude (also more readable data file)
             $openai = new OpenAI($this->user, $this->DEBUG);
             return $openai->gpt($data);
@@ -160,7 +162,8 @@ class LLMConnector {
             }
             return $anthropic->claude($data);
         } else {
-            return "Error: Invalid model.";
+            $openrouter = new OpenRouter($this->user, $this->DEBUG);
+            return $openrouter->message($data);
         }
     }
 

@@ -40,6 +40,7 @@ require_once __DIR__."/utils.php";
  *         "speed": 1.0
  *     },
  *     "intro": "Please always add emojis to your messages.",
+ *     "openrouter_api_key": "sk-1234567890",
  *     "openai_api_key": "sk-1234567890",
  *     "anthropic_api_key": "sk-1234567890",
  *     "time_zone": "UTC",
@@ -57,7 +58,7 @@ class UserConfigManager {
     private $DEBUG;
 
     static $default_config = array(
-        "model" => "gpt-4o",
+        "model" => "anthropic/claude-3.5-sonnet",
         "temperature" => 0.9,
         "messages" => array(),
     );
@@ -114,6 +115,7 @@ class UserConfigManager {
                 "config" => (object) self::$default_config,
                 "sessions" => (object) array(),
                 "tts_config" => (object) self::$default_tts_config,
+                "openrouter_api_key" => "",
                 "openai_api_key" => "",
                 "anthropic_api_key" => "",
                 "time_zone" => "Europe/Helsinki",
@@ -420,16 +422,29 @@ class UserConfigManager {
     }
 
     /**
-     * Get the value of a counter.
-     * 
-     * @param string $name The name of the counter.
-     * @return int The value of the counter or 0 if the counter does not exist.
+     * Get all counters.
      */
-    public function get_counter($name) {
-        if (!isset($this->user_data->counters->$name)) {
-            return 0;
-        }
-        return $this->user_data->counters->$name;
+    public function get_counters() {
+        return $this->user_data->counters;
+    }
+
+    /**
+     * Set the OpenRouter API key of the user.
+     * 
+     * @param mixed $openrouter_api_key
+     * @return void
+     */
+    public function set_openrouter_api_key($openrouter_api_key) {
+        $this->user_data->openrouter_api_key = $openrouter_api_key;
+    }
+
+    /**
+     * Get the OpenRouter API key of the user.
+     * 
+     * @return string The OpenRouter API key of the user.
+     */
+    public function get_openrouter_api_key() {
+        return $this->user_data->openrouter_api_key;
     }
 
     /**
