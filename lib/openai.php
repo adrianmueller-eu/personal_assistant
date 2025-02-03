@@ -59,6 +59,9 @@ class OpenAI {
 
         $response = $this->send_request("chat/completions", $data);
         if (isset($response->choices)) {
+            // if ($this->DEBUG) {
+            //     echo "Response is: ".json_encode($response, JSON_PRETTY_PRINT)."\n";
+            // }
             // Get a month year string
             $month = date("ym");
             // Count the usages

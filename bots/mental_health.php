@@ -404,15 +404,14 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Shortcuts for models
         $shortcuts = array(
-            "/gpt4o1preview" => "o1-preview",
-            "/gpt4o1mini" => "o1-mini",
+            "/o3mini" => "o3-mini",
             "/gpt4o" => "gpt-4o",
             "/gpt4omini" => "gpt-4o-mini",
             "/gpt4turbo" => "gpt-4-turbo",
             "/claude35sonnet" => "claude-3-5-sonnet-latest",
             "/claude35haiku" => "claude-3-5-haiku-latest",
             "/googlegeminiflash15" => "google/gemini-flash-1.5",
-            "/googlegeminiflash20free" => "google/gemini-2.0-flash-exp:free",
+            "/googlegeminiflash20" => "google/gemini-2.0-flash-exp:free",
             "/deepseekr1" => "deepseek/deepseek-r1",
             "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
         );

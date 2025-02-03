@@ -538,15 +538,14 @@ END:VTIMEZONE"));
 
         // Shotcuts for models
         $shortcuts = array(
-            "/gpt4o1preview" => "o1-preview",
-            "/gpt4o1mini" => "o1-mini",
+            "/o3mini" => "o3-mini",
             "/gpt4o" => "gpt-4o",
             "/gpt4omini" => "gpt-4o-mini",
             "/gpt4turbo" => "gpt-4-turbo",
             "/claude35sonnet" => "claude-3-5-sonnet-latest",
             "/claude35haiku" => "claude-3-5-haiku-latest",
             "/googlegeminiflash15" => "google/gemini-flash-1.5",
-            "/googlegeminiflash20free" => "google/gemini-2.0-flash-exp:free",
+            "/googlegeminiflash20" => "google/gemini-2.0-flash-exp:free",
             "/deepseekr1" => "deepseek/deepseek-r1:free",
             "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
         );
@@ -825,7 +824,7 @@ END:VTIMEZONE"));
             $user_config_manager->save_config($new);
             $user_config_manager->delete_session($session);
             $n_messages = count($new->messages);
-            $telegram->send_message("Session `$session` restored ({$n_messages} messages)");
+            $telegram->send_message("Session `$session` restored ({$n_messages} messages). You are talking to $new->model.");
             exit;
         }, "Chat history management", "Restore the a session (default: last)");
 

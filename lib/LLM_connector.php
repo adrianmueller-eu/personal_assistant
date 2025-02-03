@@ -34,8 +34,23 @@ class LLMConnector {
             $data = (object) $data;
         }
 
-        if (str_starts_with($data->model, "gpt-") || preg_match("/^o\d/", $data->model)) {
+        if (str_starts_with($data->model, "gpt-")) {
             // unset($data->system); // Would also need to undo the base64 -> better just copy the object for claude (also more readable data file)
+            $openai = new OpenAI($this->user, $this->DEBUG);
+            return $openai->gpt($data);
+        } else if (preg_match("/^o\d/", $data->model)) {
+            $data = json_decode(json_encode($data));
+            // replace all "system" roles with "developer"
+            for ($i = 0; $i < count($data->messages); $i++) {
+                if ($data->messages[$i]->role == "system") {
+                    $data->messages[$i]->role = "developer";
+                }
+            }
+            // remove temperature parameter
+            if (isset($data->temperature)) {
+                unset($data->temperature);
+            }
+            $data->reasoning_effort = "high";  // one of "low", "medium", "high"
             $openai = new OpenAI($this->user, $this->DEBUG);
             return $openai->gpt($data);
         } else if (str_starts_with($data->model, "claude-")) {
