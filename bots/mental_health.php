@@ -403,24 +403,31 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }, "Settings", "Show or set the current method");
 
         // Shortcuts for models
-        $shortcuts = array(
-            "/o3mini" => "o3-mini",
-            "/gpt4o" => "gpt-4o",
-            "/gpt4omini" => "gpt-4o-mini",
-            "/gpt4turbo" => "gpt-4-turbo",
+        $shortcuts_large = array(
             "/claude35sonnet" => "claude-3-5-sonnet-latest",
+            "/gpt4o" => "gpt-4o",
+            "/o3mini" => "o3-mini",
+            "/gpt4turbo" => "gpt-4-turbo",
+            "/deepseekr1" => "deepseek/deepseek-r1",
+        );
+
+        $shortcuts_small = array(
             "/claude35haiku" => "claude-3-5-haiku-latest",
+            "/gpt4omini" => "gpt-4o-mini",
+            "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
             "/googlegeminiflash15" => "google/gemini-flash-1.5",
             "/googlegeminiflash20" => "google/gemini-2.0-flash-exp:free",
-            "/deepseekr1" => "deepseek/deepseek-r1",
-            "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
+            "/googlegeminiflash20thinking" => "google/gemini-2.0-flash-thinking-exp:free"
         );
 
         // The command /model shows the current model and allows to change it
-        $command_manager->add_command(array_merge(array("/model"), array_keys($shortcuts)), function($command, $model) use ($telegram, $user_config_manager, $shortcuts) {
+        $command_manager->add_command(array_merge(array("/model"), array_keys($shortcuts_large), array_keys($shortcuts_small)),
+        function($command, $model) use ($telegram, $user_config_manager, $shortcuts_large, $shortcuts_small) {
             $chat = $user_config_manager->get_config();
-            if (isset($shortcuts[$command])) {
-                $model = $shortcuts[$command];
+            if (isset($shortcuts_large[$command])) {
+                $model = $shortcuts_large[$command];
+            } else if (isset($shortcuts_small[$command])) {
+                $model = $shortcuts_small[$command];
             }
             if ($model == "") {
                 $telegram->send_message("You are currently talking to `$chat->model`.\n\n"
@@ -428,7 +435,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 ."The following shortcuts are available:\n\n"
                 .implode("\n", array_map(function($key, $value) {
                     return "$key -> `$value`";
-                }, array_keys($shortcuts), $shortcuts))."\n\n"
+                }, array_keys($shortcuts_large), $shortcuts_large))."\n\n"
+                ."and for some smaller and cheaper models:\n"
+                .implode("\n", array_map(function($key, $value) {
+                    return "$key -> `$value`";
+                }, array_keys($shortcuts_small), $shortcuts_small))."\n\n"
                 ."Other options are other [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://openai.com/api/pricing/)) and "
                 ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models).");
             } else if ($chat->model == $model) {
