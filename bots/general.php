@@ -164,8 +164,21 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             return $description;
         };
 
+        $default_intro = "Your task is to help and support your friend in their life. "
+        ."Your voice is generally casual, kind, compassionate, and heartful. "
+        ."Keep your responses concise and compact. "
+        ."Don't draw conclusions before you've finished your reasoning and think carefully about the correctness of your answers. "
+        ."If you are missing information that would allow you to give a much more helpful answer, "
+        ."please don't provide an actual answer, but instead ask for what you'd need to know first. "
+        ."If you are unsure about something, state your uncertainty and ask for clarification. "
+        ."Feel free to give recommendations (actions, books, papers, etc.) that seem useful and appropriate. "
+        ."If you recommend resources, please carefully ensure they actually exist. "
+        ."Avoid showing warnings or information regarding your capabilities. "
+        ."You can use Markdown and emojis to format and enrich your messages. "
+        ."Spread love! ❤️✨";
+
         // The command is /start or /reset resets the bot and sends a welcome message
-        $reset = function($command, $new_character, $show_message = true) use ($get_character_description, $telegram, $user_config_manager, $llm) {
+        $reset = function($command, $new_character, $show_message = true) use ($get_character_description, $telegram, $user_config_manager, $llm, $default_intro) {
             $user_config_manager->save_session();
             $user_config_manager->clear_messages();
             if ($new_character) {
@@ -207,18 +220,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 if ($intro != "") {
                     $user_config_manager->add_message("system", $intro);
                 } else {
-                    $user_config_manager->add_message("system", "Your task is to help and support your friend in their life. "  # ".$user_config_manager->get_name()."  
-                    ."Your voice is generally casual, kind, compassionate, and heartful. "
-                    ."Keep your responses concise and compact. "
-                    ."Don't draw conclusions before you've finished your reasoning and think carefully about the correctness of your answers. "
-                    ."If you are missing information that would allow you to give a much more helpful answer, "
-                    ."please don't provide an actual answer, but instead ask for what you'd need to know first. "
-                    ."If you are unsure about something, state your uncertainty and ask for clarification. "
-                    ."Feel free to give recommendations (actions, books, papers, etc.) that seem useful and appropriate. "
-                    ."If you recommend resources, please carefully ensure they actually exist. "
-                    ."Avoid showing warnings or information regarding your capabilities. "
-                    ."You can use Markdown and emojis to format and enrich your messages. "
-                    ."Spread love! ❤️✨");
+                    $user_config_manager->add_message("system", $default_intro);
                 }
                 if ($show_message) {
                     $hello = $user_config_manager->hello();
@@ -651,13 +653,19 @@ END:VTIMEZONE"));
         }, "Settings", "Set your language");
 
         // The command /intro allows to read out or set the intro prompt
-        $command_manager->add_command(array("/intro"), function($command, $message) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/intro"), function($command, $message) use ($telegram, $user_config_manager, $default_intro) {
             if ($message == "") {
                 $intro = $user_config_manager->get_intro();
                 if ($intro == "") {
-                    $telegram->send_message("You are using the default introductory system prompt. To set a custom intro prompt, please provide it with the command.");
+                    $telegram->send_message("You are using the default introductory system prompt:\n\n`/intro $default_intro`\n\n"
+                        ."To set a custom intro prompt, please provide it with the command as /intro <your prompt>. If you want to reset it back to the default, you can use `/intro reset`.");
                 } else {
-                    $telegram->send_message("Your current intro prompt is:\n\n`/intro $intro`\n\nYou can change it by providing a new version after the /intro command. Use \"/intro reset\" to use the default prompt.");
+                    if (strpos($intro, "`") === false) {
+                        $intro = "`/intro $intro`";
+                    } else {
+                        $intro = "/intro $intro";
+                    }
+                    $telegram->send_message("Your current intro prompt is:\n\n$intro\n\nYou can change it by providing a new prompt with the command as /intro <new prompt>. Use `/intro reset` to revert to the default prompt.");
                 }
                 exit;
             }
