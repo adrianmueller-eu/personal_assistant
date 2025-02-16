@@ -141,12 +141,12 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 ."Highlight their areas of expertise and any strongly held opinions or beliefs that would come across in conversation. "
                 ."Consider their background and experiences that shape their perspective. The goal is to capture the essence of how "
                 ."these characters would authentically express themselves in a dialogue, rather than just listing traits. "
-                ."Aim for a concise description that will allow for a realistic and engaging conversation with these characters."
+                ."Aim for a concise description that will allow for a realistic and engaging conversation with these characters. "
                 ."If the request is generic or abstract, keep the descriptions general and adaptable to various contexts without inventing names or other specific details."
                 ."Don't write anything else before or after the character descriptions, only output the character descriptions.";
             if ($previous_descriptions != "") {
                 # ask it to append the new character description to the previous ones
-                $prompt .= "For your reference, these characters are already in the room:\n\n$previous_descriptions\n\nPlease only output the "
+                $prompt .= " For your reference, these characters are already in the room:\n\n$previous_descriptions\n\nPlease only output the "
                 ."new character description in a concise format, without repeating the previous descriptions.";
             }
 
@@ -159,7 +159,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
             if ($previous_descriptions != "") {
                 # append the new character description to the previous ones
-                $description = $previous_descriptions."\n\n".$description;
+                $description = "$previous_descriptions\n\n$description";
             }
             return $description;
         };
@@ -677,14 +677,15 @@ END:VTIMEZONE"));
             $user_config_manager->set_intro($message);
             $telegram->send_message("Your intro prompt has been updated.");
             exit;
-        }, "Settings", "Set a custom initial system prompt");
+        }, "Settings", "Set your initial system prompt");
 
         // The command /hellos allows to read out or set the hello messages
         $command_manager->add_command(array("/hellos"), function($command, $message) use ($telegram, $user_config_manager) {
             if ($message == "") {
                 $hellos = $user_config_manager->get_hellos();
                 if (count($hellos) == 0) {
-                    $telegram->send_message("You have not set any hello messages yet. To set your hello messages, you can provide a list of messages with the command, from which one is drawn at random at every reset. Use \"/hellos reset\" to have no hello messages.");
+                    $telegram->send_message("You have not set any hello messages yet. To set your hello messages, you can provide a list of messages with the command, "
+                        ."from which one is drawn at random at every reset. Use \"/hellos reset\" to have no hello messages.");
                 } else {
                     $message = "/hellos\n";
                     foreach ($hellos as $hello) {
