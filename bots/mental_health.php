@@ -404,20 +404,14 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Shortcuts for models
         $shortcuts_large = array(
-            "/claude35sonnet" => "claude-3-5-sonnet-latest",
+            "/claude37sonnet" => "claude-3-7-sonnet-latest",
             "/gpt4o" => "gpt-4o",
-            "/o3mini" => "o3-mini",
-            "/gpt4turbo" => "gpt-4-turbo",
-            "/deepseekr1" => "deepseek/deepseek-r1",
         );
 
         $shortcuts_small = array(
             "/claude35haiku" => "claude-3-5-haiku-latest",
             "/gpt4omini" => "gpt-4o-mini",
             "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
-            "/googlegeminiflash15" => "google/gemini-flash-1.5",
-            "/googlegeminiflash20" => "google/gemini-2.0-flash-exp:free",
-            "/googlegeminiflash20thinking" => "google/gemini-2.0-flash-thinking-exp:free"
         );
 
         // The command /model shows the current model and allows to change it
@@ -440,8 +434,9 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 .implode("\n", array_map(function($key, $value) {
                     return "$key -> `$value`";
                 }, array_keys($shortcuts_small), $shortcuts_small))."\n\n"
-                ."Other options are other [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://openai.com/api/pricing/)) and "
-                ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models).");
+                ."Other options are other [OpenRouter models](https://openrouter.ai/models), "
+                ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models), "
+                ."and [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://platform.openai.com/docs/pricing)).");
             } else if ($chat->model == $model) {
                 $telegram->send_message("You are already talking to `$chat->model`.");
             } else {

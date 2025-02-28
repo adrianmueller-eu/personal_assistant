@@ -558,11 +558,12 @@ END:VTIMEZONE"));
 
         // Shortcuts for models
         $shortcuts_large = array(
+            "/claude37sonnet" => "claude-3-7-sonnet-latest",
             "/o3mini" => "o3-mini",
             "/gpt4o" => "gpt-4o",
-            "/gpt4turbo" => "gpt-4-turbo",
             "/claude35sonnet" => "claude-3-5-sonnet-latest",
-            "/deepseekr1" => "deepseek/deepseek-r1",
+            "/deepseekr1" => "deepseek/deepseek-r1:free",
+            "/gpt45" => "gpt-4.5-preview"
         );
 
         $shortcuts_small = array(
@@ -596,7 +597,7 @@ END:VTIMEZONE"));
                 }, array_keys($shortcuts_small), $shortcuts_small))."\n\n"
                 ."Other options are other [OpenRouter models](https://openrouter.ai/models), "
                 ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models), "
-                ."and [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://openai.com/api/pricing/)).");
+                ."and [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://platform.openai.com/docs/pricing)).");
             } else if ($chat->model == $model) {
                 $telegram->send_message("You are already talking to `$chat->model`.");
             } else {
