@@ -855,7 +855,7 @@ END:VTIMEZONE"));
             // Restore the session
             $new = $user_config_manager->get_session($session);
             if ($new === null) {
-                $telegram->send_message("Session `$session` not found. Use command \sessions to see available sessions. Chat history not changed.");
+                $telegram->send_message("Session `$session` not found. Use command /sessions to see available sessions. Chat history not changed.");
                 exit;
             }
             $user_config_manager->save_session();
