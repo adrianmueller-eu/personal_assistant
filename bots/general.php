@@ -769,7 +769,7 @@ END:VTIMEZONE"));
         // ###############################
 
         // The command /clear clears the chat history
-        $command_manager->add_command(array("/delall", "/clear"), function($command, $_) use ($telegram, $user_config_manager) {
+        $command_manager->add_command(array("/d", "/delall", "/clear"), function($command, $_) use ($telegram, $user_config_manager) {
             $user_config_manager->clear_messages();
             $telegram->send_message("Chat history cleared.");
             exit;
