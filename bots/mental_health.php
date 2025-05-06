@@ -134,9 +134,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
             $session_info->running = true;
             $session_info->this_session_start = time();
+            $chat = $user_config_manager->get_config();
 
             // If this is the first session, send a welcome message
             if ($session_info->cnt == 0) {
+                $chat->temperature = 0.5;
                 if ($user_config_manager->get_lang() == "de") {
                     $message = "Hallo! Ich bin hier, um deine mentale Gesundheit zu unterstützen. "
                     ."Ich bin hier, um dir einen sicheren Raum zu bieten, um über deine Gefühle und Erfahrungen zu sprechen. "
@@ -197,13 +199,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     ."advice but rather ask the client for their own opinions and ideas instead. And please ask if something "
                     ."is unclear to you or some important information is missing. The current time is ".date("g:ia").".";
             }
-            $chat = (object) array(
-                "model" => UserConfigManager::$default_config['model'],
-                "temperature" => 0.5,
-                "messages" => array(
-                    array("role" => "system", "content" => $start_prompt),
-                ),
-            );
+            $messages = array(array("role" => "system", "content" => $start_prompt));
             // If there is a previous session, add the profile to the chat history
             if ($session_info->profile != "") {
                 $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
@@ -215,18 +211,23 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     $profile_prompt = "For your own reference, here is the profile you previously wrote after "
                     ."the last session ($time_passed ago) as a basis for this session:\n\n$profile";
                 }
-                $chat->messages[] = array("role" => "system", "content" => $profile_prompt);
+                $messages[] = array("role" => "system", "content" => $profile_prompt);
             }
-            // If there is already a chat history, append them to the new messages (i.e. have the system messages at the beginning)
-            $prev_chat = $user_config_manager->get_config();
-            if (isset($prev_chat->messages)) {
-                $chat->messages = array_merge($chat->messages, $prev_chat->messages);
+            // If add $messages to the *beginning* of $chat->messages
+            $chat->messages = array_merge($messages, $chat->messages);
+            // Get an initial opener from the model
+            $response = $llm->message($chat);
+            if (substr($response, 0, 7) == "Error: ") {
+                // If we can't get an initial response from the model (some need a user response first), use a friendly default
+                if (empty($name)) {
+                    $response = "Hello there! I'm so glad you're here today. How are you feeling? I'm here to listen to whatever is on your mind.";
+                } else {
+                    $response = "Hello $name! I'm here with you today. How are you feeling? I'm ready to listen with an open heart whenever you're comfortable sharing.";
+                }
             }
-            // Save the chat history
-            $user_config_manager->save_config($chat);
-            // Save the session info
-            $user_config_manager->save_session("session", $session_info);
-            // No exit here to generate an initial response
+            $telegram->send_message($response, false);
+            $user_config_manager->add_message("assistant", $response);
+            exit;
         }, "Mental health", "Start a new session");
 
         // The command /end ends the current session
