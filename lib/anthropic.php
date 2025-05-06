@@ -26,7 +26,7 @@ class Anthropic {
      * Send a request to create a chat completion of the model specified in the data.
      * 
      * @param object|array $data The data to send.
-     * @return string The response from GPT or an error message (starts with "Error: ").
+     * @return array|string The response from GPT or an error message (starts with "Error: ").
      */
     public function claude($data) {
         // Request a chat completion from Anthropic
@@ -77,16 +77,19 @@ class Anthropic {
             $this->user->increment("anthropic_".$month."_chat_input_tokens", $response->usage->input_tokens);
             $this->user->increment("anthropic_".$month."_chat_output_tokens", $response->usage->output_tokens);
         }
-        if (!isset($response->content[0]->text)) {
+        if (!isset($response->content[0]->text) && !isset($response->content[1]->text)) {
             Log::error(array(
                 "interface" => "anthropic",
                 "endpoint" => "messages",
                 "data" => $data,
                 "response" => $response,
             ));
+            if (is_string($response)) {
+                return $response;
+            }
             return "Error: The response from Anthropic is not in the expected format: ".json_encode($response);
         }
-        return $response->content[0]->text;
+        return $response->content;
     }
 
     /**

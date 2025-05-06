@@ -36,7 +36,7 @@ class OpenRouter {
             $month = date("ym");
             $this->user->increment("OpenRouter_".$month."_".$model."_prompt_tokens", $response->usage->prompt_tokens);
             $this->user->increment("OpenRouter_".$month."_".$model."_completion_tokens", $response->usage->completion_tokens);
-            return $response->choices[0]->message->content;
+            return $response->choices[0]->message;
         }
         return $response;
     }
