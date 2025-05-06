@@ -440,8 +440,8 @@ END:VTIMEZONE"));
 
         // The command /task helps the user to break down a task and track progress
         $command_manager->add_command(array("/task"), function($command, $task) use ($telegram, $user_config_manager, $reset) {
-            $reset($command, $task, false);  // general prompt
             $task != "" || $telegram->die("Please provide a task with the command.");
+            $reset($command, false);  // general prompt
             $prompt = "Your task is to help the user achieve the following goal: \"$task\". "
                 ."Break down it into subtasks, negotiate a schedule, and provide live accountabilty at each step. "
                 ."Avoid generic advice, but instead find specific, actionable steps. "
@@ -1036,14 +1036,10 @@ END:VTIMEZONE"));
             foreach ($messages as $message) {
                 if (is_string($message->content)) {
                     $content = $message->content;
-                    if ($command == "/dmf")
-                        $content = $telegram->format_message($message->content, math_mode: $user_config_manager->is_math_mode_active());
                     $telegram->send_message("/$message->role $content", $command == "/dmf");
                 } else {
                     $image_url = $message->content[0]->image_url->url;
                     $caption = $message->content[1]->text;
-                    if ($command == "/dmf")
-                        $caption = $telegram->format_message($caption, math_mode: $user_config_manager->is_math_mode_active());
                     $telegram->send_message("/$message->role $caption\n$image_url", $command == "/dmf");
                 }
             }

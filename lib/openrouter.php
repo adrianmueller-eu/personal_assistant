@@ -32,9 +32,8 @@ class OpenRouter {
         if (isset($response->choices)) {
             // model
             $model = $data->model;
-            // Get a month year string
-            $month = date("ym");
             // Count the usages
+            $month = date("ym");
             $this->user->increment("OpenRouter_".$month."_".$model."_prompt_tokens", $response->usage->prompt_tokens);
             $this->user->increment("OpenRouter_".$month."_".$model."_completion_tokens", $response->usage->completion_tokens);
             return $response->choices[0]->message->content;

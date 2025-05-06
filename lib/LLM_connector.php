@@ -69,19 +69,22 @@ class LLMConnector {
             //         },
             //         },
             //     ],
-            //     }
+            // }
             // Afterwards, it should look like this:
-            // {"role": "user", "content": [
-            //     {
-            //       "type": "image",
-            //       "source": {
-            //         "type": "base64",
-            //         "media_type": "image/jpeg",
-            //         "data": "/9j/4AAQSkZJRg...",
-            //       }
-            //     },
+            // {
+            //     "role": "user",
+            //     "content": [
+            //         {
+            //         "type": "image",
+            //         "source": {
+            //             "type": "base64",
+            //             "media_type": "image/jpeg",
+            //             "data": "/9j/4AAQSkZJRg...",
+            //         }
+            //         },
             //     {"type": "text", "text": "What is in this image?"}
-            //   ]}
+            //   ]
+            // }
             for ($i = 0; $i < count($data->messages); $i++) {
                 $content = $data->messages[$i]->content;
                 if (!is_string($content)) {

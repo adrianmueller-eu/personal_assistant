@@ -23,7 +23,7 @@ require_once __DIR__."/lib/global_config_manager.php";
 require_once __DIR__."/lib/command_manager.php";
 
 if ($DEBUG) {
-    Log::set_echo_level(3);
+    Log::set_echo_level(1);
 }
 
 // ######################
@@ -159,16 +159,6 @@ if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) 
     $user_config_manager->update_last_seen(date("Y-m-d H:i:s e"));
 
     try {
-        // # if not seen before, add and inform admin
-        // if (!$global_config_manager->is_allowed_user($chat_id, "seen")) {
-        //     $global_config_manager->add_allowed_user($chat_id, "seen");
-        //     if ($username != null && $username != "")
-        //         $telegram_admin->send_message("New user: @$username (chat_id: $chat_id)", false);
-        //     else if ($name != null && $name != "")
-        //         $telegram_admin->send_message("New user: $name (chat_id: $chat_id)", false);
-        //     else
-        //         $telegram_admin->send_message("New user: (chat_id: $chat_id)", false);
-        // }
         run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin, 
                             $global_config_manager, $is_admin, $DEBUG);
     } catch (Exception $e) {

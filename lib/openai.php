@@ -69,7 +69,7 @@ class OpenAI {
             $this->user->increment("openai_".$month."_chat_completion_tokens", $response->usage->completion_tokens);
             $res = $response->choices[0]->message->content;
             if ($this->DEBUG && isset($response->usage->prompt_tokens_details->cached_tokens)) {
-                $res .= "\n\[cached tokens: ".$response->usage->prompt_tokens_details->cached_tokens."]";
+                $res .= "\n[cached tokens: ".$response->usage->prompt_tokens_details->cached_tokens."]";
             }
             return $res;
         }
