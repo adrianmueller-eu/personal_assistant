@@ -58,7 +58,7 @@ class UserConfigManager {
     private $DEBUG;
 
     static $default_config = array(
-        "model" => "anthropic/claude-3.5-sonnet",
+        "model" => "claude-3.7-sonnet-lastest",
         "temperature" => 0.9,
         "messages" => array(),
     );

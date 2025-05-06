@@ -515,21 +515,24 @@ END:VTIMEZONE"));
 
         // Shortcuts for models
         $shortcuts_large = array(
+            "/claude37sonnetthinking" => "claude-3-7-sonnet-latest-thinking",
             "/claude37sonnet" => "claude-3-7-sonnet-latest",
+            "/o4mini" => "o4-mini",
             "/o3mini" => "o3-mini",
+            "/o3" => "o3",
+            "/gpt41" => "gpt-4.1",
             "/gpt4o" => "gpt-4o",
-            "/claude35sonnet" => "claude-3-5-sonnet-latest",
-            "/deepseekr1" => "deepseek/deepseek-r1:free",
+            "/gemini25pro" => "google/gemini-2.5-pro-preview-03-25",
             "/gpt45" => "gpt-4.5-preview"
         );
 
         $shortcuts_small = array(
             "/claude35haiku" => "claude-3-5-haiku-latest",
-            "/gpt4omini" => "gpt-4o-mini",
+            "/gpt41mini" => "gpt-4.1-mini",
+            "/gpt41nano" => "gpt-4.1-nano",
             "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
-            "/googlegeminiflash15" => "google/gemini-flash-1.5",
-            "/googlegeminiflash20" => "google/gemini-2.0-flash-exp:free",
-            "/googlegeminiflash20thinking" => "google/gemini-2.0-flash-thinking-exp:free"
+            "/googlegeminiflash25" => "google/gemini-2.5-flash-preview",
+            "/googlegeminiflash25thinking" => "google/gemini-2.5-flash-preview:thinking"
         );
 
         // The command /model shows the current model and allows to change it

@@ -201,12 +201,12 @@ class LLMConnector {
      * Send a request to generate a text-to-speech audio file.
      * 
      * @param string $message The message to generate audio for.
-     * @param string $model One of the available TTS models: `tts-1` or `tts-1-hd`
+     * @param string $model One of the available TTS models: `gpt-4o-mini-tts`, `tts-1`, or `tts-1-hd`
      * @param string $voice The voice to use when generating the audio. Supported voices are `alloy`, `echo`, `fable`, `onyx`, `nova`, and `shimmer`.
      * @param float $speed The speed at which to speak the text. The supported range of values is `[0.25, 4]`. Defaults to `1.0`.
      * @param string $response_format The format of the returned audio. Supported values are `mp3`, `ogg`, and `wav`. Defaults to `ogg`.
      */
-    public function tts($message, $model = "tts-1-hd", $voice = "nova", $speed = 1.0, $response_format = "opus") {
+    public function tts($message, $model, $voice, $speed, $response_format = "opus") {
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->tts($message, $model, $voice, $speed, $response_format);
     }
@@ -215,10 +215,10 @@ class LLMConnector {
      * Send a request an audio file transcription.
      * 
      * @param string $audio The audio file to transcribe.
-     * @param string $model The model to use for the transcription.
+     * @param string $model The model to use for the transcription: `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, or `whisper-1`.
      * @return string The transcription of the audio file or an error message (starts with "Error: ").
      */
-    public function asr($audio, $model = "whisper-1") {
+    public function asr($audio, $model = "gpt-4o-mini-transcribe") {
         $language = $this->user->get_lang();
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->whisper($audio, $model, $language);
