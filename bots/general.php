@@ -20,9 +20,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
     else if (isset($update->photo)) {
         $chat = $user_config_manager->get_config();
         // Check if the model can see
-        if (substr($chat->model, 0, 5) == "gpt-3") {
-            $telegram->send_message("Error: You can't send images if you are talking to $chat->model. Try another model.");
-            exit;
+        if (substr($chat->model, 0, 5) == "gpt-3" || substr($chat->model, 0, 7) == "o3-mini") {
+            $telegram->die("Error: You can't send images if you are talking to $chat->model. Try another model.");
         }
         $file_id = end($update->photo)->file_id;
         $caption = $update->caption ?? "";
