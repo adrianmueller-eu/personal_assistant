@@ -119,7 +119,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // #########################
         // ### Commands: Presets ###
         // #########################
-        $get_character_description = function($new_character, $previous_descriptions="") use ($telegram, $llm) {
+        $get_character_description = function($new_character, $previous_descriptions="") use ($telegram, $llm, $user_config_manager) {
             # Request a character description
             $prompt = "Create a character description based on the following information given by the user: $new_character\n\nIf they mentioned multiple "
                 ."characters, please generate a description for each of them, otherwise only one.\n\n"
@@ -139,7 +139,9 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 ."new character description in a concise format, without repeating the previous descriptions.";
             }
 
-            $chat = (object) UserConfigManager::$default_config;
+            $chat = $user_config_manager->get_config();
+            $chat = json_decode(json_encode($chat));
+            $chat->messages = array();
             $chat->messages[] = (object) array("role" => "user", "content" => $prompt);
             $description = $llm->message($chat);
             $telegram->die_if_error($description);
