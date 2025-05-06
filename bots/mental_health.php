@@ -25,12 +25,9 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             exit;
         }
         $file_id = end($update->photo)->file_id;
-        $caption = isset($update->caption) ? $update->caption : "";
+        $caption = $update->caption ?? "";
         $file_url = $telegram->get_file_url($file_id);
-        if ($file_url == null) {
-            $telegram->send_message("Error: Could not get the file URL from Telegram.");
-            exit;
-        }
+        $file_url != null || $telegram->die("Error: Could not get the file URL from Telegram.");
 
         $message = array(
             array("type" => "image_url", "image_url" => array("url" => $file_url)),
@@ -40,26 +37,19 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // 1. Get the file content from file_id with $telegram->get_file
         $file_id = $update->voice->file_id;
         $file = $telegram->get_file($file_id);
-        if ($file == null) {
-            $telegram->send_message("Error: Could not get the file from Telegram. Please try again.");
-            exit;
-        }
+        $file != null || $telegram->die("Error: Could not get the file from Telegram. Please try again.");
 
         // 2. Transcribe
         $message = $llm->asr($file);
+        $telegram->die_if_error($message);
 
         // 3. Add the transcription to the chat history
-        if (substr($message, 0, 7) == "Error: ") {
-            $telegram->send_message($message, false);
-            exit;
-        }
     } else {
         if ($user_config_manager->get_lang() == "de") {
-            $telegram->send_message("Sorry, ich kann bisher noch nicht mit diesem Nachrichtentyp umgehen :/");
+            $telegram->die("Sorry, ich kann bisher noch nicht mit diesem Nachrichtentyp umgehen :/");
         } else {
-            $telegram->send_message("Sorry, for now I can't handle this type of message :/");
+            $telegram->die("Sorry, for now I can't handle this type of message :/");
         }
-        exit;
     }
 
     if (is_string($message)) {
@@ -137,8 +127,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $session_info = $user_config_manager->get_session("session");
             // If there is a session running, don't start a new one
             if ($session_info->running === true) {
-                $telegram->send_message("You are already in a session. Please /end the session first to start a new one.");
-                exit;
+                if ($user_config_manager->get_lang() == "de") {
+                    $telegram->die("Du bist bereits in einer Sitzung. Bitte beende die Sitzung zuerst mit /end oder /endskip, um eine neue zu starten.");
+                } else {
+                    $telegram->die("You are already in a session. Please /end or /endskip the session first to start a new one.");
+                }
             }
             $session_info->running = true;
             $session_info->this_session_start = time();
@@ -504,11 +497,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // The command /reset deletes the current configuration
         $command_manager->add_command(array("/reset"), function($command, $confirmation) use ($telegram, $user_config_manager) {
-            // Check if $confirmation is "yes"
-            if ($confirmation != "yes") {
-                $telegram->send_message("Please confirm deleting your profile and all other data with \"/reset yes\". Afterwards, this can be undone with /restore unless a new session is started after which the backup is overwritten and the current state can't be recovered.");
-                exit;
-            }
+            $confirmation == "yes" || $telegram->die("Please confirm deleting your profile and all other data with \"/reset yes\". Afterwards, this can be undone with /restore unless a new session is started after which the backup is overwritten and the current state can't be recovered.");
 
             $user_config_manager->save_backup(); // Make backup before deleting
             $file_path = $user_config_manager->get_file();
@@ -520,11 +509,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Command /restore restores the config from the backup file
         $command_manager->add_command(array("/restore"), function($command, $confirmation) use ($telegram, $user_config_manager) {
-            // Check if $confirmation is "yes"
-            if ($confirmation != "yes") {
-                $telegram->send_message("Please confirm with \"/restore yes\". This can't be undone.");
-                exit;
-            }
+            $confirmation == "yes" || $telegram->die("Please confirm with \"/restore yes\". This can't be undone.");
 
             // Restore the backup
             try {
@@ -577,10 +562,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // The command /openaiapikey allows the user to set their custom OpenAI API key
         $command_manager->add_command(array("/openaiapikey"), function($command, $key) use ($telegram, $user_config_manager) {
-            if ($key == "") {
-                $telegram->send_message("Provide an API key with the command, e.g. \"/openaiapikey abc123\".");
-                exit;
-            }
+            $key != "" || $telegram->die("Provide an API key with the command, e.g. \"/openaiapikey abc123\".");
             $user_config_manager->set_openai_api_key($key);
             $telegram->send_message("Your new OpenAI API key has been set.");
             exit;
@@ -588,10 +570,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // The command /anthropicapikey allows the user to set their custom Anthropic API key
         $command_manager->add_command(array("/anthropicapikey"), function($command, $key) use ($telegram, $user_config_manager) {
-            if ($key == "") {
-                $telegram->send_message("Provide an API key with the command, e.g. \"/anthropicapikey abc123\".");
-                exit;
-            }
+            $key != "" || $telegram->die("Provide an API key with the command, e.g. \"/anthropicapikey abc123\".");
             $user_config_manager->set_anthropic_api_key($key);
             $telegram->send_message("Your new Anthropic API key has been set.");
             exit;
@@ -599,10 +578,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // The command /openrouterapikey allows the user to set their custom OpenAI Router API key
         $command_manager->add_command(array("/openrouterapikey"), function($command, $key) use ($telegram, $user_config_manager) {
-            if ($key == "") {
-                $telegram->send_message("Provide an API key with the command, e.g. \"/openrouterapikey abc123\".");
-                exit;
-            }
+            $key != "" || $telegram->die("Provide an API key with the command, e.g. \"/openrouterapikey abc123\".");
             $user_config_manager->set_openrouter_api_key($key);
             $telegram->send_message("Your new OpenAI Router API key has been set.");
             exit;
@@ -621,13 +597,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         if (!$is_admin) {
             // The command /usage allows the user to see their usage statistics
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $user_config_manager) {
-                if ($month == "") {
+                if ($month == "")
                     $month = date("ym");
-                }
-                else if (!preg_match("/^[0-9]{4}$/", $month)) {
-                    $telegram->send_message("Please provide a month in the format \"YYMM\".");
-                    exit;
-                }
+
+                preg_match("/^[0-9]{4}$/", $month) || $telegram->die("Please provide a month in the format \"YYMM\".");
                 $usage = get_usage_string($user_config_manager, $month, true);
                 $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n$usage");
                 exit;
@@ -663,10 +636,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
             // The command /addusermh adds a user to the list of authorized users
             $command_manager->add_command(array("/adduser"), function($command, $username) use ($telegram, $global_config_manager) {
-                if ($username == "" || $username[0] != "@") {
-                    $telegram->send_message("Please provide a username to add.");
-                    exit;
-                }
+                ($username != "" && $username[0] == "@") || $telegram->die("Please provide a username to add.");
                 $username = substr($username, 1);
                 if ($global_config_manager->is_allowed_user($username, "general")) {
                     $telegram->send_message("User @$username is already in the list of authorized users.");
@@ -679,10 +649,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
             // The command /removeuser removes a user from the list of authorized users
             $command_manager->add_command(array("/removeuser"), function($command, $username) use ($telegram, $global_config_manager) {
-                if ($username == "") {
-                    $telegram->send_message("Please provide a username to remove.");
-                    exit;
-                }
+                $username != "" || $telegram->die("Please provide a username to remove.");
                 $username = trim($username);
                 if ($username[0] == "@") {
                     $username = substr($username, 1);
@@ -744,10 +711,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $command_manager->add_command(array("/dumpmessages", "/dm"), function($command, $n) use ($telegram, $user_config_manager) {
                 $messages = $user_config_manager->get_config()->messages;
                 // Check if there are messages
-                if (count($messages) == 0) {
-                    $telegram->send_message("There are no messages to dump.");
-                    exit;
-                }
+                count($messages) > 0 || $telegram->die("There are no messages to dump.");
                 // If a number is provided, only dump the last n messages
                 if (is_numeric($n)) {
                     $n = intval($n);
@@ -834,13 +798,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             // The command /usage prints the usage statistics of all users for a given month
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
                 // If monthstring is not in format "ym", send an error message
-                if ($month == "") {
+                if ($month == "")
                     $month = date("ym");
-                }
-                else if (!preg_match("/^[0-9]{4}$/", $month)) {
-                    $telegram->send_message("Please provide a month in the format \"YYMM\".");
-                    exit;
-                }
+
+                preg_match("/^[0-9]{4}$/", $month) || $telegram->die("Please provide a month in the format \"YYMM\".");
                 $chatids = $global_config_manager->get_chatids();
                 $message = "Usage statistics for month $month:\n";
                 foreach ($chatids as $chatid) {
@@ -873,39 +834,25 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
     $chat = $user_config_manager->get_config();
     $response = $llm->message($chat);
+    $telegram->die_if_error($response);
 
-    // Append GPT's response to the messages array, except if it starts with "Error: "
-    if (substr($response, 0, 7) != "Error: ") {
-        $user_config_manager->add_message("assistant", $response);
+    $user_config_manager->add_message("assistant", $response);
 
-        // Check if voice mode is active
-        $session_info = $user_config_manager->get_session("session");
-        if ($session_info->voice_mode == true) {
-            // Generate the voice message
-            $tts_config = $user_config_manager->get_tts_config();
-            $audio_data = $llm->tts($response, $tts_config->model, $tts_config->voice, $tts_config->speed, response_format: "opus");  // telegram only supports opus
-            if ($audio_data == "") {
-                $telegram->send_message("WTF-Error: Could not generate audio. Please try again later.");
-                exit;
-            }
-            // if audio_url starts with "Error: "
-            if (substr($audio_data, 0, 7) == "Error: ") {
-                $error_message = $audio_data;
-                $telegram->send_message($error_message, false);
-                exit;
-            }
-            if ($DEBUG) {
-                $telegram->send_message("Generated an audio of length ".strlen($audio_data)." bytes.");
-            }
-            $telegram->send_voice($audio_data);
-        } else {
-            // Send the response as text message
-            $telegram->send_message($response);
+    // Check if voice mode is active
+    $session_info = $user_config_manager->get_session("session");
+    if ($session_info->voice_mode) {
+        // Generate the voice message
+        $tts_config = $user_config_manager->get_tts_config();
+        $audio_data = $llm->tts($response, $tts_config->model, $tts_config->voice, $tts_config->speed, response_format: "opus");  // telegram only supports opus
+        $audio_data != "" || $telegram->send_message("WTF-Error: Could not generate audio. Please try again later.");
+        $telegram->die_if_error($audio_data);
+        if ($DEBUG) {
+            $telegram->send_message("Generated an audio of length ".strlen($audio_data)." bytes.");
         }
-    }
-    else {
-        $telegram->send_message("Error: $response", false);
-        $telegram->send_message("Sorry, I am having trouble connecting to the server. Please write /c to try again.");
+        $telegram->send_voice($audio_data);
+    } else {
+        // Send the response as text message
+        $telegram->send_message($response);
     }
 }
 

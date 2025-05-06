@@ -20,7 +20,7 @@ class Telegram {
      * @param string $telegram_token The Telegram bot token.
      * @param string $chat_id The chat ID.
      */
-    public function __construct($telegram_token, $chat_id, $DEBUG = False) {
+    public function __construct($telegram_token, $chat_id, $DEBUG = false) {
         if (!preg_match("/^[0-9]+:[a-zA-Z0-9_-]+$/", $telegram_token)) {
             throw new Exception("Invalid Telegram token: ".$telegram_token);
         }
