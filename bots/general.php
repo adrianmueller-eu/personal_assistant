@@ -772,21 +772,23 @@ END:VTIMEZONE"));
             exit;
         }, "Chat history management", "Save the chat history to a session");
 
-        // The command /restore restores the chat history from the backup file
-        $command_manager->add_command(array("/restore"), function($command, $session) use ($telegram, $user_config_manager) {
+        // The commands /restore and /load load a saved session
+        $command_manager->add_command(array("/restore", "/load"), function($command, $session) use ($telegram, $user_config_manager) {
             if ($session == "") {
                 $session = "last";
             }
-            // Restore the session
+            // Load the session
             $new = $user_config_manager->get_session($session);
             $new !== null || $telegram->die("Session `$session` not found. Use command /sessions to see available sessions. Chat history not changed.");
             $user_config_manager->save_session();
             $user_config_manager->save_config($new);
-            $user_config_manager->delete_session($session);
+            if ($command == "/restore") {
+                $user_config_manager->delete_session($session);
+            }
             $n_messages = count($new->messages);
-            $telegram->send_message("Session `$session` restored ({$n_messages} messages). You are talking to $new->model.");
+            $telegram->send_message("Session `$session` loaded ({$n_messages} messages). You are talking to `$new->model`.");
             exit;
-        }, "Chat history management", "Restore the a session (default: last)");
+        }, "Chat history management", "Load a saved session (/restore deletes it after restoring, while /load keeps it)");
 
         // The command /sessions lists all available sessions
         $command_manager->add_command(array("/sessions"), function($command, $_) use ($telegram, $user_config_manager) {
