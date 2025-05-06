@@ -251,6 +251,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
             // If there were more than 5 messages (2x system, 2 responses), request a session summary
             if ($command != "/endskip" && count($chat->messages) > 7) {
+                // make a copy of $chat to not save it permanently for now
+                $chat = json_decode(json_encode($chat));
                 if ($user_config_manager->get_lang() == "de") {
                     $telegram->send_message("Bitte gib mir einen Moment, um über unsere Sitzung reflektieren...");
                 } else {
@@ -258,16 +260,27 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 }
                 $user_config_manager->save_backup();
 
+                // claude doesn't allow for intermediate system messages
+                if (strpos($chat->model, "claude") !== false) {
+                    $role = "user";
+                    $init = "SYSTEM GUIDANCE: ";
+                } else {
+                    $role = "system";
+                    $init = "";
+                }
+
                 // Session summary
                 if ($user_config_manager->get_lang() == "de") {
                     $summary_prompt = "Zeit zum Reflektieren. Schreibe eine Zusammenfassung dieser Sitzung, die später verwendet wird, um das "
-                    ."Profil zu aktualisieren. Fasse daher nur Informationen zusammen, die für zukünftige Sitzungen wirklich notwendig sind.";
+                    ."Profil zu aktualisieren. Fasse daher nur Informationen zusammen, die für zukünftige Sitzungen wirklich notwendig sind."
+                    ." Falls du keine Zusammenfassung schreiben möchtest, antworte mit NOSUMMARY.";
                 } else {
                     $summary_prompt = "Time to reflect. Write a summary of this session that will be used later to update the "
-                    ."profile. Hence, include only information that is really necessary for upcoming sessions.";
+                    ."profile. Hence, include only information that is really necessary for upcoming sessions."
+                    ." If you don't want to write a summary, answer with NOSUMMARY.";
                 }
                 $chat->messages = array_merge($chat->messages, array(
-                    array("role" => "system", "content" => $summary_prompt)
+                    array("role" => $role, "content" => $init.$summary_prompt)
                 ));
                 $summary = $llm->message($chat);
                 if (substr($summary, 0, 7) == "Error: ") {
@@ -278,50 +291,64 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     }
                     exit;
                 }
-                // Show the summary to the user
-                if ($user_config_manager->get_lang() == "de") {
-                    $telegram->send_message("Hier ist eine Zusammenfassung unserer Sitzung:\n\n$summary");
-                } else {
-                    $telegram->send_message("Here is a summary of our session:\n\n$summary");
-                }
 
-                // Profile update
-                if ($session_info->profile == "") {
-                    $new_profile = $summary;
-                } else {
-                    $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
-
+                if ($summary != "NOSUMMARY") {
+                    // Show the summary to the user
                     if ($user_config_manager->get_lang() == "de") {
-                        $profile_update_prompt = "Danke für die Zusammenfassung. Lass uns jetzt das Profil mit den neuen Informationen aktualisieren, die du "
-                        ."in dieser Sitzung erhalten hast. Hier ist noch einmal das Profil, das du nach unserer vorherigen Sitzung geschrieben hast ($time_passed her):\n\n"
-                        .$session_info->profile."\n\nDas Ziel ist es, eine detaillierte Beschreibung von mir zu haben, die für alles, was in der nächsten Sitzung ansteht, nützlich ist. "
-                        ."Um ein ausführliches, umfassendes Profil nach vielen Sitzungen zu haben, vermeide es, relevante Informationen aus früheren Sitzungen zu entfernen, sondern "
-                        ."integriere sie in ein detailliertes und informatives Gesamtbild.";
+                        $telegram->send_message("Hier ist eine Zusammenfassung unserer Sitzung:\n\n$summary");
                     } else {
-                        $profile_update_prompt = "Thank you for the summary. Now, let's update the profile with the new information you got "
-                        ."in this session. Here is again the profile you wrote after our previous session ($time_passed ago):\n\n"
-                        .$session_info->profile."\n\nThe goal is to have a detailed description of me that is useful for whatever comes up in the next session. "
-                        ."To have an elaborate, all-encompassing profile after many sessions, avoid removing relevant information from previous sessions, but "
-                        ."integrate them into a detailed and informative bigger picture.";
+                        $telegram->send_message("Here is a summary of our session:\n\n$summary");
                     }
-                    $chat->messages = array_merge($chat->messages, array(
-                        array("role" => "assistant", "content" => $summary),
-                        array("role" => "system", "content" => $profile_update_prompt)
-                    ));
-                    $new_profile = $llm->message($chat);
-                    if (substr($new_profile, 0, 7) == "Error: ") {
+
+                    // Profile update
+                    if ($session_info->profile == "") {
+                        $new_profile = $summary;
+                    } else {
+                        $time_passed = time_diff($session_info->this_session_start, $session_info->last_session_start);
+
                         if ($user_config_manager->get_lang() == "de") {
-                            $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
+                            $profile_update_prompt = "Danke für die Zusammenfassung. Lass uns jetzt das Profil mit den neuen Informationen aktualisieren, die du "
+                            ."in dieser Sitzung erhalten hast. Hier ist noch einmal das Profil, das du nach unserer vorherigen Sitzung geschrieben hast ($time_passed her):\n\n"
+                            .$session_info->profile."\n\nDas Ziel ist es, eine detaillierte Beschreibung von mir zu haben, die für alles, was in der nächsten Sitzung ansteht, nützlich ist. "
+                            ."Um ein ausführliches, umfassendes Profil nach vielen Sitzungen zu haben, vermeide es, relevante Informationen aus früheren Sitzungen zu entfernen, sondern "
+                            ."integriere sie in ein detailliertes und informatives Gesamtbild. "
+                            ."Falls du das Profil nicht updaten möchtest, antworte mit NOUPDATE.";
                         } else {
-                            $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                            $profile_update_prompt = "Thank you for the summary. Now, let's update the profile with the new information you got "
+                            ."in this session. Here is again the profile you wrote after our previous session ($time_passed ago):\n\n"
+                            .$session_info->profile."\n\nThe goal is to have a detailed description of me that is useful for whatever comes up in the next session. "
+                            ."To have an elaborate, all-encompassing profile after many sessions, avoid removing relevant information from previous sessions, but "
+                            ."integrate them into a detailed and informative bigger picture. "
+                            ."If you don't want to update the profile, answer with NOUPDATE.";
                         }
-                        exit;
+                        $chat->messages = array_merge($chat->messages, array(
+                            array("role" => "assistant", "content" => $summary),
+                            array("role" => $role, "content" => $init.$profile_update_prompt)
+                        ));
+                        $new_profile = $llm->message($chat);
+                        if (substr($new_profile, 0, 7) == "Error: ") {
+                            if ($user_config_manager->get_lang() == "de") {
+                                $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
+                            } else {
+                                $telegram->send_message("Sorry, I am having trouble connecting to the server. Please try again /end.");
+                            }
+                            exit;
+                        }
                     }
+                    // Update the session info
+                    if ($new_profile == "NOUPDATE") {
+                        if ($user_config_manager->get_lang() == "de") {
+                            $telegram->send_message("Das Profil wurde nicht aktualisiert.");
+                        } else {
+                            $telegram->send_message("The profile has not been updated.");
+                        }
+                    } else {
+                        $session_info->profile = $new_profile;
+                    }
+                    $user_config_manager->save_config($chat);
+                    $session_info->last_session_start = $session_info->this_session_start;
+                    $session_info->cnt++;
                 }
-                // Update the session info
-                $session_info->profile = $new_profile;
-                $session_info->last_session_start = $session_info->this_session_start;
-                $session_info->cnt++;
             }
             // Clear the chat history and end the session
             $chat->messages = array();
