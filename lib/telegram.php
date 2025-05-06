@@ -115,11 +115,11 @@ class Telegram {
         $new_messages = array();
         foreach ($messages as $message) {
             if (strlen($message) > $max_length) {
-                $message_parts = str_split($message, $max_length);
+                $message_parts = str_split($message, $max_length-1);
                 foreach ($message_parts as $message_part) {
                     $new_messages[] = $message_part;
                 }
-            } else {
+            } else if (strlen($message) > 0) {
                 $new_messages[] = $message;
             }
         }
