@@ -72,6 +72,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         echo "You said: ".json_encode($message, JSON_PRETTY_PRINT)."\n";
     }
 
+    $telegram->set_postprocessing($user_config_manager->is_post_processing());
+
     // If it is forwarded, put "/re " in front
     if (is_string($message) && (isset($update->forward_from) || isset($update->forward_sender_name) || isset($update->forward_date))) {
         // Find the sender's name
@@ -517,13 +519,6 @@ END:VTIMEZONE"));
             $user_config_manager->add_message("system", $prompt);
         }, "Shortcuts", "Create a mail based on the previous conversation. You can provide a message with the command to clarify the request.");
 
-        // The command /math prompts the bot to format Latex equations nicely
-        $command_manager->add_command(array("/math"), function($command, $_) use ($telegram, $user_config_manager) {
-            $active = $user_config_manager->toggle_math_mode();
-            $telegram->send_message("Math mode ".($active ? "activated" : "deactivated").".");
-            exit;
-        }, "Shortcuts", "Add a system message for better formatting of LaTeX equations");
-
         // TODO !!! Add more presets here !!!
 
         // ##########################
@@ -597,6 +592,13 @@ END:VTIMEZONE"));
             }
             exit;
         }, "Settings", "Show the current temperature or change it (default: ".UserConfigManager::$default_config["temperature"].")");
+
+        // The command /postprocessing prompts the bot to post-process the message
+        $command_manager->add_command(array("/postprocessing"), function($command, $_) use ($telegram, $user_config_manager) {
+            $active = $user_config_manager->toggle_post_processing();
+            $telegram->send_message("Post processing ".($active ? "activated" : "deactivated").".");
+            exit;
+        }, "Settings", "Post-processing of text (especially for equations)");
 
         // The command /name allows the user to change their name
         $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {
@@ -1155,7 +1157,6 @@ END:VTIMEZONE"));
         $telegram->send_message($response);
     } else {
         $user_config_manager->add_message("assistant", $response);
-        $response = $telegram->format_message($response, $user_config_manager->is_math_mode_active());
         $telegram->send_message($response);
     }
 }

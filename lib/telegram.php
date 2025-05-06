@@ -10,6 +10,7 @@ class Telegram {
     
     private $telegram_token;
     private $chat_id;
+    private $post_processing;
     private $DEBUG;
     private $RETRY_CNT = 0;
     private $MAX_RETRY = 4;
@@ -30,6 +31,7 @@ class Telegram {
         }
         $this->telegram_token = $telegram_token;
         $this->chat_id = $chat_id;
+        $this->post_processing = false;
         $this->DEBUG = $DEBUG;
     }
 
@@ -80,16 +82,7 @@ class Telegram {
         ));
         if ($endpoint == "sendMessage") {
             if (is_object($server_output) && !$server_output->ok) {
-                // Try again without parse mode if $server_output is a string that contains "can't parse entities"
-                if (isset($data->parse_mode) && strpos($server_output->description, "can't parse entities") !== false) {
-                    $this->send_message($data->text, false);
-                }
-                // Try again after a few seconds
-                else if ($this->RETRY_CNT < $this->MAX_RETRY) {
-                    $this->RETRY_CNT++;
-                    sleep(5*$this->RETRY_CNT);
-                    $this->send_message("\[Retry $this->RETRY_CNT] $data->text", isset($data->parse_mode));
-                }
+                return $server_output;
             }
             // else, silently fail
         } else if (is_string($server_output)) {
@@ -164,17 +157,38 @@ class Telegram {
             return;
         }
         $messages = $this->split_message($message);
-
-        foreach ($messages as $m) {
+        if (count($messages) > 1) {
+            foreach ($messages as $m) {
+                $this->send_message($m, $is_markdown);
+            }
+        } else {
             $data = (object) array(
                 "chat_id" => $this->chat_id,
-                "text" => $m,
+                "text" => $is_markdown && $this->post_processing ? $this->format_message($message) : $message,
                 "disable_web_page_preview" => "true",
             );
             if ($is_markdown) {
-                $data->parse_mode = "Markdown";
+                $data->parse_mode = $this->post_processing ? "MarkdownV2" : "Markdown";
             }
-            $this->send("sendMessage", $data);
+            $server_output = $this->send("sendMessage", $data);
+            if ($server_output != null && !$server_output->ok) {
+                // Try again without parse mode if $server_output is a string that contains "can't parse entities"
+                if (strpos($server_output->description, "can't parse entities") !== false) {
+                    if ($this->DEBUG) {
+                        $message = $this->format_message($message)."\n".json_encode($server_output->description);
+                    }
+                    $this->send_message($message, false);
+                }
+                // Try again after a few seconds
+                else if ($this->RETRY_CNT < $this->MAX_RETRY) {
+                    $this->RETRY_CNT++;
+                    sleep(5*$this->RETRY_CNT);
+                    if ($this->DEBUG) {
+                        $data->text = "\[Retry $this->RETRY_CNT\] $data->text";
+                    }
+                    $this->send_message($message, $is_markdown);
+                }
+            }
         }
     }
 
@@ -256,83 +270,196 @@ class Telegram {
         return $this->chat_id;
     }
 
-    public function format_message($response, $math_mode = false) {
-        // If math mode is set, replace the Latex response with the Markdown version
-        if ($math_mode) {
-            // $this->send_message("Original response: $response", false);
+    public function set_postprocessing($post_processing) {
+        $this->post_processing = $post_processing;
+    }
 
-            // For each \[ find the corresponding \] (might be on later lines) and replace both by ```
-            $start = 0;
-            while (($start < strlen($response) && $start = strpos($response, "\\[", $start)) !== false) {
-                $end = strpos($response, "\\]", $start+2);
-                if ($end === false) {
-                    break;
-                }
-                $latex = substr($response, $start, $end - $start + 2);
-                $latex_new = substr($latex, 2, strlen($latex)-4);
-                $latex_new = trim($latex_new);
-                $response = str_replace($latex, "```\n$latex_new\n```", $response);
-                $start = $end;
-            }
-            $response = preg_replace('/ *```/', '```', $response);
+    public function die($message) {
+        $this->send_message($message, false);
+        exit;
+    }
 
-            // For each $$ find the corresponding $$ (might be on later lines) and replace both by ```
-            $start = 0;
-            while (($start < strlen($response) && $start = strpos($response, "\$\$", $start)) !== false) {
-                $end = strpos($response, "\$\$", $start+2);
-                if ($end === false) {
-                    $end = strlen($response);
-                }
-                $latex = substr($response, $start, $end - $start + 2);
-                $latex_new = substr($latex, 2, strlen($latex)-4);
-                $latex_new = trim($latex_new);
-                $response = str_replace($latex, "```\n$latex_new\n```", $response);
-                $start = $end;
+    public function die_if_error($message) {
+        substr($message, 0, 7) == "Error: " && $this->die($message);
+    }
+
+    private function format_message($response) {
+        // $this->send_message("Original response: $response", false);
+
+        // Replace "```\n$$" or "```\n\[" with "```"
+        $response = preg_replace('/```(.*)\n *(\$\$?|\\\\\[|\\\\\()\s*\n/', "```$1\n", $response);
+        // Same with "$$\n```" and "\[\n```"
+        $response = preg_replace('/(\$\$?|\\\\\[|\\\\\()\s*\n\s*```\s*/', "```\n", $response);
+        // Replace "`$$" or "`\[" with "$$" or "\["
+        $response = preg_replace('/`(\$\$?|\\\\\[|\\\\\()/', "$1", $response);
+        // Replace "$$`" or "\]`" with "$$" or "\]"
+        $response = preg_replace('/(\$\$?|\\\\\]|\\\\\))`/', "$1", $response);
+
+        // For each \[ find the corresponding \] (might be on later lines) and replace both by ```
+        $start = 0;
+        while (($start < strlen($response) && $start = strpos($response, "\\[", $start)) !== false) {
+            $end = strpos($response, "\\]", $start+2);
+            if ($end === false) {
+                break;
             }
-            $response = preg_replace('/ *```/', '```', $response);
+            $latex = substr($response, $start, $end - $start + 2);
+            $latex_new = substr($latex, 2, strlen($latex)-4);
+            $latex_new = trim($latex_new);
+            $response = str_replace($latex, "```\n$latex_new\n```", $response);
+            $start = $end;
         }
+
+        // For each $$ find the corresponding $$ (might be on later lines) and replace both by ```
+        $start = 0;
+        while (($start < strlen($response) && $start = strpos($response, "\$\$", $start)) !== false) {
+            $end = strpos($response, "\$\$", $start+2);
+            if ($end === false) {
+                $end = strlen($response);
+            }
+            $latex = substr($response, $start, $end - $start + 2);
+            $latex_new = substr($latex, 2, strlen($latex)-4);
+            $latex_new = trim($latex_new);
+            $response = str_replace($latex, "```\n$latex_new\n```", $response);
+            $start = $end;
+        }
+        $response = preg_replace('/^\s*```\s*/', '```', $response);
+        // Ensure every ``` starts on a new line
+        $response = preg_replace('/(?<!\n)```/', "\n```", $response);
+        // Replace "```\n\n\n" with "```\n\n"
+        $response = preg_replace('/\n```\s*\n\s*\n/', "\n```\n\n", $response);
+
         // If a text is not already in a code block
         $response_new = "";
         $lines = explode("\n", $response);
         $is_in_code_block = False;
         for ($i = 0; $i < count($lines); $i++) {
-            if (strpos($lines[$i], "```") !== false) {
+            $line = $lines[$i];
+            if (str_starts_with($line, "```")) {
                 $is_in_code_block = !$is_in_code_block;
             }
-            if (!$is_in_code_block) {
-                if ($math_mode) {
-                    // For each \( find the corresponding \) and replace both by `
-                    $lines[$i] = preg_replace('/\\\\\( ?(.*?) ?\\\\\)/', '`$1`', $lines[$i]);
-                    // Same for $ and $
-                    $lines[$i] = preg_replace('/\$ ?(.*?) ?\$/', '`$1`', $lines[$i]);
-                    // Replace * preceded or followed by a digit or paranthesis (any of )(][ ) by \*
-                    $lines[$i] = preg_replace('/(?<=[0-9\(\)\[\]])\*(?=[0-9\(\)\[\]])/', '\\*', $lines[$i]);
-                }
+            if ($is_in_code_block) {
+                // Replace \ with \\
+                $line = preg_replace('/\\\\/', '\\\\\\\\', $line);
+            } else {
+                // For each \( find the corresponding \) and replace both by `
+                $line = preg_replace('/`?\\\\\( ?(.*?) ?\\\\\)`?/', '`$1`', $line);
+                // Same for $ and $
+                $line = preg_replace('/`?\$ ?(.*?) ?\$`?/', '`$1`', $line);
+                // Replace * preceded or followed by a digit or paranthesis (any of )(][ ) by \*
+                // $line = preg_replace('/(?<=[0-9\(\)\[\]])\*(?=[0-9\(\)\[\]])/', '\\*', $line);
 
-                // Surround all words containing underscores with backticks
+                // Surround all words containing underscores with backticks (python names)
                 $matches = array();
-                preg_match_all('/(?<!`)([^ `]+_[^ `]+)(?!`)/u', $lines[$i], $matches, PREG_OFFSET_CAPTURE);
+                preg_match_all('/(?<!`)([^ `]+_[^ `]+)(?!`)/u', $line, $matches, PREG_OFFSET_CAPTURE);
                 $offset = 0;
                 foreach ($matches[0] as $match) {
                     $start = $match[1] + $offset;
                     $end = $start + strlen($match[0]);
-                    $count_before = substr_count(substr($lines[$i], 0, $start), '`');
-                    $count_after = substr_count(substr($lines[$i], 0, $end), '`');
+                    $count_before = substr_count(substr($line, 0, $start), '`');
+                    $count_after = substr_count(substr($line, 0, $end), '`');
                     if ($count_before % 2 == 0 && $count_after % 2 == 0) {
-                        $lines[$i] = substr($lines[$i], 0, $start)."`".$match[0]."`".substr($lines[$i], $end);
+                        $line = substr($line, 0, $start)."`".$match[0]."`".substr($line, $end);
                         $offset += 2;
                     }
                 }
                 // Replace all ** outside of code blocks by *
-                $lines[$i] = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $lines[$i]);
+                $line = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $line);
                 // Replace headings (a line beginning with at least one #) by bold text
-                $lines[$i] = preg_replace('/^(#+ .*)$/', '*$1*', $lines[$i]);
+                $line = preg_replace('/^(#+ .*)$/', '*$1*', $line);
+
+                $in_backticks = false;
+                $line_new = "";
+                for ($j = 0; $j < strlen($line); $j++) {
+                    if ($line[$j] == '`') {
+                        $in_backticks = !$in_backticks;
+                    }
+                    else if (!$in_backticks) {
+                        if (markdownV2_escape($line, $j)) {
+                            $line_new .= '\\';
+                        }
+                    } else {
+                        // escape backslashes
+                        if ($line[$j] == '\\') {
+                            $line_new .= '\\\\';
+                        }
+                    }
+                    $line_new .= $line[$j];
+                }
+                $line = $line_new;
             }
-            $response_new .= $lines[$i]."\n";
+            $response_new .= "$line\n";
         }
         // remove trailing newline
         $response = substr($response_new, 0, -1);
         return $response;
     }
 }
+
+function markdownV2_escape($line, $j) {
+    switch ($line[$j]) {
+        case '!':
+            // if ! is followed by [ (link), do not escape it
+            if ($j < strlen($line)-6 && $line[$j+1] == "[")
+                return False;
+            return True;
+        case '*':
+            // if * is at the beginning of the line or preceded by only one * at the beginning of the line, do not escape it
+            if ($j == 0 || ($j == 1 && $line[0] == "*"))
+                return False;
+        case '_':
+        case '~':
+            // If left or right is a word boundary, do not escape it
+            if ($j == 0 || $j == strlen($line)-1 ||  // at the beginning or end of the line
+                (preg_match('/\s/', $line[$j-1]) && preg_match('/\S/', $line[$j+1])) ||  // no whitespace before or after
+                (preg_match('/\S/', $line[$j-1]) && preg_match('/\W/', $line[$j+1])))  // whitespace before and after
+                return False;
+            return True;
+        case '>':
+            // if > is at the beginning of the line or preceded by "**", do not escape it
+            if ($j == 0 || ($j == 2 && $line[0] == "*" && $line[1] == "*"))
+                return False;
+            return True;
+        case '#':
+            // if # is at the beginning of the line or preceded only by #s, do not escape it
+            if ($j == 0 || ($j > 0 && preg_match('/^#+$/', substr($line, 0, $j))))
+                return False;
+            return True;
+        case '[':
+            // if there is a "](url)" after the [, do not escape it
+            if (preg_match('/[^\[]*\]\([^\)]+\)/', substr($line, $j)))
+                return False;
+            return True;
+        case ']':
+            // if there is a "[" somewhere before and a "(" directly after and a ")" somewhere after, do not escape it
+            $is_before = preg_match('/\[[^\]]+$/', substr($line, 0, $j));
+            $is_directly = $j < strlen($line)-4 && $line[$j+1] == "(";
+            $is_after = preg_match('/[^\(]*\)/', substr($line, $j+2));
+            if ($is_before && $is_directly && $is_after)
+                return False;
+            return True;
+        case '(':
+            // if there is a "[" somewhere before, a "]" directly before and a ")" somewhere after, do not escape it
+            $is_before = preg_match('/\[[^\]]+\]$/', substr($line, 0, $j));
+            $is_directly = $j > 2 && $line[$j-1] == "]";
+            $is_after = preg_match('/[^\)]*\)/', substr($line, $j+1));
+            if ($is_before && $is_directly && $is_after)
+                return False;
+            return True;
+        case ')':
+            // if there is a "[title](" before, do not escape it
+            if ($j > 3 && preg_match('/\[[^\]]+\]\([^\)]+$/', substr($line, 0, $j)))
+                return False;
+            return True;
+        case '+':
+        case '-':
+        case '=':
+        case '|':
+        case '{':
+        case '}':
+        case '.':
+            return True;
+    }
+    return False;
+}
+
 ?>

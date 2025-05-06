@@ -45,7 +45,7 @@ require_once __DIR__."/utils.php";
  *     "anthropic_api_key": "sk-1234567890",
  *     "time_zone": "UTC",
  *     "last_seen": "2024-01-01 12:00:00 UTC",
- *     "math_mode": false,
+ *     "post_processing": false,
  *     "hellos": [],
  *     "counters": {}
  * }
@@ -120,7 +120,7 @@ class UserConfigManager {
                 "anthropic_api_key" => "",
                 "time_zone" => "Europe/Helsinki",
                 "last_seen" => date("Y-m-d H:i:s e"),
-                "math_mode" => false,
+                "post_processing" => false,
                 "counters" => (object) array(),
             );
         }
@@ -510,23 +510,18 @@ class UserConfigManager {
         $this->user_data->last_seen = $last_seen;
     }
 
-    /**
-     * Toggle the math mode.
-     * 
-     * @return bool The new value of the math mode.
-     */
-    public function toggle_math_mode() {
-        $this->user_data->math_mode = !$this->user_data->math_mode;
-        return $this->user_data->math_mode;
+    public function toggle_post_processing() {
+        $this->user_data->post_processing = !$this->user_data->post_processing;
+        return $this->user_data->post_processing;
     }
 
     /**
-     * Get whether math mode is active.
+     * Get whether message post processing is enabled.
      * 
-     * @return bool Whether math mode is active.
+     * @return bool
      */
-    public function is_math_mode_active() {
-        return $this->user_data->math_mode;
+    public function is_post_processing() {
+        return $this->user_data->post_processing ?? false;
     }
 }
 
