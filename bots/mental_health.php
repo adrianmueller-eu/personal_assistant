@@ -439,6 +439,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             } else if ($session_info->running == true) {
                 $telegram->send_message("Please end the current session with /end before changing your name.");
             } else {
+                // Replace name in profile
+                $old_name = $user_config_manager->get_name();
+                $session_info->profile = str_replace($old_name, $name, $session_info->profile);
+                // Set new name
                 $user_config_manager->set_name($name);
                 $telegram->send_message("Your name has been set to $name.");
             }
