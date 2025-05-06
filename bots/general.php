@@ -584,6 +584,14 @@ END:VTIMEZONE"));
             exit;
         }, "Settings", "Show the current temperature or change it (default: ".UserConfigManager::$default_config["temperature"].")");
 
+        // The command /thikingoutput fetches the last thinking output
+        $command_manager->add_command(array("/thinkingoutput"), function($command, $_) use ($telegram, $user_config_manager) {
+            $thinking_output = $user_config_manager->get_last_thinking_output();
+            $thinking_output != "" || $telegram->die("No thinking output available.");
+            $telegram->send_message($thinking_output);
+            exit;
+        }, "Settings", "Fetch the last thinking output");
+
         // The command /postprocessing prompts the bot to post-process the message
         $command_manager->add_command(array("/postprocessing"), function($command, $_) use ($telegram, $user_config_manager) {
             $active = $user_config_manager->toggle_post_processing();

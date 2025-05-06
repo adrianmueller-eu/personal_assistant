@@ -25,7 +25,7 @@ class OpenRouter {
      * Send a request to the OpenRouter API to create a chat completion.
      * 
      * @param object|array $data The data to send to the OpenRouter API.
-     * @return string The response from GPT or an error message (starts with "Error: ").
+     * @return object|string The response from OpenRouter or an error message (starts with "Error: ").
      */
     public function message($data) {
         $response = $this->send_request("chat/completions", $data);

@@ -395,6 +395,29 @@ class UserConfigManager {
     }
 
     /**
+     * Get the last thinking output of the model.
+     * 
+     * @param string $last_thinking
+     * @return void
+     */
+    public function set_last_thinking_output($last_thinking) {
+        $this->user_data->last_thinking = $last_thinking;
+    }
+
+    /**
+     * Get the last thinking output of the model.
+     * 
+     * @return string The last thinking output of the model.
+     */
+    public function get_last_thinking_output() {
+        if (!isset($this->user_data->last_thinking)) {
+            $this->user_data->last_thinking = "";
+        }
+        return $this->user_data->last_thinking;
+    }
+
+
+    /**
      * Get the text-to-speech (TTS) config of the user.
      */
     public function get_tts_config() {

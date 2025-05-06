@@ -30,16 +30,14 @@ class LLMConnector {
      * @return string The response from GPT or an error message (starts with "Error: ").
      */
     public function message($data) {
-        if (is_array($data)) {
-            $data = (object) $data;
-        }
+        $data = json_decode(json_encode($data), false);  // copy data do not modify the original object
 
         if (str_starts_with($data->model, "gpt-")) {
             // unset($data->system); // Would also need to undo the base64 -> better just copy the object for claude (also more readable data file)
             $openai = new OpenAI($this->user, $this->DEBUG);
+            $this->user->set_last_thinking_output("");  // always override previous reasoning output
             return $openai->gpt($data);
         } else if (preg_match("/^o\d/", $data->model)) {
-            $data = json_decode(json_encode($data));
             // replace all "system" roles with "developer"
             for ($i = 0; $i < count($data->messages); $i++) {
                 if ($data->messages[$i]->role == "system") {
@@ -50,11 +48,26 @@ class LLMConnector {
             if (isset($data->temperature)) {
                 unset($data->temperature);
             }
-            $data->reasoning_effort = "high";  // one of "low", "medium", "high"
+            $data->reasoning_effort = "high";  # "low", "medium", "high"
             $openai = new OpenAI($this->user, $this->DEBUG);
+            $this->user->set_last_thinking_output("OpenAI doesn't provide reasoning output.");
             return $openai->gpt($data);
         } else if (str_starts_with($data->model, "claude-")) {
-            $data = json_decode(json_encode($data));  // copy data object to avoid modifying the original object
+            // Allow thinking if the desired
+            if (str_ends_with($data->model, "-thinking")) {
+                // remove the "-thinking" suffix
+                $data->model = substr($data->model, 0, -9);
+                // set the thinking parameter
+                $data->thinking = (object) array(
+                    "type" => "enabled",
+                    "budget_tokens" => 32000
+                );
+                // remove temperature parameter
+                if (isset($data->temperature)) {
+                    unset($data->temperature);
+                }
+            }
+
             // download and base64 encode any image
             // Before, it looks like this:
             // {
@@ -176,12 +189,37 @@ class LLMConnector {
                 //     }
                 // }
                 // echo json_encode(value: $data_copy)."\n\[$cached cached: $cached_indices]";
-                return $anthropic->claude(data: $data);
             }
-            return $anthropic->claude($data);
+            $content = $anthropic->claude($data);
+            if (is_string($content)) {
+                return $content;#.json_encode($data);
+            }
+            $text = "";
+            $thinking = "";
+            for ($i = 0; $i < count($content); $i++) {
+                if (isset($content[$i]->text)) {
+                    $text = $content[$i]->text;
+                } else if (isset($content[$i]->thinking)) {
+                    $thinking = $content[$i]->thinking;
+                }
+            }
+            $this->user->set_last_thinking_output($thinking);
+            return $text;
         } else {
             $openrouter = new OpenRouter($this->user, $this->DEBUG);
-            return $openrouter->message($data);
+            $data->reasoning = (object) array(
+                "effort" => "high"
+            );
+            $message = $openrouter->message($data);
+            if (is_string($message)) {
+                return $message;
+            }
+            $reasoning = "";
+            if (isset($message->reasoning)) {
+                $reasoning = $message->reasoning;
+            }
+            $this->user->set_last_thinking_output($reasoning);
+            return $message->content;
         }
     }
 

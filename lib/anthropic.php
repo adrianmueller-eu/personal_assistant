@@ -65,6 +65,9 @@ class Anthropic {
         if (!isset($data->max_tokens)) {
             $data->max_tokens = 4096;
         }
+        if (isset($data->thinking->budget_tokens)) {
+            $data->max_tokens += $data->thinking->budget_tokens;
+        }
         $response = $this->send_request("messages", $data);
         // track token usage
         if (isset($response->usage)) {
@@ -139,7 +142,7 @@ class Anthropic {
                 return $this->send_request($endpoint, $data);
             }
             // Return the error message
-            return 'Error: '.$response->error->message;
+            return 'Error: '.$response->error->message.' ('.$response->error->type.')';
         }
         return $response;
     }
