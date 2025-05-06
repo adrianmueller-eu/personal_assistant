@@ -171,6 +171,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $user_config_manager->clear_messages();
             # If the user config contains an intro message, add it as system message
             $intro = $user_config_manager->get_intro();
+            # replace {DATE} with the current date
+            $intro = str_replace("{DATE}", date("l, j.n.Y"), $intro);
             $user_config_manager->get_config()->messages = array();
             if ($intro != "") {
                 $user_config_manager->add_message("system", $intro);
