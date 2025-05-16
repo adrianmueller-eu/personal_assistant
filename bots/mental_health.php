@@ -254,7 +254,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 // make a copy of $chat to not save it permanently for now
                 $chat = json_decode(json_encode($chat));
                 if ($user_config_manager->get_lang() == "de") {
-                    $telegram->send_message("Bitte gib mir einen Moment, um über unsere Sitzung reflektieren...");
+                    $telegram->send_message("Bitte gib mir einen Moment, um über unsere Sitzung zu reflektieren...");
                 } else {
                     $telegram->send_message("Please give me a moment to reflect on our session...");
                 }
