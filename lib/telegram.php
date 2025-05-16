@@ -280,6 +280,8 @@ class Telegram {
     }
 
     public function die_if_error($message) {
+        if (!is_string($message))
+            return;
         substr($message, 0, 7) == "Error: " && $this->die($message);
     }
 
