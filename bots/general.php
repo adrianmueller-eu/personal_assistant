@@ -16,8 +16,35 @@
 function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin, $global_config_manager, $is_admin, $DEBUG) {
     if (isset($update->text)) {
         $message = $update->text;
-    }
-    else if (isset($update->photo)) {
+
+        // Only process as arXiv if the message starts with a valid arXiv link or ID
+        $trimmed = trim($message);
+        if (preg_match('/^\s*((?:https?:\/\/)?arxiv\.org\/(?:abs|pdf)\/(\d+\.\d+(?:v\d+)?)(?:\.pdf)?\/?|arxiv:(\d+\.\d+(?:v\d+)?)(?=\s|$)|(\d{4}\.\d{4,5}(?:v\d+)?)(?=\s|$))\s*(.*)$/i',
+                        $trimmed, $matches)) {
+            // Find the arXiv ID from the capturing groups
+            $arxiv_id = $matches[2] ?: $matches[3] ?: $matches[4];
+            $user_message = trim($matches[5] ?? '');
+
+            $telegram->send_message("Detected arXiv ID `$arxiv_id`. Processing...");
+
+            $result = process_arxiv_link($arxiv_id);
+            $telegram->die_if_error($result);
+
+            assert(is_array($result));
+            // Format paper information for the chat
+            $paper_title = $result['title'];
+            $tex_content = $result['content'];
+            $word_count = str_word_count($tex_content);
+            if ($DEBUG)
+                $telegram->send_message("arXiv paper processed: \"$paper_title\"\n- ID: $arxiv_id\n- Words: $word_count");
+
+            // Format the message with paper content and metadata
+            $message = "arXiv: $paper_title ($arxiv_id, $word_count words)\n\n```\n$tex_content\n```";
+            if ($user_message !== '') {
+                $message .= "\n\n$user_message";
+            }
+        }
+    } else if (isset($update->photo)) {
         $chat = $user_config_manager->get_config();
         // Check if the model can see
         if (substr($chat->model, 0, 5) == "gpt-3" || substr($chat->model, 0, 7) == "o3-mini") {
@@ -32,6 +59,60 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             array("type" => "image_url", "image_url" => array("url" => $file_url)),
             array("type" => "text", "text" => $caption),
         );
+    } else if (isset($update->document) && preg_match('/\.pdf$/i', $update->document->file_name)) {
+        // Prefer arXiv TeX if filename matches arXiv ID
+        $content = '';
+        if (preg_match('/^(\d{4}\.\d{4,5}(?:v\d+)?)\.pdf$/i', $update->document->file_name, $matches)) {
+            $arxiv_id = $matches[1];
+            $telegram->send_message("PDF filename matches arXiv ID `$arxiv_id`. Fetching arXiv TeX source...");
+            $result = process_arxiv_link($arxiv_id);
+            if (is_string($result) && substr($result, 0, 7) == "Error: ") {
+                $telegram->send_message("$result\n\nExtracting text from pdf file...");
+            } else {
+                assert(is_array($result));
+                $title = $result['title'];
+                $content = $result['content'];
+                $header = "arXiv:$arxiv_id";
+            }
+        }
+        if (empty($content)) {
+            // Handle PDF document as usual
+            $file_id = $update->document->file_id;
+
+            // Reject PDFs that are too large (over 10MB)
+            if (isset($update->document->file_size) && $update->document->file_size > 10 * 1024 * 1024) {
+                $size_mb = round($update->document->file_size / (1024 * 1024), 1);
+                $telegram->die("Error: PDF is too large ($size_mb MB). Maximum size is 10 MB.");
+            }
+
+            $file_url = $telegram->get_file_url($file_id);
+            $file_url != null || $telegram->die("Error: Could not get the PDF file URL from Telegram.");
+
+            // Extract text from PDF
+            $content = text_from_pdf($file_url);
+            $telegram->die_if_error($content);
+
+            $title = $update->document->file_name;
+            $header = "PDF";
+        }
+        $word_count = str_word_count($content);
+        $word_count != 0 || $telegram->die("Error: Sorry, I couldn't extract text from the PDF!");
+        if ($DEBUG)
+            $telegram->send_message("Content has $word_count words");
+
+        // Reject PDFs that are too large
+        if ($word_count > 42000) {
+            $telegram->die("Error: Content is too long ($word_count words). Maximum size is 42,000 words.");
+        }
+
+        // Format the message with PDF content and metadata
+        $message = "{$header}: \"{$title}\" ($word_count words)\n\n```\n$content\n```";
+
+        // Append caption
+        $caption = $update->caption ?? "";
+        if (!empty($caption)) {
+            $message .= "\n\n$caption";
+        }
     } else if (isset($update->voice) || isset($update->audio)) {
         // Get the file content from file_id with $telegram->get_file
         if (isset($update->voice)) {
@@ -59,8 +140,9 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $telegram->send_message($message);
             exit;
         }
-    }
-    else {
+    } else if (isset($update->document)) {
+        $telegram->die("I can only process PDF documents. The file you sent doesn't appear to be a PDF.");
+    } else {
         if ($DEBUG) {
             $telegram->send_message("Unknown message: ".json_encode($update, JSON_PRETTY_PRINT), false);
         }
