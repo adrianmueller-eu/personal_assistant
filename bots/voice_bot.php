@@ -1,6 +1,9 @@
 <?php
 
+require_once __DIR__ . '/../lib/utils.php';
+
 /**
+
  * This bot just transcribes voice messages sent by the user.
  * 
  * @param object $update The update object
@@ -29,8 +32,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Transcribe
         $transcription = $llm->asr($file);
-        $is_error = substr($transcription, 0, 7) == "Error: ";
-        $telegram->send_message($transcription, !$is_error);
+        $telegram->send_message($transcription, !has_error($transcription));
         exit;
     }
 

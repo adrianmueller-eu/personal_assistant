@@ -1,8 +1,10 @@
 <?php
 
+require_once __DIR__ . '/../lib/utils.php';
+
 /**
  * This is the main function for the mental health bot.
- * 
+ *
  * @param object $update The update object
  * @param UserConfigManager $user_config_manager The user config manager
  * @param Telegram $telegram The Telegram manager for the user
@@ -169,8 +171,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     $telegram->send_message("Starting a new session. Please use /end to end the session.");
                 }
             }
-            $name_string = $user_config_manager->get_name();
-            if ($name_string == "" || $name_string == null) {
+            $name = $user_config_manager->get_name();
+            if ($name == "" || $name == null) {
                 $name_string = "";
             } else {
                 if ($user_config_manager->get_lang() == "de") {
@@ -217,7 +219,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $chat->messages = array_merge($messages, $chat->messages);
             // Get an initial opener from the model
             $response = $llm->message($chat);
-            if (substr($response, 0, 7) == "Error: ") {
+            if (has_error($response)) {
                 // If we can't get an initial response from the model (some need a user response first), use a friendly default
                 if (empty($name)) {
                     $response = "Hello there! I'm so glad you're here today. How are you feeling? I'm here to listen to whatever is on your mind.";
@@ -260,15 +262,6 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 }
                 $user_config_manager->save_backup();
 
-                // claude doesn't allow for intermediate system messages
-                if (strpos($chat->model, "claude") !== false) {
-                    $role = "user";
-                    $init = "SYSTEM GUIDANCE: ";
-                } else {
-                    $role = "system";
-                    $init = "";
-                }
-
                 // Session summary
                 if ($user_config_manager->get_lang() == "de") {
                     $summary_prompt = "Zeit zum Reflektieren. Schreibe eine Zusammenfassung dieser Sitzung, die später verwendet wird, um das "
@@ -280,10 +273,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     ." If you don't want to write a summary, answer with NOSUMMARY.";
                 }
                 $chat->messages = array_merge($chat->messages, array(
-                    array("role" => $role, "content" => $init.$summary_prompt)
+                    array("role" => "system", "content" => $summary_prompt)
                 ));
                 $summary = $llm->message($chat);
-                if (substr($summary, 0, 7) == "Error: ") {
+                if (has_error($summary)) {
                     if ($user_config_manager->get_lang() == "de") {
                         $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
                     } else {
@@ -323,10 +316,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                         }
                         $chat->messages = array_merge($chat->messages, array(
                             array("role" => "assistant", "content" => $summary),
-                            array("role" => $role, "content" => $init.$profile_update_prompt)
+                            array("role" => "system", "content" => $profile_update_prompt)
                         ));
                         $new_profile = $llm->message($chat);
-                        if (substr($new_profile, 0, 7) == "Error: ") {
+                        if (has_error($new_profile)) {
                             if ($user_config_manager->get_lang() == "de") {
                                 $telegram->send_message("Entschuldigung, ich habe Probleme, mich mit dem Server zu verbinden. Bitte versuche es erneut /end.");
                             } else {
@@ -575,7 +568,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     ."Deine Nachricht wird in einem Chat gesendet, verwende also gerne Emojis. Verbreite Liebe! \u2764\ufe0f"
                     : "You are a therapist committed to your clients well-being and growth. Ask your client in a heartfelt way how they are feeling today and if "
                     ."they have any concerns they would like to share with you. The current time is {{time}}, but please avoid mentioning the specific time. "
-                    ."Your message is sent in a chat, so you can make use of emojis. Spread love! \u2764\ufe0f" 
+                    ."Your message is sent in a chat, so you can make use of emojis. Spread love! \u2764\ufe0f"
 
             ));
             $telegram->send_message("Daily reminder activated. You will receive a message from me once a day at a random time to check in with you.");

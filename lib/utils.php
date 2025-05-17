@@ -389,3 +389,13 @@ function process_arxiv_link($url) {
         'content' => $source
     ];
 }
+
+/**
+ * Checks if the given text starts with 'Error: '
+ *
+ * @param string $text
+ * @return bool
+ */
+function has_error($text) {
+    return substr($text, 0, 7) == "Error: ";
+}

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../lib/utils.php';
+
 /**
  * This is the main function for the general bot.
  * 
@@ -66,7 +68,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $arxiv_id = $matches[1];
             $telegram->send_message("PDF filename matches arXiv ID `$arxiv_id`. Fetching arXiv TeX source...");
             $result = process_arxiv_link($arxiv_id);
-            if (is_string($result) && substr($result, 0, 7) == "Error: ") {
+            if (is_string($result) && has_error($result)) {
                 $telegram->send_message("$result\n\nExtracting text from pdf file...");
             } else {
                 assert(is_array($result));
@@ -306,7 +308,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 # Ask the AI to write a short information for the user who they are talking with
                 $user_config_manager->add_message("user", "Who joined the scene? Please respond with one sentence in the format \"You are now in a conversation room with ...\" with no other text before or after.");
                 $joined = $llm->message($user_config_manager->get_config());
-                if (substr($joined, 0, 7) == "Error: ") {
+                if (has_error($joined)) {
                     // ignore $joined
                     $telegram->send_message("You are now in a conversation room with $new_characters :)");
                 } else {
@@ -325,7 +327,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 $user_config_manager->add_message("user", "Previous character description(s):\n\n$current_description\n\nNew character description(s):\n\n$description\n\n"
                     ."Please analyze the descriptions above and inform us: Who joined the scene? Respond with one short sentence with no other text before or after.");
                 $joined = $llm->message($chat);
-                if (substr($joined, 0, 7) == "Error: ") {
+                if (has_error($joined)) {
                     $joined = "$new_characters joined the conversation.";
                 }
                 $user_config_manager->delete_messages(1);
@@ -414,8 +416,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($message != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $message);
                 $response = $llm->message($chat);
-                $has_error = substr($response, 0, 7) == "Error: ";
-                $telegram->send_message($response, !$has_error);
+                $telegram->send_message($response, !has_error($response));
             } else {
                 $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
@@ -434,8 +435,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($text != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $text);
                 $response = $llm->message($chat);
-                $has_error = substr($response, 0, 7) == "Error: ";
-                $telegram->send_message($response, !$has_error);
+                $telegram->send_message($response, !has_error($response));
             } else {
                 $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
@@ -461,7 +461,7 @@ END:VTIMEZONE"));
                 $response = $llm->message($chat);
 
                 // If the response starts with "Error: ", it is an error message
-                if (substr($response, 0, 7) == "Error: ") {
+                if (has_error($response)) {
                     $telegram->send_message($response, false);
                 // If the response starts with "BEGIN:VCALENDAR", it is an iCalendar event
                 } else if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
@@ -489,8 +489,7 @@ END:VTIMEZONE"));
             if ($query != "") {
                 $chat["messages"][] = array("role" => "user", "content" => $query);
                 $response = $llm->message($chat);
-                $has_error = substr($response, 0, 7) == "Error: ";
-                $telegram->send_message($response, !$has_error);
+                $telegram->send_message($response, !has_error($response));
             } else {
                 $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
@@ -510,8 +509,7 @@ END:VTIMEZONE"));
             if ($text != "") {
                 $chat->messages[] = array("role" => "user", "content" => $text);
                 $response = $llm->message($chat);
-                $has_error = substr($response, 0, 7) == "Error: ";
-                $telegram->send_message($response, !$has_error);
+                $telegram->send_message($response, !has_error($response));
             } else {
                 $user_config_manager->save_session();
                 $user_config_manager->save_config($chat);
@@ -1069,7 +1067,7 @@ END:VTIMEZONE"));
             $image_url != "" || $telegram->die("WTF-Error: Could not generate an image. Please try again later.");
             Log::image($prompt, $image_url, $telegram->get_chat_id());
             // if image_url starts with "Error: "
-            if (substr($image_url, 0, 7) == "Error: ") {
+            if (has_error($image_url)) {
                 $error_message = $image_url;
                 $telegram->send_message($error_message, false);
                 exit;
@@ -1103,7 +1101,7 @@ END:VTIMEZONE"));
                 exit;
             }
             // if audio_url starts with "Error: "
-            if (substr($audio_data, 0, 7) == "Error: ") {
+            if (has_error($audio_data)) {
                 $error_message = $audio_data;
                 $telegram->send_message($error_message, false);
                 exit;
@@ -1183,9 +1181,7 @@ END:VTIMEZONE"));
     $response = $llm->message($chat);
 
     // Show error messages
-    if (substr($response, 0, 7) == "Error: ") {
-        $telegram->die($response);
-    }
+    $telegram->die_if_error($response);
 
     // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
     if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {

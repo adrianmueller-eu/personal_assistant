@@ -30,7 +30,7 @@ class LLMConnector {
      * @param object|array $data The data to send.
      * @return string The response from GPT or an error message (starts with "Error: ").
      */
-    public function message($data): string {
+    public function message($data) {
         $data = json_decode(json_encode($data), false);  // copy data do not modify the original object
 
         if (str_starts_with($data->model, "gpt-")) {
@@ -56,7 +56,7 @@ class LLMConnector {
      * @param object|array $data
      * @return string|array
      */
-    private function parse_gpt($data): string|array {
+    private function parse_gpt($data) {
         $openai = new OpenAI($this->user, $this->DEBUG);
         $content = $openai->gpt($data);
         if (is_string($content)) {
@@ -103,7 +103,7 @@ class LLMConnector {
      * @param object|array $data
      * @return string|array
      */
-    private function parse_claude($data): string|array {
+    private function parse_claude($data) {
         // Allow thinking if the desired
         if (str_ends_with($data->model, "-thinking")) {
             // remove the "-thinking" suffix
@@ -264,7 +264,7 @@ class LLMConnector {
      * @param object|array $data
      * @return string|array
      */
-    private function parse_openrouter($data): string|array {
+    private function parse_openrouter($data) {
         $openrouter = new OpenRouter($this->user, $this->DEBUG);
         $data->reasoning = (object) array(
             "effort" => "high"
@@ -301,7 +301,7 @@ class LLMConnector {
      * @param string $response_format The format of the returned audio. Supported values are `mp3`, `ogg`, and `wav`. Defaults to `ogg`.
      * @return string The URL of the audio file generated or an error message.
      */
-    public function tts($message, $model, $voice, $speed, $response_format = "opus"): string {
+    public function tts($message, $model, $voice, $speed, $response_format = "opus") {
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->tts($message, $model, $voice, $speed, $response_format);
     }

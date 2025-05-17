@@ -14,6 +14,7 @@ require_once __DIR__."/lib/LLM_connector.php";
 require_once __DIR__."/lib/logger.php";
 require_once __DIR__."/lib/global_config_manager.php";
 require_once __DIR__."/lib/user_config_manager.php";
+require_once __DIR__."/lib/utils.php";
 
 if ($DEBUG) {
     Log::set_echo_level(3);
@@ -149,7 +150,7 @@ for ($i = 0; $i < count($jobs); $i++) {
     $telegram->send_message($message);
 
     // If $message is an error message, don't update the last_run and next_run
-    if (substr($message, 0, 7) == "Error: ") {
+    if (has_error($message)) {
         continue;
     }
     // Update the last_run and next_run
