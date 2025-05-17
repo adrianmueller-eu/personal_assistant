@@ -140,28 +140,63 @@ class LLMConnector {
                 }
             }
         }
-        // aggregate all system messages as a single message
-        $system_message = array();
+
+        // Collect initial system messages
+        $system_message = "";
+        while (count($data->messages) > 0 && $data->messages[0]->role === "system") {
+            if (is_string($data->messages[0]->content)) {
+                if ($system_message !== "") {
+                    $system_message .= "\n\n";
+                }
+                $system_message .= $data->messages[0]->content;
+            }
+            array_splice($data->messages, 0, 1);
+        }
+        if ($system_message !== "") {
+            $data->system = $system_message;
+        }
+
+        // Convert any remaining system messages to user messages with SYSTEM GUIDANCE prefix
         for ($i = 0; $i < count($data->messages); $i++) {
-            if ($data->messages[$i]->role == "system") {
-                $system_message[] = $data->messages[$i]->content;
-                array_splice($data->messages, $i, 1);
-                $i--;
+            $mes = $data->messages[$i];
+            if ($mes->role === "system") {
+                $mes->role = "user";
+                if (is_string($mes->content)) {
+                    $mes->content = "SYSTEM GUIDANCE: " . $mes->content;
+                }
+                else {
+                    for ($j = 0; $j < count($mes->content); $j++) {
+                        if (isset($mes->content[$j]->text)) {
+                            $mes->content[$j]->text = "SYSTEM GUIDANCE: " . $mes->content[$j]->text;
+                        }
+                    }
+                }
             }
         }
-        $system_message = implode("\n\n", $system_message);
-        $data->system = $system_message;
 
         // aggregate directly consecutive messages of the same role
         for ($i = 0; $i < count($data->messages) - 1; $i++) {
             if ($data->messages[$i]->role === $data->messages[$i + 1]->role) {
-                // If both messages have string content
-                if (is_string($data->messages[$i]->content) && is_string($data->messages[$i + 1]->content)) {
-                    $data->messages[$i]->content .= "\n\n" . $data->messages[$i + 1]->content;
-                    array_splice($data->messages, $i + 1, 1);
-                    $i--; // Recheck the current index since we removed an element
+                // First message: convert string to array with text object
+                if (is_string($data->messages[$i]->content)) {
+                    $data->messages[$i]->content = array((object) array(
+                        "type" => "text",
+                        "text" => $data->messages[$i]->content
+                    ));
                 }
-                // Skip if either message has non-string content (e.g., images)
+
+                // Second message: convert string to array with text object
+                if (is_string($data->messages[$i + 1]->content)) {
+                    $data->messages[$i + 1]->content = array((object) array(
+                        "type" => "text",
+                        "text" => $data->messages[$i + 1]->content
+                    ));
+                }
+
+                // Merge the content arrays
+                $data->messages[$i]->content = array_merge($data->messages[$i]->content, $data->messages[$i + 1]->content);
+                array_splice($data->messages, $i + 1, 1);
+                $i--; // Recheck the current index since we removed an element
             }
         }
 
@@ -193,16 +228,6 @@ class LLMConnector {
         }
 
         $anthropic = new Anthropic($this->user, $this->DEBUG);
-        if ($this->DEBUG) {
-            // for debugging, get the indices of all cached messages
-            $cached_indices = array();
-            for ($i = 0; $i < count($data->messages); $i++) {
-                if (isset($data->messages[$i]->content[0]->cache_control)) {
-                    array_push($cached_indices, $i);
-                }
-            }
-            $cached_indices = implode(", ", $cached_indices);
-        }
         $content = $anthropic->claude($data);
         if (is_string($content)) {
             return $content;
@@ -215,6 +240,17 @@ class LLMConnector {
             } else if (isset($content[$i]->thinking)) {
                 $thinking = $content[$i]->thinking;
             }
+        }
+        if ($this->DEBUG) {
+            // get the indices of all cached messages
+            $cached_indices = array();
+            for ($i = 0; $i < count($data->messages); $i++) {
+                if (isset($data->messages[$i]->content[0]->cache_control)) {
+                    array_push($cached_indices, $i);
+                }
+            }
+            $cached_indices = implode(", ", $cached_indices);
+            $text .= "\nCached indices: ".$cached_indices;
         }
         return [
             'content' => $text,
@@ -263,8 +299,9 @@ class LLMConnector {
      * @param string $voice The voice to use when generating the audio. Supported voices are `alloy`, `echo`, `fable`, `onyx`, `nova`, and `shimmer`.
      * @param float $speed The speed at which to speak the text. The supported range of values is `[0.25, 4]`. Defaults to `1.0`.
      * @param string $response_format The format of the returned audio. Supported values are `mp3`, `ogg`, and `wav`. Defaults to `ogg`.
+     * @return string The URL of the audio file generated or an error message.
      */
-    public function tts($message, $model, $voice, $speed, $response_format = "opus") {
+    public function tts($message, $model, $voice, $speed, $response_format = "opus"): string {
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->tts($message, $model, $voice, $speed, $response_format);
     }
