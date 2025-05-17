@@ -7,7 +7,7 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 
 /**
  * This function is a generic wrapper for cURL POST requests. To send a file, set $field_name, $file_name, *and* $file_content.
- * 
+ *
  * @param string $url The URL to send the request to
  * @param object|array $data Data
  * @param array $headers (optional) Headers
@@ -89,7 +89,7 @@ function build_data_files($boundary, $fields, $field_name, $file_name, $file_con
 
 /**
  * This function returns the difference between two timestamps in a human readable format.
- * 
+ *
  * @param int $timeA The first timestamp.
  * @param int $timeB The second timestamp.
  * @return string The difference between the two timestamps.

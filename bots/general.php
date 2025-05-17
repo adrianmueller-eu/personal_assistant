@@ -4,7 +4,7 @@ require_once __DIR__ . '/../lib/utils.php';
 
 /**
  * This is the main function for the general bot.
- * 
+ *
  * @param object $update The update object
  * @param UserConfigManager $user_config_manager The user config manager
  * @param Telegram $telegram The Telegram manager for the user
@@ -1066,12 +1066,7 @@ END:VTIMEZONE"));
             $image_url = $llm->image($prompt, $model);
             $image_url != "" || $telegram->die("WTF-Error: Could not generate an image. Please try again later.");
             Log::image($prompt, $image_url, $telegram->get_chat_id());
-            // if image_url starts with "Error: "
-            if (has_error($image_url)) {
-                $error_message = $image_url;
-                $telegram->send_message($error_message, false);
-                exit;
-            }
+            $telegram->die_if_error($image_url);
             // Add the image to the chat history
             $user_config_manager->add_message("assistant", array(
                 array("type" => "image_url", "image_url" => array("url" => $image_url)),

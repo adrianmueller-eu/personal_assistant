@@ -14,7 +14,7 @@ class Anthropic {
 
     /**
      * Create a new instance.
-     * 
+     *
      * @param UserConfigManager $user The user to use for the requests.
      */
     public function __construct($user, $DEBUG = False) {
@@ -24,7 +24,7 @@ class Anthropic {
 
     /**
      * Send a request to create a chat completion of the model specified in the data.
-     * 
+     *
      * @param object|array $data The data to send.
      * @param bool $enable_websearch Whether to enable web search (default: false).
      * @return array|string The response from Claude or an error message (starts with "Error: ").

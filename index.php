@@ -159,7 +159,7 @@ if ($is_admin || $global_config_manager->is_allowed_user($username, "general")) 
     $user_config_manager->update_last_seen(date("Y-m-d H:i:s e"));
 
     try {
-        run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin, 
+        run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin,
                             $global_config_manager, $is_admin, $DEBUG);
     } catch (Exception $e) {
         Log::error($e->getMessage());

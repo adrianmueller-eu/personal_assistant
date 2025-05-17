@@ -7,7 +7,7 @@ require_once __DIR__."/utils.php";
  * This class manages the connection to the Telegram API.
  */
 class Telegram {
-    
+
     private $telegram_token;
     private $chat_id;
     private $post_processing;
@@ -17,7 +17,7 @@ class Telegram {
 
     /**
      * Create a new Telegram instance.
-     * 
+     *
      * @param string $telegram_token The Telegram bot token.
      * @param string $chat_id The chat ID.
      */
@@ -37,7 +37,7 @@ class Telegram {
 
     /**
      * Generic function to send a POST request to the Telegram API. To send a file, set $field_name, $file_name, *and* $file_content.
-     * 
+     *
      * @param string $endpoint The endpoint to send the request to.
      * @param object|array $data The data to send to the Telegram API.
      * @param array $headers (optional) The headers to send to the Telegram API.
@@ -96,7 +96,7 @@ class Telegram {
 
     /**
      * Split a message into multiple messages if it is too long.
-     * 
+     *
      * @param string $message The message to split.
      * @param int $max_length The maximum length of each message.
      * @return array The messages of maximum $max_length characters.
@@ -143,7 +143,7 @@ class Telegram {
 
     /**
      * Send a message to Telegram.
-     * 
+     *
      * @param string $message The message to send.
      * @param bool $is_markdown (optional) Whether the message is markdown or not. Default: true.
      * @return void
@@ -194,7 +194,7 @@ class Telegram {
 
     /**
      * Send an image to Telegram.
-     * 
+     *
      * @param string $image The file id or URL of the image to send.
      * @param string $caption (optional) The caption of the image.
      * @return void
@@ -210,7 +210,7 @@ class Telegram {
     /**
      * Send a document to Telegram.
      * For sending via URL: "In sendDocument, sending by URL will currently only work for GIF, PDF and ZIP files."
-     * 
+     *
      * @param string $file_name The name of the file.
      * @param string $file_content The content of the file.
      */
@@ -222,7 +222,7 @@ class Telegram {
 
     /**
      * Send a voice message to Telegram. The file name must be in an .OGG file encoded with OPUS.
-     * 
+     *
      * @param string $ogg_content The content of the OGG file.
      */
     public function send_voice($ogg_content) {
@@ -233,7 +233,7 @@ class Telegram {
 
     /**
      * Get a file url from a Telegram file ID.
-     * 
+     *
      * @param string $file_id The file ID
      * @return string|null The file url or null if there was an error.
      */
@@ -249,7 +249,7 @@ class Telegram {
 
     /**
      * Get the file content from a Telegram file ID.
-     * 
+     *
      * @param string $file_id The file ID
      * @return string|null The file content or null if there was an error.
      */
@@ -263,7 +263,7 @@ class Telegram {
 
     /**
      * Get the chat ID.
-     * 
+     *
      * @return string The chat ID.
      */
     public function get_chat_id() {
