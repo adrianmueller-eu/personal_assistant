@@ -28,17 +28,27 @@ class LLMConnector {
      * Send a request to create a chat completion of the model specified in the data.
      *
      * @param object|array $data The data to send.
-     * @return string The response from GPT or an error message (starts with "Error: ").
+     * @param bool $force_text Whether to force the output to be text only (default: true).
+     * @return string The response from the model or an error message (starts with "Error: ").
      */
-    public function message($data) {
+    public function message($data, $force_text = true) {
         $data = json_decode(json_encode($data), false);  // copy data do not modify the original object
+
+        // If not using Claude, convert any structured array content in messages to text
+        if (!str_starts_with($data->model, "claude-") && isset($data->messages)) {
+            foreach ($data->messages as $message) {
+                if (is_array($message->content)) {
+                    $message->content = text_from_websearch($message->content, true);
+                }
+            }
+        }
 
         if (str_starts_with($data->model, "gpt-")) {
             $result = $this->parse_gpt($data);
         } else if (preg_match("/^o\d/", $data->model)) {
             $result = $this->parse_o($data);
         } else if (str_starts_with($data->model, "claude-")) {
-            $result = $this->parse_claude($data);
+            $result = $this->parse_claude($data, $force_text);
         } else {
             $result = $this->parse_openrouter($data);
         }
@@ -101,9 +111,10 @@ class LLMConnector {
      * Parse requests for claude-* models.
      *
      * @param object|array $data
+     * @param bool $force_text Whether to force the output to be text only.
      * @return string|array
      */
-    private function parse_claude($data) {
+    private function parse_claude($data, $force_text = true) {
         // Allow thinking if the desired
         if (str_ends_with($data->model, "-thinking")) {
             // remove the "-thinking" suffix
@@ -228,19 +239,22 @@ class LLMConnector {
         }
 
         $anthropic = new Anthropic($this->user, $this->DEBUG);
-        $content = $anthropic->claude($data);
+        $content = $anthropic->claude($data, !$force_text);
         if (is_string($content)) {
             return $content;
         }
+
         $text = "";
         $thinking = "";
+        // Process content based on whether it's an array or simple text
         for ($i = 0; $i < count($content); $i++) {
             if (isset($content[$i]->text)) {
-                $text = $content[$i]->text;
+                $text .= $content[$i]->text;
             } else if (isset($content[$i]->thinking)) {
                 $thinking = $content[$i]->thinking;
             }
         }
+
         if ($this->DEBUG) {
             // get the indices of all cached messages
             $cached_indices = array();
@@ -252,8 +266,9 @@ class LLMConnector {
             $cached_indices = implode(", ", $cached_indices);
             $text .= "\nCached indices: ".$cached_indices;
         }
+
         return [
-            'content' => $text,
+            'content' => !$force_text ? $content : $text,
             'thinking' => $thinking
         ];
     }

@@ -1130,10 +1130,14 @@ END:VTIMEZONE"));
                 if (is_string($message->content)) {
                     $content = $message->content;
                     $telegram->send_message("/$message->role $content", $command == "/dmf");
-                } else {
+                } else if (is_array($message->content) && isset($message->content[0]->image_url)) {
                     $image_url = $message->content[0]->image_url->url;
                     $caption = $message->content[1]->text;
                     $telegram->send_message("/$message->role $caption\n$image_url", $command == "/dmf");
+                } else if (is_array($message->content)) {
+                    // Handle web search responses with citations
+                    $formatted_text = text_from_websearch($message->content, $user_config_manager->is_post_processing());
+                    $telegram->send_message("/$message->role $formatted_text", $command == "/dmf");
                 }
             }
             exit;
@@ -1178,13 +1182,19 @@ END:VTIMEZONE"));
 
     // $telegram->send_message("Sending message: ".$message);
     $chat = $user_config_manager->get_config();
-    $response = $llm->message($chat);
-
-    // Show error messages
+    $response = $llm->message($chat, false); // Allow non-textual output
     $telegram->die_if_error($response);
 
+    // Handle websearch responses with citations
+    if (is_array($response)) {
+        // Store the original array response directly in the message history
+        $user_config_manager->get_config()->messages[] = (object)["role" => "assistant", "content" => $response];
+        // Use the formatted text for display
+        $formatted_text = text_from_websearch($response, $user_config_manager->is_post_processing());
+        $telegram->send_message($formatted_text);
+    }
     // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
-    if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
+    else if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
         $user_config_manager->add_message("assistant", $response);
         $file_name = "event.ics";
         $telegram->send_document($file_name, $response);

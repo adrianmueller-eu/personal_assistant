@@ -26,9 +26,10 @@ class Anthropic {
      * Send a request to create a chat completion of the model specified in the data.
      * 
      * @param object|array $data The data to send.
-     * @return array|string The response from GPT or an error message (starts with "Error: ").
+     * @param bool $enable_websearch Whether to enable web search (default: false).
+     * @return array|string The response from Claude or an error message (starts with "Error: ").
      */
-    public function claude($data) {
+    public function claude($data, $enable_websearch = false) {
         // Request a chat completion from Anthropic
         // The response has the following format:
         // $server_output = '{
@@ -68,6 +69,12 @@ class Anthropic {
         if (isset($data->thinking->budget_tokens)) {
             $data->max_tokens += $data->thinking->budget_tokens;
         }
+
+        // Add web search tool if enabled
+        if ($enable_websearch) {
+            $data->tools = [["type" => "web_search_20250305", "name" => "web_search"]];
+        }
+
         $response = $this->send_request("messages", $data);
         // track token usage
         if (isset($response->usage)) {
@@ -76,6 +83,11 @@ class Anthropic {
             // Count the usages
             $this->user->increment("anthropic_".$month."_chat_input_tokens", $response->usage->input_tokens);
             $this->user->increment("anthropic_".$month."_chat_output_tokens", $response->usage->output_tokens);
+
+            // Track web search usage if applicable
+            if (isset($response->usage->server_tool_use) && isset($response->usage->server_tool_use->web_search_requests)) {
+                $this->user->increment("anthropic_".$month."_web_search_requests", $response->usage->server_tool_use->web_search_requests);
+            }
         }
         if (!isset($response->content[0]->text) && !isset($response->content[1]->text)) {
             Log::error(array(
@@ -94,6 +106,10 @@ class Anthropic {
 
     /**
      * Send a request.
+     *
+     * @param string $endpoint The API endpoint.
+     * @param object|array $data The data to send.
+     * @return mixed The response from the API.
      */
     private function send_request($endpoint, $data) {
         $apikey = $this->user->get_anthropic_api_key();

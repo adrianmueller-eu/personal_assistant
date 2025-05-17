@@ -399,3 +399,67 @@ function process_arxiv_link($url) {
 function has_error($text) {
     return substr($text, 0, 7) == "Error: ";
 }
+
+/**
+ * Convert a structured websearch response with citations into plain text format
+ *
+ * @param array $array_response The structured websearch response from a model like Claude
+ * @param bool $use_post_processing Whether to use post-processing formatting (quotes vs code blocks)
+ * @return string The formatted text with citations
+ */
+function text_from_websearch($array_response, $use_post_processing) {
+    $formatted_text = "";
+    $citations = [];
+
+    // Process the array response
+    foreach ($array_response as $item) {
+        if (isset($item->type) && $item->type === "text") {
+            // Handle text with citations
+            if (isset($item->citations) && is_array($item->citations)) {
+                $text = $item->text;
+                foreach ($item->citations as $citation) {
+                    if (isset($citation->url) && isset($citation->title)) {
+                        // Create a unique ID for this citation
+                        $citation_id = count($citations) + 1;
+                        $citations[] = [
+                            'url' => $citation->url,
+                            'title' => $citation->title,
+                            'text' => $citation->cited_text ?? "",
+                            'id' => $citation_id
+                        ];
+
+                        // Add a reference number after the text
+                        $text .= " [" . $citation_id . "]";
+                    }
+                }
+                $formatted_text .= $text;
+            } else {
+                // Regular text without citations
+                $formatted_text .= $item->text;
+            }
+        }
+    }
+
+    // Append citations at the end
+    if (!empty($citations)) {
+        $formatted_text .= "\n\n*Sources:*\n";
+        foreach ($citations as $citation) {
+            $formatted_text .= "[" . $citation['id'] . "] [" . $citation['title'] . "](" . $citation['url'] . ")";
+
+            // Format cited text based on post-processing setting
+            if (!empty($citation['text'])) {
+                if ($use_post_processing) {
+                    // Use Telegram markdown v2 quote for the citation
+                    $formatted_text .= "\n>";
+                    $formatted_text .= str_replace("\n", "\n>", $citation['text']);
+                } else {
+                    // Use code blocks
+                    $formatted_text .= "\n```\n" . $citation['text'] . "\n```";
+                }
+            }
+            $formatted_text .= "\n\n";
+        }
+    }
+
+    return $formatted_text;
+}
