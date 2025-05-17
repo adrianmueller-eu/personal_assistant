@@ -21,11 +21,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // Only process as arXiv if the message starts with a valid arXiv link or ID
         $trimmed = trim($message);
-        if (preg_match('/^\s*((?:https?:\/\/)?arxiv\.org\/(?:abs|pdf)\/(\d+\.\d+(?:v\d+)?)(?:\.pdf)?\/?|arxiv:(\d+\.\d+(?:v\d+)?)(?=\s|$)|(\d{4}\.\d{4,5}(?:v\d+)?)(?=\s|$))\s*(.*)$/i',
+        if (preg_match('/^\s*((?:https?:\/\/)?arxiv\.org\/(?:abs|pdf)\/(\d+\.\d+(?:v\d+)?)(?:\.pdf)?\/?|arxiv:(\d+\.\d+(?:v\d+)?)(?=\s|$))\s*(.*)$/i',
                         $trimmed, $matches)) {
             // Find the arXiv ID from the capturing groups
-            $arxiv_id = $matches[2] ?: $matches[3] ?: $matches[4];
-            $user_message = trim($matches[5] ?? '');
+            $arxiv_id = $matches[2] ?: $matches[3];
+            $user_message = trim($matches[4] ?? '');
 
             $telegram->send_message("Detected arXiv ID `$arxiv_id`. Processing...");
 
