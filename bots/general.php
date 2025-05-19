@@ -587,6 +587,33 @@ END:VTIMEZONE"));
             $user_config_manager->add_message("system", $prompt);
         }, "Shortcuts", "Create a mail based on the previous conversation. You can provide a message with the command to clarify the request.");
 
+        // The command /search enables web search for a single query
+        $command_manager->add_command(array("/search"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
+            $chat = $user_config_manager->get_config();
+            if (strpos($chat->model, "claude-") !== 0) {
+                $telegram->die("Only Claude can perform websearch.");
+            }
+
+            $user_config_manager->add_message("user", $query == "" ? "Please perform the web search." : $query);
+
+            $response = $llm->message($chat, $enable_websearch=true);
+            $telegram->die_if_error($response);
+
+            // Handle websearch responses with citations
+            if (is_array($response)) {
+                // Store the original array response directly in the message history
+                $user_config_manager->get_config()->messages[] = (object)["role" => "assistant", "content" => $response];
+                // Use the formatted text for display
+                $formatted_text = text_from_websearch($response, $user_config_manager->is_post_processing());
+                $telegram->send_message($formatted_text);
+            } else {
+                // If not an array, just add as a regular message
+                $user_config_manager->add_message("assistant", $response);
+                $telegram->send_message($response);
+            }
+            exit;
+        }, "Shortcuts", "Allow to perform a web search based on the chat history (and optional additional query).");
+
         // TODO !!! Add more presets here !!!
 
         // ##########################
@@ -1177,19 +1204,11 @@ END:VTIMEZONE"));
 
     // $telegram->send_message("Sending message: ".$message);
     $chat = $user_config_manager->get_config();
-    $response = $llm->message($chat, false); // Allow non-textual output
+    $response = $llm->message($chat);
     $telegram->die_if_error($response);
 
-    // Handle websearch responses with citations
-    if (is_array($response)) {
-        // Store the original array response directly in the message history
-        $user_config_manager->get_config()->messages[] = (object)["role" => "assistant", "content" => $response];
-        // Use the formatted text for display
-        $formatted_text = text_from_websearch($response, $user_config_manager->is_post_processing());
-        $telegram->send_message($formatted_text);
-    }
     // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
-    else if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
+    if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
         $user_config_manager->add_message("assistant", $response);
         $file_name = "event.ics";
         $telegram->send_document($file_name, $response);
