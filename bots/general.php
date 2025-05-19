@@ -36,12 +36,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             // Format paper information for the chat
             $paper_title = $result['title'];
             $tex_content = $result['content'];
-            $word_count = str_word_count($tex_content);
             if ($DEBUG)
-                $telegram->send_message("arXiv paper processed: \"$paper_title\"\n- ID: $arxiv_id\n- Words: $word_count");
+                $telegram->send_message("arXiv paper processed: \"$paper_title\"\n- ID: $arxiv_id\n- Words: ".str_word_count($tex_content));
 
             // Format the message with paper content and metadata
-            $message = "arXiv: $paper_title ($arxiv_id, $word_count words)\n\n```\n$tex_content\n```";
+            $message = "arXiv:$arxiv_id \"$paper_title\"\n\n```\n$tex_content\n```";
             if ($user_message !== '') {
                 $message .= "\n\n$user_message";
             }
@@ -108,7 +107,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }
 
         // Format the message with PDF content and metadata
-        $message = "{$header}: \"{$title}\" ($word_count words)\n\n```\n$content\n```";
+        $message = "{$header}: \"{$title}\"\n\n```\n$content\n```";
 
         // Append caption
         $caption = $update->caption ?? "";
