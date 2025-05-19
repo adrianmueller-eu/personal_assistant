@@ -200,4 +200,64 @@ function get_arxiv_source($arxiv_id) {
     }
 }
 
+function parse_link($link) {
+    // Fetch with curl
+    $ch = curl_init($link);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Follow redirects
+    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; PersonalAssistantBot/1.0)');
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+    $html = curl_exec($ch);
+
+    // Check for curl errors
+    if ($html === false) {
+        return "Error: Failed to fetch URL: " . curl_error($ch);
+    }
+
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // Check for HTTP errors
+    if ($http_code >= 400) {
+        return "Error: HTTP error $http_code when fetching URL";
+    }
+
+    if (!class_exists('\\fivefilters\\Readability\\Readability')) {
+        return "Error: Readability library not found.";
+    }
+
+    // Extract text using Readability
+    $configuration = new \fivefilters\Readability\Configuration();
+    try {
+        $readability = new \fivefilters\Readability\Readability($configuration);
+        $readability->parse($html);
+        $result = $readability->getContent();
+
+        // Try converting to Markdown if the converter is available
+        if (class_exists('\\League\\HTMLToMarkdown\\HtmlConverter')) {
+            try {
+                $converter = new \League\HTMLToMarkdown\HtmlConverter([
+                    'strip_tags' => true,
+                    'use_autolinks' => true,
+                    'remove_nodes' => 'script style',
+                    'hard_break' => true
+                ]);
+                $result = $converter->convert($result);
+            } catch (\Exception $e) {
+                // If conversion fails, fall back to strip_tags
+                // Log::error("HTML to Markdown conversion failed: " . $e->getMessage());
+                $result = strip_tags($result);
+            }
+        } else {
+            // If converter is not available, fall back to strip_tags
+            $result = strip_tags($result);
+        }
+
+        $result = trim($result);
+    } catch (\Exception $e) {
+        return "Error: Could not parse link content: " . $e->getMessage();
+    }
+    return $result;
+}
+
 ?>

@@ -44,6 +44,22 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($user_message !== '') {
                 $message .= "\n\n$user_message";
             }
+        } else if (preg_match('/^\s*(https?:\/\/[^\s]+)\s*(.*)$/i', $message, $matches)) {
+            $link = $matches[1];
+            $user_message = trim($matches[2] ?? '');
+
+            $telegram->send_message("Detected link `$link`. Extracting content...");
+            $content = parse_link($link);
+            $telegram->die_if_error($content);
+
+            if ($DEBUG)
+                $telegram->send_message("Link processed: \"$link\"\n- Words: ".str_word_count($content));
+
+            // Format the message with extracted content
+            $message = "Link: $link\n\n```\n$content\n```";
+            if ($user_message !== '') {
+                $message .= "\n\n$user_message";
+            }
         }
     } else if (isset($update->photo)) {
         $chat = $user_config_manager->get_config();

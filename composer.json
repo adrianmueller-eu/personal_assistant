@@ -1,0 +1,13 @@
+{
+    "name": "adrianmueller-eu/personal-assistant",
+    "description": "Telegram LLM bot",
+    "require": {
+        "php": ">=7.4",
+        "smalot/pdfparser": "^2.12",
+        "fivefilters/readability.php": "^3.0",
+        "league/html-to-markdown": "^5.1"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
