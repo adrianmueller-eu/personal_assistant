@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../lib/utils.php';
+require_once __DIR__ . '/../lib/parsers.php';
 
 /**
  * This is the main function for the general bot.
@@ -20,16 +21,15 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         $message = $update->text;
 
         // Only process as arXiv if the message starts with a valid arXiv link or ID
-        $trimmed = trim($message);
         if (preg_match('/^\s*((?:https?:\/\/)?arxiv\.org\/(?:abs|pdf)\/(\d+\.\d+(?:v\d+)?)(?:\.pdf)?\/?|arxiv:(\d+\.\d+(?:v\d+)?)(?=\s|$))\s*(.*)$/i',
-                        $trimmed, $matches)) {
+                        $message, $matches)) {
             // Find the arXiv ID from the capturing groups
             $arxiv_id = $matches[2] ?: $matches[3];
             $user_message = trim($matches[4] ?? '');
 
             $telegram->send_message("Detected arXiv ID `$arxiv_id`. Processing...");
 
-            $result = process_arxiv_link($arxiv_id);
+            $result = text_from_arxiv_id($arxiv_id);
             $telegram->die_if_error($result);
 
             assert(is_array($result));
@@ -67,8 +67,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         if (preg_match('/^(\d{4}\.\d{4,5}(?:v\d+)?)\.pdf$/i', $update->document->file_name, $matches)) {
             $arxiv_id = $matches[1];
             $telegram->send_message("PDF filename matches arXiv ID `$arxiv_id`. Fetching arXiv TeX source...");
-            $result = process_arxiv_link($arxiv_id);
-            if (is_string($result) && has_error($result)) {
+            $result = text_from_arxiv_id($arxiv_id);
+            if (has_error($result)) {
                 $telegram->send_message("$result\n\nExtracting text from pdf file...");
             } else {
                 assert(is_array($result));

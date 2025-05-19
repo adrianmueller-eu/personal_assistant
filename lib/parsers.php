@@ -1,0 +1,203 @@
+<?php
+
+require_once __DIR__ . '/../lib/utils.php';
+
+// Require PDF parser and Readbility libraries
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+}
+
+/**
+ * This function downloads a PDF from a URL, extracts the text using PdfParser and returns it.
+ *
+ * @param string $url The URL of the PDF file to download
+ * @return string The extracted text from the PDF or error message
+ */
+function text_from_pdf($url) {
+    // Generate a temporary file name
+    $temp_file = tempnam(sys_get_temp_dir(), "pdf_");
+
+    // Download the PDF file
+    $file_content = file_get_contents($url);
+    if ($file_content === false) {
+        return "Error: Could not download the PDF file.";
+    }
+
+    // Save the content to the temporary file
+    if (file_put_contents($temp_file, $file_content) === false) {
+        return "Error: Could not save the PDF file to a temporary location.";
+    }
+
+    try {
+        // Check if the PDF parser library is available
+        if (!class_exists('\\Smalot\\PdfParser\\Parser')) {
+            return "Error: PDF Parser library not found.";
+        }
+
+        $parser = new \Smalot\PdfParser\Parser();
+        $pdf = $parser->parseFile($temp_file);
+        $text = $pdf->getText();
+    } catch (\Exception $e) {
+        return "Error: Could not extract text from PDF: " . $e->getMessage();
+    } finally {
+        if (file_exists($temp_file)) {
+            unlink($temp_file);
+        }
+    }
+    return post_process_pdf_text($text);
+}
+
+/**
+ * Post-processes extracted PDF text to improve readability and consistency
+ *
+ * @param string $text The raw text extracted from a PDF
+ * @return string The improved text after post-processing
+ */
+function post_process_pdf_text($text) {
+    // Remove excessive whitespace and normalize line breaks
+    $text = preg_replace('/\s+/', ' ', $text);
+    $text = preg_replace('/\s*\n\s*/', "\n", $text);
+    $text = preg_replace('/\n{3,}/', "\n\n", $text);
+
+    // Fix common hyphenation at line breaks
+    $text = preg_replace('/(\w+)-\s*\n\s*(\w+)/', '$1$2', $text);
+
+    // Fix spacing issues around punctuation
+    $text = preg_replace('/\s+([.,;:!?)])/', '$1', $text);
+    $text = preg_replace('/([[(])\s+/', '$1', $text);
+
+    // Fix common encoding problems
+    $replacements = [
+        '�' => "'",
+        '�' => '"',
+        '�' => '"',
+        '�' => '-',
+        '�' => '-',
+        '�' => '...',
+    ];
+
+    foreach ($replacements as $from => $to) {
+        $text = str_replace($from, $to, $text);
+    }
+    return $text;
+}
+
+/**
+ * Processes an arXiv link, downloads the TeX source, and returns formatted content
+ *
+ * @param string $url The arXiv URL or ID
+ * @return string The formatted content or error message
+ */
+function text_from_arxiv_id($arxiv_id) {
+    $source = get_arxiv_source($arxiv_id);
+    if (has_error($source))
+        return $source;
+
+    // Get paper metadata from arXiv API
+    $paper_title = "arXiv:$arxiv_id";
+    $paper_url = "https://export.arxiv.org/api/query?id_list=$arxiv_id";
+
+    $xml = @simplexml_load_file($paper_url);
+    if ($xml && isset($xml->entry->title)) {
+        $paper_title = (string)$xml->entry->title;
+    }
+
+    return [
+        'title' => $paper_title,
+        'id' => $arxiv_id,
+        'content' => $source
+    ];
+}
+
+/**
+ * Downloads LaTeX source code from arXiv for a given paper ID
+ *
+ * @param string $arxiv_id The arXiv ID (e.g., "2301.00001")
+ * @return string|false The LaTeX source code or false on failure
+ */
+function get_arxiv_source($arxiv_id) {
+    // Clean the ID
+    $arxiv_id = preg_replace('/v\d+$/', '', $arxiv_id); // Remove version number if present
+
+    // Construct the URL for the source tarball
+    $source_url = "https://arxiv.org/e-print/$arxiv_id";
+
+    // Create temp directory
+    $temp_dir = sys_get_temp_dir() . '/arxiv_' . uniqid();
+    if (!mkdir($temp_dir, 0755, true)) {
+        return "Error: Could not create temporary directory.";
+    }
+
+    // Download the source
+    $temp_file = "$temp_dir/source.tar.gz";
+    if (file_put_contents($temp_file, file_get_contents($source_url)) === false) {
+        rmdir($temp_dir);
+        return "Error: Could not download arXiv source.";
+    }
+
+    // Extract the archive
+    $output = [];
+    $return_var = 0;
+    exec("tar -xzf $temp_file -C $temp_dir", $output, $return_var);
+    if ($return_var !== 0) {
+        // Try alternate file formats
+        exec("tar -xf $temp_file -C $temp_dir", $output, $return_var);
+        if ($return_var !== 0) {
+            array_map('unlink', glob("$temp_dir/*"));
+            rmdir($temp_dir);
+            return "Error: Failed to extract arXiv source archive.";
+        }
+    }
+
+    // Find main TeX file
+    $tex_files = glob("$temp_dir/*.tex");
+    if (empty($tex_files)) {
+        // Look in subdirectories
+        $tex_files = glob("$temp_dir/*/*.tex");
+        if (empty($tex_files)) {
+            array_map('unlink', glob("$temp_dir/*"));
+            rmdir($temp_dir);
+            return "Error: No TeX files found in the archive.";
+        }
+    }
+
+    // Prioritize files that might be the main file
+    $main_file = $tex_files[0];  // If no main file found, use the first one
+    foreach ($tex_files as $file) {
+        $content = file_get_contents($file);
+        if (strpos($content, '\documentclass') !== false ||
+            strpos($content, '\begin{document}') !== false) {
+            $main_file = $file;
+            break;
+        }
+    }
+    if ($main_file === null) {
+        array_map('unlink', glob("$temp_dir/*"));
+        rmdir($temp_dir);
+        return "Error: Could not identify main TeX file.";
+    }
+
+    // Read the file
+    $tex_content = file_get_contents($main_file);
+
+    // Clean up
+    array_map('unlink', glob("$temp_dir/*"));
+    array_map('unlink', glob("$temp_dir/*/*"));
+    array_map('rmdir', glob("$temp_dir/*"));
+    rmdir($temp_dir);
+
+    // Process the TeX content
+    if ($tex_content) {
+        // Extract content between \begin{document} and \end{document}
+        if (preg_match('/\\\\begin\s*{\s*document\s*}(.+)\\\\end\s*{\s*document\s*}/s', $tex_content, $matches)) {
+            $tex_content = $matches[1];
+        }
+        // Remove comments
+        $tex_content = preg_replace('/(?<!\\\\)%.*$/m', '', $tex_content);
+        return $tex_content;
+    } else {
+        return "Error: Could not read TeX content.";
+    }
+}
+
+?>
