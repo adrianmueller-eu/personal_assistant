@@ -588,7 +588,7 @@ END:VTIMEZONE"));
         // The command /mail builds a mail based on the previous conversation
         $command_manager->add_command(array("/mail"), function($command, $topic) use ($user_config_manager) {
             // Prompt the model to write a mail
-            $prompt = "You task is to prepare a mail based on the previous conversation using the template below. "
+            $prompt = "Your task is to prepare a mail based on the previous conversation using the template below. "
                     ."Keep your response concise and compact. Your voice is casual and kind. "
                     ."In case the user requests a relative date, today is ".date("l, j.n").". "
                     ."Please don't write any other text than the mail itself, so it can be parsed easily. "
