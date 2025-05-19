@@ -72,7 +72,7 @@ class Anthropic {
 
         // Add web search tool if enabled
         if ($enable_websearch) {
-            $data->tools = [["type" => "web_search_20250305", "name" => "web_search"]];
+            $data->tools = [["type" => "web_search_20250305", "name" => "web_search", "max_uses" => 3]];
         }
 
         $response = $this->send_request("messages", $data);

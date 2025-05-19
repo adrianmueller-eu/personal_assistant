@@ -31,7 +31,7 @@ class LLMConnector {
      * @param bool $force_text Whether to force the output to be text only (default: true).
      * @return string The response from the model or an error message (starts with "Error: ").
      */
-    public function message($data, $force_text = true) {
+    public function message($data, $enable_websearch = false) {
         $data = json_decode(json_encode($data), false);  // copy data do not modify the original object
 
         // If not using Claude, convert any structured array content in messages to text
@@ -48,7 +48,7 @@ class LLMConnector {
         } else if (preg_match("/^o\d/", $data->model)) {
             $result = $this->parse_o($data);
         } else if (str_starts_with($data->model, "claude-")) {
-            $result = $this->parse_claude($data, $force_text);
+            $result = $this->parse_claude($data, $enable_websearch);
         } else {
             $result = $this->parse_openrouter($data);
         }
@@ -114,7 +114,7 @@ class LLMConnector {
      * @param bool $force_text Whether to force the output to be text only.
      * @return string|array
      */
-    private function parse_claude($data, $force_text = true) {
+    private function parse_claude($data, $enable_websearch = false) {
         // Allow thinking if the desired
         if (str_ends_with($data->model, "-thinking")) {
             // remove the "-thinking" suffix
@@ -239,7 +239,7 @@ class LLMConnector {
         }
 
         $anthropic = new Anthropic($this->user, $this->DEBUG);
-        $content = $anthropic->claude($data, !$force_text);
+        $content = $anthropic->claude($data, $enable_websearch);
         if (is_string($content)) {
             return $content;
         }
@@ -268,7 +268,7 @@ class LLMConnector {
         }
 
         return [
-            'content' => !$force_text ? $content : $text,
+            'content' => $enable_websearch ? $content : $text,
             'thinking' => $thinking
         ];
     }
