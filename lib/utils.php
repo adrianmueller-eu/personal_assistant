@@ -46,7 +46,7 @@ function curl_post($url, $data, $headers = array(), $field_name = null, $file_na
             $response->http_code = $http_code;
         }
         else if (is_string($server_output)) {
-            return "Error: .(http: ".$http_code.") ".$server_output;
+            return "Error: (http: ".$http_code.") ".$server_output;
         }
         else {
             $domain = parse_url($url, PHP_URL_HOST);
@@ -214,6 +214,5 @@ function text_from_websearch($array_response, $use_post_processing) {
             $formatted_text .= "\n\n";
         }
     }
-
     return $formatted_text;
 }

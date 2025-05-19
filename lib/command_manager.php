@@ -4,14 +4,14 @@
  * A class that allows to register commands, with alternative commands, a function to execute, a category,
  * as well as a description of the command. The class also allows to parse the command and its arguments
  * passed to the script and execute the corresponding functions.
- * 
+ *
  * Example:
  * ```
  * $manager = new CommandManager();
  * $manager->add_command(array("/command_alternative1", "/command_alternative2"), foo, "category", "description");
  * $manager->run_command($message);
  * ```
- * 
+ *
  * The above code will register the command /command_alternative1 and /command_alternative2, with the function
  * foo to execute, in the category "category", with the description "description". The function foo will be
  * executed when the user sends the message "/command_alternative1 argument1 argument2". The arguments will
@@ -35,7 +35,7 @@ class CommandManager {
 
     /**
      * Create a new CommandManager instance.
-     * 
+     *
      * @param array $categories The categories of the commands. The last category will be used for the /help command. The order of the categories in the array will be the same as shown in the help message.
      */
     public function __construct($categories = array("Misc")) {
@@ -53,7 +53,7 @@ class CommandManager {
 
     /**
      * Add a command to the manager.
-     * 
+     *
      * @param array $alternatives An array of alternative commands.
      * @param callable $function The function to execute. The function must accept two arguments: the command and the parameter. The parameter is "" if nothing was passed with the command.
      * @param string $category The category of the command. Must be one of the categories passed to the constructor.
@@ -76,7 +76,7 @@ class CommandManager {
 
     /**
      * Parse the command and its arguments passed to the script and execute the corresponding function.
-     * 
+     *
      * @param string $message The command and its arguments.
      * @return string The output of the function.
      */
@@ -102,7 +102,7 @@ class CommandManager {
 
     /**
      * Print the help message.
-     * 
+     *
      * @return string The help message.
      */
     public function print_help() {
