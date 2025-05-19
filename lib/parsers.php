@@ -54,34 +54,16 @@ function text_from_pdf($url) {
  * @return string The improved text after post-processing
  */
 function post_process_pdf_text($text) {
-    // Remove excessive whitespace and normalize line breaks
+    // Clean whitespace and normalize text
     $text = preg_replace('/\s+/', ' ', $text);
     $text = preg_replace('/\s*\n\s*/', "\n", $text);
-    $text = preg_replace('/\n{3,}/', "\n\n", $text);
 
-    // Fix common hyphenation at line breaks
+    // Fix hyphenation and spacing
     $text = preg_replace('/(\w+)-\s*\n\s*(\w+)/', '$1$2', $text);
-
-    // Fix spacing issues around punctuation
     $text = preg_replace('/\s+([.,;:!?)])/', '$1', $text);
     $text = preg_replace('/([[(])\s+/', '$1', $text);
-
-    // Fix common encoding problems
-    $replacements = [
-        '�' => "'",
-        '�' => '"',
-        '�' => '"',
-        '�' => '-',
-        '�' => '-',
-        '�' => '...',
-    ];
-
-    foreach ($replacements as $from => $to) {
-        $text = str_replace($from, $to, $text);
-    }
     return $text;
 }
-
 /**
  * Processes an arXiv link, downloads the TeX source, and returns formatted content
  *
