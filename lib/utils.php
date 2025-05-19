@@ -397,7 +397,7 @@ function process_arxiv_link($url) {
  * @return bool
  */
 function has_error($text) {
-    return substr($text, 0, 7) == "Error: ";
+    return is_string($text) && substr($text, 0, 7) == "Error: ";
 }
 
 /**
