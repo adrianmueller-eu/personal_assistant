@@ -449,7 +449,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             exit;
         }, "Presets", "Remove a character from the conversation. Provide the name of the character with the command.");
 
-        // The command /characters shows the current character descriptions
+        // The command /room shows the current character descriptions
         $command_manager->add_command(array("/room"), function($command, $_) use ($telegram, $user_config_manager) {
             $chat = $user_config_manager->get_config();
             if (count($chat->messages) == 0) {
@@ -483,7 +483,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }, "Presets", "Suggests responses to messages from others. Give a message with the command to preserve the previous conversation.");
 
         // The command /translator translates a given text
-        $command_manager->add_command(array("/translator", "/trans"), function($command, $text) use ($telegram, $user_config_manager, $llm) {
+        $command_manager->add_command(array("/trans"), function($command, $text) use ($telegram, $user_config_manager, $llm) {
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0.7;
             $chat["messages"] = array(array("role" => "system", "content" => "Translate the messages sent to you into English, ensuring "
@@ -536,7 +536,7 @@ END:VTIMEZONE"));
         }, "Presets", "Converts an event description to iCalendar format. Provide a description with the command to preserve the previous conversation.");
 
         // The command /code is a programming assistant
-        $command_manager->add_command(array("/program"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
+        $command_manager->add_command(array("/code"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
             $chat = UserConfigManager::$default_config;
             $chat["temperature"] = 0.5;
             $chat["messages"] = array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
