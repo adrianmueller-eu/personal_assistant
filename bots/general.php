@@ -717,6 +717,84 @@ END:VTIMEZONE"));
             exit;
         }, "Shortcuts", "Generate a search query based on the conversation. You can provide additional context with the command.");
 
+        // The command /papers fetches papers from Semantic Scholar based on a search query and returns a summary
+        $command_manager->add_command(array("/papers"), function($command, $query) use ($telegram, $llm, $user_config_manager, $global_config_manager, $DEBUG) {
+            $config = $user_config_manager->get_config();
+
+            // Check if there's chat history
+            if (count($config->messages) > 2) {
+                // If query is provided, use it as additional context, otherwise just use chat history
+                $context_prompt = "Based on the conversation history";
+                if ($query !== "") {
+                    $context_prompt .= " and considering this additional context: \"$query\"";
+                }
+
+                $context_prompt .= ", generate a focused academic search query for finding relevant papers (sent to Semantic Scholar API). " .
+                                  "The query should be specific and concise, focusing on the key concepts or research questions. " .
+                                  "Return ONLY the search query text itself, with no additional commentary or explanation.";
+
+                $user_config_manager->add_message("system", $context_prompt);
+                $config = $user_config_manager->get_config();
+                $query = $llm->message($config);
+                // Remove the system prompt after generating the query
+                array_pop($config->messages);
+                $telegram->die_if_error($query);
+
+                // Use the generated query
+                $telegram->send_message("Searching for papers about: $query");
+            } else if ($query === "") {
+                $telegram->die("Please provide a search query after the command, like `/papers <query>`");
+            }
+
+            // Get API key from global config manager if available
+            $api_key = $global_config_manager->get("SEMANTIC_SCHOLAR_API_KEY");
+            $papers = $llm->semantic_scholar_search($query, 10, $api_key);
+            $telegram->die_if_error($papers);
+            // $telegram->send_message(json_encode($papers));
+            !empty($papers) || $telegram->die_if_error("No papers found for your query.");
+
+            // Build the paper list message and abstracts with references in a single loop
+            $abstracts = [];
+            $papers_list = "";
+            foreach ($papers as $i => $paper) {
+                $n = $i + 1;
+                $ref = $paper['url'] ? "[[$n]({$paper['url']})]" : "[$n]";
+                $line = "{$ref} (*{$paper['citationCount']}* cit.) {$paper['authors']} ({$paper['year']}) _{$paper['title']}_ \n\n";
+                if ($paper['abstract']) {
+                    $abstracts[] = "$ref {$paper['title']}\n{$paper['abstract']}";
+                }
+                $papers_list .= $line;
+            }
+
+            if (!empty($abstracts)) {
+                // Use the existing papers list
+                $abstracts_text = "Here are abstracts from several academic papers related to your search query:\n\n" .
+                    "$papers_list.\n\n".implode("\n\n", $abstracts)."\n\n".
+                    "Please provide a comprehensive synthesis of the key findings, methodologies, and insights from these papers. " .
+                    "Consider how they relate to each other, any contradictions or consensus between them, and their significance to the field. " .
+                    "When referring to specific papers, use their corresponding number in brackets (e.g., [1], [2]) as references. " .
+                    "Focus on the most important contributions and insights rather than summarizing each paper separately. " .
+                    "Your response should contain ONLY the synthesis itself, with no additional prefatory remarks or meta-commentary.";
+                $user_config_manager->add_message("user", $abstracts_text);
+
+                // Ask the model to summarize
+                $config = $user_config_manager->get_config();
+                $summary = $llm->message($config);
+
+                // Remove the abstracts message from the history
+                array_pop($user_config_manager->get_config()->messages);
+                // Add the original query as a user message to maintain conversation flow
+                $response = "$summary\n\n$papers_list";
+            } else {
+                // Only send the paper list if there are no abstracts
+                $response = "Results for: **$query**\n\n.$papers_list";
+            }
+            $user_config_manager->add_message("user", "Find papers about: $query");
+            $user_config_manager->add_message("assistant", $response);
+            $telegram->send_message($response);
+            exit;
+        }, "Shortcuts", "Search Semantic Scholar for academic papers, summarize abstracts, and provide markdown citations. Usage: /semanticscholar [your search query]");
+
         // TODO !!! Add more presets here !!!
 
         // ##########################
