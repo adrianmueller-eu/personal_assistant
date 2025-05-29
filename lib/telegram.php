@@ -409,11 +409,52 @@ function markdownV2_escape($line, $j) {
                 return False;
         case '_':
         case '~':
-            // If left or right is a word boundary, do not escape it
-            if ($j == 0 || $j == strlen($line)-1 ||  // at the beginning or end of the line
-                (preg_match('/\s/', $line[$j-1]) && preg_match('/\S/', $line[$j+1])) ||  // no whitespace before or after
-                (preg_match('/\S/', $line[$j-1]) && preg_match('/\W/', $line[$j+1])))  // whitespace before and after
+            $char = $line[$j];
+
+            // Find all non-escaped occurrences of the character
+            preg_match_all('/(?<!\\\\)' . preg_quote($char, '/') . '/', $line, $matches, PREG_OFFSET_CAPTURE);
+
+            // Extract positions and find current index
+            $positions = array_column($matches[0], 1);
+            $currentIndex = array_search($j, $positions, true);  // we know there is a char at $j, so this is never false
+
+            // Check if left and right side counts are odd
+            $numIndices = count($positions) - 1;
+            $leftOdd = $currentIndex % 2 == 1;
+            $rightOdd = ($numIndices - $currentIndex) % 2 == 1;
+
+            // If one side has odd count and the other has even
+            if ($leftOdd xor $rightOdd) {
+                // Special case for tilde
+                if ($char == '~') {
+                    // If ~ is followed by (space+)digit AND neighboring ~ is preceded by space, escape it
+                    if (!preg_match('/^\s?\d/', substr($line, $j + 1))) {
+                        return False;
+                    }
+
+                    // Check if any neighboring ~ is preceded by space
+                    if ($currentIndex > 0) {
+                        $prevTildePos = $matches[0][$currentIndex - 1][1];
+                        if ($prevTildePos > 0 && preg_match('/\s/', $line[$prevTildePos - 1])) {
+                            return True;
+                        }
+                    }
+                    if ($currentIndex < $numIndices) {
+                        $nextTildePos = $matches[0][$currentIndex + 1][1];
+                        if ($nextTildePos > 0 && preg_match('/\s/', $line[$nextTildePos - 1])) {
+                            return True;
+                        }
+                    }
+                }
                 return False;
+            }
+
+            // For *, if both sides have odd counts and there's one at the beginning
+            if ($char == '*' && $leftOdd && $rightOdd && $positions[0] == 0) {
+                return False;
+            }
+
+            // Default: escape the character
             return True;
         case '>':
             // if > is at the beginning of the line or preceded by "**", do not escape it
