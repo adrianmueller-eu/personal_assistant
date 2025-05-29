@@ -1405,7 +1405,10 @@ END:VTIMEZONE"));
     // $telegram->send_message("Sending message: ".$message);
     $chat = $user_config_manager->get_config();
     $response = $llm->message($chat);
-    $telegram->die_if_error($response);
+    if (has_error($response)) {
+        $user_config_manager->delete_messages(1);
+        $telegram->die($response . " Chat history has not been changed.");
+    }
 
     // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
     if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
