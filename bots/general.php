@@ -724,35 +724,50 @@ END:VTIMEZONE"));
         // ##########################
 
         // Shortcuts for models
-        $shortcuts_large = array(
-            "/claude37sonnetthinking" => "claude-3-7-sonnet-latest-thinking",
+        $shortcuts_medium = array(
+            "/claude4sonnet" => "claude-sonnet-4-20250514",
+            "/claude4sonnetthinking" => "claude-sonnet-4-20250514-thinking",
+            "/gpt41" => "gpt-4.1",
             "/claude37sonnet" => "claude-3-7-sonnet-latest",
+            "/claude37sonnetthinking" => "claude-3-7-sonnet-latest-thinking",
             "/o4mini" => "o4-mini",
             "/o3mini" => "o3-mini",
-            "/o3" => "o3",
-            "/gpt41" => "gpt-4.1",
+            "/gemini25pro" => "google/gemini-2.5-pro-preview",
+            "/mistralmedium3" => "mistralai/mistral-medium-3",
             "/gpt4o" => "gpt-4o",
-            "/gemini25pro" => "google/gemini-2.5-pro-preview-03-25",
-            "/gpt45" => "gpt-4.5-preview"
+        );
+
+        $shortcuts_large = array(
+            "/claude4opus" => "claude-opus-4-20250514",
+            "/claude4opusthinking" => "claude-opus-4-20250514-thinking",
+            "/o3" => "o3",
+            "/gpt45" => "gpt-4.5-preview",
         );
 
         $shortcuts_small = array(
             "/claude35haiku" => "claude-3-5-haiku-latest",
             "/gpt41mini" => "gpt-4.1-mini",
             "/gpt41nano" => "gpt-4.1-nano",
-            "/mistralsmall3" => "mistralai/mistral-small-24b-instruct-2501",
-            "/googlegeminiflash25" => "google/gemini-2.5-flash-preview",
-            "/googlegeminiflash25thinking" => "google/gemini-2.5-flash-preview:thinking"
+            "/mistralsmall31" => "mistralai/mistral-small-3.1-24b-instruct",
+            "/googlegeminiflash25" => "google/gemini-2.5-flash-preview-05-20",
+            "/googlegeminiflash25thinking" => "google/gemini-2.5-flash-preview-05-20:thinking"
         );
 
         // The command /model shows the current model and allows to change it
-        $command_manager->add_command(array_merge(array("/model"), array_keys($shortcuts_large), array_keys($shortcuts_small)),
-        function($command, $model) use ($telegram, $user_config_manager, $shortcuts_large, $shortcuts_small) {
+        $command_manager->add_command(array_merge(
+            array("/model"),
+            array_keys($shortcuts_medium),
+            array_keys($shortcuts_small),
+            array_keys($shortcuts_large)
+        ), function($command, $model) use ($telegram, $user_config_manager,
+            $shortcuts_medium, $shortcuts_small, $shortcuts_large) {
             $chat = $user_config_manager->get_config();
-            if (isset($shortcuts_large[$command])) {
-                $model = $shortcuts_large[$command];
+            if (isset($shortcuts_medium[$command])) {
+                $model = $shortcuts_medium[$command];
             } else if (isset($shortcuts_small[$command])) {
                 $model = $shortcuts_small[$command];
+            } else if (isset($shortcuts_large[$command])) {
+                $model = $shortcuts_large[$command];
             }
             if ($model == "") {
                 $telegram->send_message("You are currently talking to `$chat->model`.\n\n"
@@ -760,11 +775,15 @@ END:VTIMEZONE"));
                 ."The following shortcuts are available:\n\n"
                 .implode("\n", array_map(function($key, $value) {
                     return "$key -> `$value`";
-                }, array_keys($shortcuts_large), $shortcuts_large))."\n\n"
-                ."and for some smaller and cheaper models:\n"
+                }, array_keys($shortcuts_medium), $shortcuts_medium))."\n\n"
+                ."for some smaller and cheaper models:\n"
                 .implode("\n", array_map(function($key, $value) {
                     return "$key -> `$value`";
                 }, array_keys($shortcuts_small), $shortcuts_small))."\n\n"
+                ."for the largest and most capable models:\n"
+                .implode("\n", array_map(function($key, $value) {
+                    return "$key -> `$value`";
+                }, array_keys($shortcuts_large), $shortcuts_large))."\n\n"
                 ."Other options are other [OpenRouter models](https://openrouter.ai/models), "
                 ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models), "
                 ."and [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://platform.openai.com/docs/pricing)).");
@@ -1184,17 +1203,8 @@ END:VTIMEZONE"));
                 $telegram->send_image($prompt);
                 exit;
             }
-            // If prompt starts with dalle2 or dalle3, use the corresponding model
-            $model = "dall-e-2";  // default model
-            if (substr($prompt, 0, 7) == "dalle2 ") {
-                $model = "dall-e-2";
-                $prompt = substr($prompt, 7);
-            } else if (substr($prompt, 0, 7) == "dalle3 ") {
-                $model = "dall-e-3";
-                $prompt = substr($prompt, 7);
-            }
-            $image_url = $llm->image($prompt, $model);
-            $image_url != "" || $telegram->die("WTF-Error: Could not generate an image. Please try again later.");
+            $image_url = $llm->image($prompt);  // use default model in the function
+            $telegram->die_if_error($image_url);
             Log::image($prompt, $image_url, $telegram->get_chat_id());
             $telegram->die_if_error($image_url);
             // Add the image to the chat history
