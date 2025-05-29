@@ -671,6 +671,52 @@ END:VTIMEZONE"));
             exit;
         }, "Shortcuts", "Allow to perform a web search based on the chat history (and optional additional query).");
 
+        // The command /p generates a search prompt for research tools
+        $command_manager->add_command(array("/p"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
+            // Prompt the model to generate a search query
+            $prompt = "Your task is to create an optimized search query based on the previous conversation";
+            if ($query != "") {
+                $prompt .= " and the following additional context: \"$query\"";
+            }
+            $prompt .= ". Focus on extracting the key information needs and formulating a clear, specific query. "
+                    ."If the conversation covered multiple topics, focus on the last topic discussed. "
+                    ."Your query should be well-structured for AI search and research tools like Perplexity AI and Elicit. "
+                    ."Be concise but comprehensive, capturing the essential research intent. "
+                    ."Your response should ONLY contain the query itself, formatted like this: "
+                    ."```txt\n"
+                    ."<research query>\n"
+                    ."```";
+
+            // If there is only one message in the history and it is a system message, add an empty user message
+            $config = $user_config_manager->get_config();
+            // Require a query if the last message is not from 'assistant'
+            if (count($config->messages) <= 2) {
+                $telegram->die("There is no chat history yet. Please provide a query or context after /p.");
+            }
+            if (count($config->messages) === 1 && $config->messages[0]->role === 'system') {
+                // With this, for Claude, LLM_connector converts $prompt to "user" role instead of integrating it into the system message
+                $user_config_manager->add_message("user", ".");
+            }
+
+            $user_config_manager->add_message("system", $prompt);
+
+            // Process the response from the model
+            $response = $llm->message($config);
+            has_error($response) && array_pop($config->messages); // Remove prompt again if no error
+            $telegram->die_if_error($response);
+            $user_config_manager->add_message("assistant", $response);
+
+            // Only add "Search with" if response starts with ```
+            if (strpos($response, '```') === 0) {
+                $request_encoded = urlencode(explode("\n", $response)[1]);
+                $google = "[Google](https://www.google.com/search?q=$request_encoded)";
+                $response = "$response\n\nSearch with: [Perplexity AI](https://www.perplexity.ai/) | $google | /papers | /search";
+                // TODO: Add Kagi? If I want to use Kagi and the API is out of beta
+            }
+            $telegram->send_message($response);
+            exit;
+        }, "Shortcuts", "Generate a search query based on the conversation. You can provide additional context with the command.");
+
         // TODO !!! Add more presets here !!!
 
         // ##########################
