@@ -351,7 +351,7 @@ class LLMConnector {
         $params = [
             "query" => $query,
             "limit" => $limit,
-            "fields" => "url,title,abstract,year,authors,citationCount"
+            "fields" => "url,title,abstract,year,authors,citationCount,openAccessPdf"
         ];
 
         // Add query parameters to URL
@@ -422,7 +422,8 @@ class LLMConnector {
                 'abstract' => $paper->abstract ?? '',
                 'year' => $paper->year ?? '',
                 'authors' => $authors_text,
-                'citationCount' => $paper->citationCount
+                'citationCount' => $paper->citationCount,
+                'pdfUrl' => isset($paper->openAccessPdf) ? ($paper->openAccessPdf->url ?? '') : ''
             ];
         }
         return $papers;

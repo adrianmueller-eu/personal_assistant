@@ -765,7 +765,8 @@ END:VTIMEZONE"));
             foreach ($papers as $i => $paper) {
                 $n = $i + 1;
                 $ref = $paper['url'] ? "[[$n]({$paper['url']})]" : "[$n]";
-                $line = "{$ref} (*{$paper['citationCount']}* cit.) {$paper['authors']} ({$paper['year']}) _{$paper['title']}_ \n\n";
+                $pdf_link = $paper['pdfUrl'] ? " ([PDF]({$paper['pdfUrl']}))" : "";
+                $line = "{$ref} (*{$paper['citationCount']}* cit.) {$paper['authors']} ({$paper['year']}) _{$paper['title']}_{$pdf_link}\n\n";
                 if ($paper['abstract']) {
                     $abstracts[] = "$ref {$paper['title']}\n{$paper['abstract']}";
                 }
