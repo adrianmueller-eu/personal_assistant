@@ -49,11 +49,46 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $user_message = trim($matches[2] ?? '');
 
             $telegram->send_message("Detected link `$link`. Extracting content...");
-            $content = parse_link($link);
-            $telegram->die_if_error($content);
+            // Special handling for github.com repo links to get README.md if exists
+            if (preg_match('#^https?://github.com/([^/]+)/([^/]+)(/tree/([^/]+)(/.*)?)?#i', $link, $githubMatch)) {
+                $owner = $githubMatch[1];
+                $repo = $githubMatch[2];
+                $branch = isset($githubMatch[4]) && $githubMatch[4] ? $githubMatch[4] : 'main';
+                $path = isset($githubMatch[5]) && $githubMatch[5] ? $githubMatch[5] : '';
+                $path = trim($path, '/');
+                $try_paths = [];
+                if ($path !== '') {
+                    $parts = explode('/', $path);
+                    // Build all parent paths from deepest to root
+                    for ($i = count($parts); $i >= 0; $i--) {
+                        $subpath = implode('/', array_slice($parts, 0, $i));
+                        $try_paths[] = ($subpath ? $subpath . '/' : '') . 'README.md';
+                    }
+                } else {
+                    $try_paths[] = 'README.md';
+                }
+                // Try each possible README.md location, all on the specified branch
+                foreach ($try_paths as $try_path) {
+                    $raw_url = "https://raw.githubusercontent.com/$owner/$repo/$branch/$try_path";
+                    $head = @get_headers($raw_url, 1);
+                    if ($head && strpos($head[0], '200') !== false) {
+                        $link = $raw_url;
+                        break;
+                    }
+                }
+            }
+            if (preg_match('/\.(md|txt|text|csv|log)$/i', $link)) {
+                // direct download of text-like file content into $content
+                $content = @file_get_contents($link);
+                $content || $telegram->die("Error: Failed to download text file content from the link.");
+            } else {
+                $content = parse_link($link);
+                $telegram->die_if_error($content);
+            }
 
             if ($DEBUG)
                 $telegram->send_message("Link processed: \"$link\"\n- Words: ".str_word_count($content));
+                // $telegram->die("Debug:\n\n$message");
 
             // Format the message with extracted content
             $message = "Link: $link\n\n```\n$content\n```";
