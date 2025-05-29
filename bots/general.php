@@ -654,7 +654,10 @@ END:VTIMEZONE"));
             $user_config_manager->add_message("user", $query == "" ? "Please perform the web search." : $query);
 
             $response = $llm->message($chat, $enable_websearch=true);
-            $telegram->die_if_error($response);
+            if (has_error($response)) {
+                $user_config_manager->delete_messages(1);
+                $telegram->die($response." Chat history has not been changed.");
+            }
 
             // Handle websearch responses with citations
             if (is_array($response)) {
@@ -693,17 +696,20 @@ END:VTIMEZONE"));
             if (count($config->messages) <= 2) {
                 $telegram->die("There is no chat history yet. Please provide a query or context after /p.");
             }
+            $n_messages_added = 1;
             if (count($config->messages) === 1 && $config->messages[0]->role === 'system') {
                 // With this, for Claude, LLM_connector converts $prompt to "user" role instead of integrating it into the system message
                 $user_config_manager->add_message("user", ".");
+                $n_messages_added += 1;
             }
-
             $user_config_manager->add_message("system", $prompt);
 
             // Process the response from the model
             $response = $llm->message($config);
-            has_error($response) && array_pop($config->messages); // Remove prompt again if no error
-            $telegram->die_if_error($response);
+            if (has_error($response)) {
+                $user_config_manager->delete_messages($n_messages_added);
+                $telegram->die($response." Chat history has not been changed.");
+            }
             $user_config_manager->add_message("assistant", $response);
 
             // Only add "Search with" if response starts with ```
