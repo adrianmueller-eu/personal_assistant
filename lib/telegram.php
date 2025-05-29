@@ -99,6 +99,7 @@ class Telegram {
      *
      * @param string $message The message to split.
      * @param int $max_length The maximum length of each message.
+     * @param int $max_messages The maximum number of messages to split into.
      * @return array The messages of maximum $max_length characters.
      */
     private function split_message($message, $max_length = 4096, $max_messages=10) {

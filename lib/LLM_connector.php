@@ -25,13 +25,13 @@ class LLMConnector {
     }
 
     /**
-     * Send a request to create a chat completion of the model specified in the data.
+     * Send a request to create a chat completion with the model specified in the data.
      *
      * @param object|array $data The data to send.
-     * @param bool $force_text Whether to force the output to be text only (default: true).
-     * @return string The response from the model or an error message (starts with "Error: ").
+     * @param bool $enable_websearch Whether to enable websearch in the output (default: false).
+     * @return string|array The response from the model or an error message (starts with "Error: ").
      */
-    public function message($data, $enable_websearch = false) {
+    public function message($data, $enable_websearch = false): string|array {
         $data = json_decode(json_encode($data), false);  // copy data do not modify the original object
 
         // If not using Claude, convert any structured array content in messages to text
@@ -110,11 +110,11 @@ class LLMConnector {
     /**
      * Parse requests for claude-* models.
      *
-     * @param object|array $data
-     * @param bool $force_text Whether to force the output to be text only.
-     * @return string|array
+     * @param object|array $data The data to send.
+     * @param bool $enable_websearch Whether to enable websearch in the output (default: false).
+     * @return string|array The response from the model or an error message.
      */
-    private function parse_claude($data, $enable_websearch = false) {
+    private function parse_claude($data, $enable_websearch = false): string|array {
         // Allow thinking if the desired
         if (str_ends_with($data->model, "-thinking")) {
             // remove the "-thinking" suffix
@@ -301,7 +301,7 @@ class LLMConnector {
      * @param string $model The model to use for the image generation.
      * @return string The URL of the image generated or an error message.
      */
-    public function image($prompt, $model="dall-e-3") {
+    public function image($prompt, $model="dall-e-3") {  # needs ID upload for gpt-image-1
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->dalle($prompt, $model);
     }

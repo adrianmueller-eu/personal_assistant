@@ -4,7 +4,7 @@ require_once __DIR__."/utils.php";
 
 /**
  * This class manages the persistent data for a chat.
- * 
+ *
  * The JSON file is named after the chat ID. It has the following format:
  * ```json
  * {
@@ -144,7 +144,7 @@ class UserConfigManager {
 
     /**
      * Save the config object permanently. It has the properties "model", "temperature" and "messages".
-     * 
+     *
      * @param object|array $config The config object with messages and model parameters.
      * @return void
      */
@@ -164,7 +164,7 @@ class UserConfigManager {
 
     /**
      * Add a message to the chat history.
-     * 
+     *
      * @param string $role The role of the message sender.
      * @param string|array $content The message content.
      * @return void
@@ -193,7 +193,7 @@ class UserConfigManager {
 
     /**
      * Delete the last $n messages from the chat history.
-     * 
+     *
      * @param int $n The number of messages to delete.
      * @return int The number of actually deleted messages.
      */
@@ -214,7 +214,7 @@ class UserConfigManager {
 
     /**
      * Read the session info. Its properties can be set arbitrarily for each key when saving.
-     * 
+     *
      * @param string $key The key of the session.
      * @return object|null The session info object or null if the session does not exist.
      */
@@ -231,7 +231,7 @@ class UserConfigManager {
 
     /**
      * Save the session info object permanently. Its properties can be set arbitrarily for each key.
-     * 
+     *
      * @param string $key The key of the session.
      * @param object|array $session_info The session info object.
      */
@@ -262,7 +262,7 @@ class UserConfigManager {
 
     /**
      * Delete the user config file.
-     * 
+     *
      * @return bool True if the file was deleted, false if the file does not exist. Throws an exception if the file exists but could not be deleted.
      */
     public function delete() {
@@ -316,7 +316,7 @@ class UserConfigManager {
 
     /**
      * Set the name of the user.
-     * 
+     *
      * @param string $name The name of the user.
      */
     public function set_name($name) {
@@ -348,7 +348,7 @@ class UserConfigManager {
 
     /**
      * Get the intro text of the user.
-     * 
+     *
      * @return string The intro text of the user.
      */
     public function get_intro() {
@@ -357,7 +357,7 @@ class UserConfigManager {
 
     /**
      * Set the intro text of the user.
-     * 
+     *
      * @param string $intro The intro text of the user.
      */
     public function set_intro($intro) {
@@ -396,7 +396,7 @@ class UserConfigManager {
 
     /**
      * Get the last thinking output of the model.
-     * 
+     *
      * @param string $last_thinking
      * @return void
      */
@@ -406,7 +406,7 @@ class UserConfigManager {
 
     /**
      * Get the last thinking output of the model.
-     * 
+     *
      * @return string The last thinking output of the model.
      */
     public function get_last_thinking_output() {
@@ -433,7 +433,7 @@ class UserConfigManager {
 
     /**
      * Increment a counter.
-     * 
+     *
      * @param string $name The name of the counter.
      * @param int $cnt The amount to increment the counter by (default: 1).
      */
@@ -453,7 +453,7 @@ class UserConfigManager {
 
     /**
      * Set the OpenRouter API key of the user.
-     * 
+     *
      * @param mixed $openrouter_api_key
      * @return void
      */
@@ -463,7 +463,7 @@ class UserConfigManager {
 
     /**
      * Get the OpenRouter API key of the user.
-     * 
+     *
      * @return string The OpenRouter API key of the user.
      */
     public function get_openrouter_api_key() {
@@ -472,7 +472,7 @@ class UserConfigManager {
 
     /**
      * Set the OpenAI API key of the user.
-     * 
+     *
      * @param string $openai_api_key The OpenAI API key of the user.
      */
     public function set_openai_api_key($openai_api_key) {
@@ -481,7 +481,7 @@ class UserConfigManager {
 
     /**
      * Get the OpenAI API key of the user.
-     * 
+     *
      * @return string The OpenAI API key of the user.
      */
     public function get_openai_api_key() {
@@ -490,7 +490,7 @@ class UserConfigManager {
 
     /**
      * Set the Anthropic API key of the user.
-     * 
+     *
      * @param string $anthropic_api_key The Anthropic API key of the user.
      */
     public function set_anthropic_api_key($anthropic_api_key) {
@@ -499,7 +499,7 @@ class UserConfigManager {
 
     /**
      * Get the Anthropic API key of the user.
-     * 
+     *
      * @return string The Anthropic API key of the user.
      */
     public function get_anthropic_api_key() {
@@ -508,7 +508,7 @@ class UserConfigManager {
 
     /**
      * Set the time zone of the user.
-     * 
+     *
      * @param string $time_zone The time zone of the user.
      */
     public function set_timezone($time_zone) {
@@ -517,7 +517,7 @@ class UserConfigManager {
 
     /**
      * Get the time zone of the user.
-     * 
+     *
      * @return string The time zone of the user.
      */
     public function get_timezone() {
@@ -526,7 +526,7 @@ class UserConfigManager {
 
     /**
      * Update the time the user last sent a message.
-     * 
+     *
      * @param string $last_seen The last seen time of the user.
      */
     public function update_last_seen($last_seen) {
@@ -540,7 +540,7 @@ class UserConfigManager {
 
     /**
      * Get whether message post processing is enabled.
-     * 
+     *
      * @return bool
      */
     public function is_post_processing() {
