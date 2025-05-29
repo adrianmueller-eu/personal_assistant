@@ -237,7 +237,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
     if (is_string($message)) {
         // If starts with "." or "\", it might be a typo for a command
-        if (substr($message, 0, 1) == "." || (substr($message, 0, 1) == "\\")) {
+        if ((substr($message, 0, 1) == "." && strlen($message) > 1) || (substr($message, 0, 1) == "\\")) {
             // Remove everything after the first space-like character
             $potential_command = preg_replace("/\s.*/", "", $message);
             // If it only contains word-characters, it might be a command
