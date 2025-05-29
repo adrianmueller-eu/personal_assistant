@@ -12,12 +12,13 @@ class Anthropic {
     private $RETRY_CNT = 0;
     private $MAX_RETRY = 4;
 
-    /**
-     * Create a new instance.
-     *
-     * @param UserConfigManager $user The user to use for the requests.
-     */
-    public function __construct($user, $DEBUG = False) {
+     /**
+      * Create a new instance.
+      *
+      * @param UserConfigManager $user The user to use for the requests.
+      * @param bool $DEBUG Whether to enable debug mode.
+      */
+     public function __construct($user, $DEBUG = False) {
         $this->DEBUG = $DEBUG;
         $this->user = $user;
     }
@@ -29,7 +30,7 @@ class Anthropic {
      * @param bool $enable_websearch Whether to enable web search (default: false).
      * @return array|string The response from Claude or an error message (starts with "Error: ").
      */
-    public function claude($data, $enable_websearch = false) {
+    public function claude($data, $enable_websearch = false): array|string {
         // Request a chat completion from Anthropic
         // The response has the following format:
         // $server_output = '{

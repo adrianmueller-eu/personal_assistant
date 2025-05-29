@@ -20,6 +20,7 @@ class Telegram {
      *
      * @param string $telegram_token The Telegram bot token.
      * @param string $chat_id The chat ID.
+     * @param bool $DEBUG Enable debug mode.
      */
     public function __construct($telegram_token, $chat_id, $DEBUG = false) {
         if (!preg_match("/^[0-9]+:[a-zA-Z0-9_-]+$/", $telegram_token)) {
@@ -102,7 +103,7 @@ class Telegram {
      * @param int $max_messages The maximum number of messages to split into.
      * @return array The messages of maximum $max_length characters.
      */
-    private function split_message($message, $max_length = 4096, $max_messages=10) {
+    private function split_message($message, $max_length = 4096, $max_messages=10): array {
         if (strlen($message) < $max_length)
             return array($message);
         if (strlen($message) > $max_length * $max_messages) {
@@ -149,7 +150,7 @@ class Telegram {
      * @param bool $is_markdown (optional) Whether the message is markdown or not. Default: true.
      * @return void
      */
-    public function send_message($message, $is_markdown = true) {
+    public function send_message($message, $is_markdown = true): void {
         if (empty($message) || trim($message) == "") {
             Log::error(array(
                 "interface" => "telegram",
@@ -200,7 +201,7 @@ class Telegram {
      * @param string $caption (optional) The caption of the image.
      * @return void
      */
-    public function send_image($image, $caption = "") {
+    public function send_image($image, $caption = ""): void {
         $this->send("sendPhoto", array(
             "chat_id" => $this->chat_id,
             "photo" => $image,
@@ -215,7 +216,7 @@ class Telegram {
      * @param string $file_name The name of the file.
      * @param string $file_content The content of the file.
      */
-    public function send_document($file_name, $file_content) {
+    public function send_document($file_name, $file_content): void {
         $this->send("sendDocument", array(
             "chat_id" => $this->chat_id
         ), array(), "document", $file_name, $file_content);
@@ -226,7 +227,7 @@ class Telegram {
      *
      * @param string $ogg_content The content of the OGG file.
      */
-    public function send_voice($ogg_content) {
+    public function send_voice($ogg_content): void {
         $this->send("sendVoice", array(
             "chat_id" => $this->chat_id
         ), array(), "voice", "audio.ogg", $ogg_content);
@@ -238,7 +239,7 @@ class Telegram {
      * @param string $file_id The file ID
      * @return string|null The file url or null if there was an error.
      */
-    public function get_file_url($file_id) {
+    public function get_file_url($file_id): string|null {
         $server_output = $this->send("getFile", array(
             "file_id" => $file_id
         ));
@@ -254,7 +255,7 @@ class Telegram {
      * @param string $file_id The file ID
      * @return string|null The file content or null if there was an error.
      */
-    public function get_file($file_id) {
+    public function get_file($file_id): string|null|bool {
         $file_url = $this->get_file_url($file_id);
         if ($file_url == null) {
             return null;
@@ -267,24 +268,53 @@ class Telegram {
      *
      * @return string The chat ID.
      */
-    public function get_chat_id() {
+    public function get_chat_id(): string {
         return $this->chat_id;
     }
 
-    public function set_postprocessing($post_processing) {
+    /**
+     * Enable or disable message post-processing for Markdown formatting.
+     * When enabled, messages are formatted using MarkdownV2 syntax with proper escaping.
+     * 
+     * @param bool $post_processing True to enable post-processing, false to disable
+     */
+    public function set_postprocessing($post_processing): void {
         $this->post_processing = $post_processing;
     }
 
-    public function die($message) {
+    /**
+     * Send a message to the chat and terminate script execution.
+     * Useful for displaying critical errors to the user before exiting.
+     * 
+     * @param string $message The error message to display before terminating
+     */
+    public function die($message): void {
         $this->send_message($message, false);
         exit;
     }
 
-    public function die_if_error($message) {
+    /**
+     * Check if a message contains an error and terminate if it does.
+     * This is a convenience method to check response objects and terminate execution
+     * when an error is detected.
+     * 
+     * @param string $message The message to check for errors
+     */
+    public function die_if_error($message): void {
         has_error($message) && $this->die($message);
     }
 
-    private function format_message($response) {
+    /**
+     * Format a message for proper display in Telegram using MarkdownV2.
+     * Handles various formatting tasks such as:
+     * - Converting LaTeX expressions to code blocks
+     * - Processing markdown syntax for proper Telegram display
+     * - Escaping special characters as required by Telegram's MarkdownV2 format
+     * 
+     * @param string $response The original message text to format
+     * @return string The formatted message ready for Telegram's MarkdownV2 parser
+     */
+    private function format_message($response): string {
         // $this->send_message("Original response: $response", false);
 
         // Replace "```\n$$" or "```\n\[" with "```"

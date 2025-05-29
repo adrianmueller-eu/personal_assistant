@@ -66,7 +66,7 @@ class LLMConnector {
      * @param object|array $data
      * @return string|array
      */
-    private function parse_gpt($data) {
+    private function parse_gpt($data): string|array {
         $openai = new OpenAI($this->user, $this->DEBUG);
         $content = $openai->gpt($data);
         if (is_string($content)) {
@@ -279,7 +279,7 @@ class LLMConnector {
      * @param object|array $data
      * @return string|array
      */
-    private function parse_openrouter($data) {
+    private function parse_openrouter($data): string|array {
         $openrouter = new OpenRouter($this->user, $this->DEBUG);
         $data->reasoning = (object) array(
             "effort" => "high"
@@ -301,7 +301,7 @@ class LLMConnector {
      * @param string $model The model to use for the image generation.
      * @return string The URL of the image generated or an error message.
      */
-    public function image($prompt, $model="dall-e-3") {  # needs ID upload for gpt-image-1
+    public function image($prompt, $model="dall-e-3"): string {  # needs ID upload for gpt-image-1
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->dalle($prompt, $model);
     }
@@ -316,7 +316,7 @@ class LLMConnector {
      * @param string $response_format The format of the returned audio. Supported values are `mp3`, `ogg`, and `wav`. Defaults to `ogg`.
      * @return string The URL of the audio file generated or an error message.
      */
-    public function tts($message, $model, $voice, $speed, $response_format = "opus") {
+    public function tts($message, $model, $voice, $speed, $response_format = "opus"): string {
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->tts($message, $model, $voice, $speed, $response_format);
     }
@@ -343,7 +343,7 @@ class LLMConnector {
      * @param int $max_retries Maximum number of retries for rate limit errors (default: 5)
      * @return array|string Array of papers with their details or error string
      */
-    public function semantic_scholar_search($query, $limit = 12, $api_key = null, $max_retries = 15) {
+    public function semantic_scholar_search($query, $limit = 12, $api_key = null, $max_retries = 15): array|string {
         // API endpoint for Semantic Scholar search
         $url = "https://api.semanticscholar.org/graph/v1/paper/search";
 

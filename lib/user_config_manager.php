@@ -71,9 +71,10 @@ class UserConfigManager {
 
     /**
      * @param string $chat_id The chat ID
-     * @param string $username The username of the user. Will only be used if the config is not yet created.
-     * @param string $name The name of the user. Will only be used if the config is not yet created.
+     * @param string|null $username The username of the user. Will only be used if the config is not yet created.
+     * @param string|null $name The name of the user. Will only be used if the config is not yet created.
      * @param string $lang The language code of the user. Will only be used if the config is not yet created.
+     * @param bool $DEBUG Enable debug mode
      */
     public function __construct($chat_id, $username = null, $name = null, $lang = "en", $DEBUG = false) {
         $chats_dir = __DIR__."/../chats";
@@ -88,11 +89,23 @@ class UserConfigManager {
         $this->DEBUG = $DEBUG;
     }
 
+    /**
+     * Destructor.
+     * @return void
+     */
     public function __destruct() {
         $this->save();
     }
 
-    private function load($username, $name, $lang) {
+    /**
+     * Load user config.
+     *
+     * @param string|null $username
+     * @param string|null $name
+     * @param string $lang
+     * @return void
+     */
+    private function load($username, $name, $lang): void {
         if (file_exists($this->user_config_file)) {
             $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
             if ($this->user_data === null || $this->user_data === false) {
@@ -126,7 +139,12 @@ class UserConfigManager {
         }
     }
 
-    private function save() {
+    /**
+     * Save user config.
+     *
+     * @return void
+     */
+    private function save(): void {
         $res = file_put_contents($this->user_config_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
         if ($res === false) {
             Log::error("Could not save user config file: $this->user_config_file");
@@ -138,7 +156,7 @@ class UserConfigManager {
     /**
      * @return object The config object with messages and model parameters.
      */
-    public function get_config() {
+    public function get_config(): object {
         return $this->user_data->config;
     }
 
@@ -148,7 +166,11 @@ class UserConfigManager {
      * @param object|array $config The config object with messages and model parameters.
      * @return void
      */
-    public function save_config($config) {
+    /**
+     * @param object|array $config
+     * @return void
+     */
+    public function save_config($config): void {
         // convert $config to object if it is an array
         if (is_array($config)) {
             $config = (object) $config;
@@ -169,7 +191,7 @@ class UserConfigManager {
      * @param string|array $content The message content.
      * @return void
      */
-    public function add_message($role, $content) {
+    public function add_message($role, $content): void {
         // Ignore empty messages
         if ($content == null) {
             return;
@@ -197,7 +219,7 @@ class UserConfigManager {
      * @param int $n The number of messages to delete.
      * @return int The number of actually deleted messages.
      */
-    public function delete_messages($n) {
+    public function delete_messages($n): int {
         // Delete the last $n messages
         $chat = $this->get_config();
         // n must not be greater than the actual number of messages
@@ -207,7 +229,10 @@ class UserConfigManager {
         return $n;
     }
 
-    public function clear_messages() {
+    /**
+     * @return void
+     */
+    public function clear_messages(): void {
         $chat = $this->get_config();
         $chat->messages = array();
     }
@@ -218,14 +243,17 @@ class UserConfigManager {
      * @param string $key The key of the session.
      * @return object|null The session info object or null if the session does not exist.
      */
-    public function get_session($key) {
+    public function get_session($key): ?object {
         if (!isset($this->user_data->sessions->$key)) {
             return null;
         }
         return $this->user_data->sessions->$key;
     }
 
-    public function get_sessions() {
+    /**
+     * @return object
+     */
+    public function get_sessions(): object {
         return $this->user_data->sessions;
     }
 
@@ -233,9 +261,10 @@ class UserConfigManager {
      * Save the session info object permanently. Its properties can be set arbitrarily for each key.
      *
      * @param string $key The key of the session.
-     * @param object|array $session_info The session info object.
+     * @param object|array|null $session_info The session info object.
+     * @return void
      */
-    public function save_session($key='last', $session_info=null) {
+    public function save_session($key='last', $session_info=null): void {
         if ($session_info === null) {
             $session_info = $this->get_config();
         }
@@ -245,7 +274,10 @@ class UserConfigManager {
         $this->user_data->sessions->$key = json_decode(json_encode($session_info));
     }
 
-    public function delete_session($key) {
+    /**
+     * @param string $key
+     */
+    public function delete_session($key): bool {
         if (!isset($this->user_data->sessions->$key)) {
             return false;
         }
@@ -256,7 +288,7 @@ class UserConfigManager {
     /**
      * @return string The path to the user config file.
      */
-    public function get_file() {
+    public function get_file(): string {
         return $this->user_config_file;
     }
 
@@ -265,7 +297,7 @@ class UserConfigManager {
      *
      * @return bool True if the file was deleted, false if the file does not exist. Throws an exception if the file exists but could not be deleted.
      */
-    public function delete() {
+    public function delete(): bool {
         if (!file_exists($this->user_config_file)) {
             return false;
         }
@@ -278,7 +310,12 @@ class UserConfigManager {
         return true;
     }
 
-    public function save_backup() {
+    /**
+     * Save a backup of the user config file.
+     *
+     * @return void
+     */
+    public function save_backup(): void {
         $backup_file = $this->user_config_file.".bak";
         $res = file_put_contents($backup_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
         if ($res === false) {
@@ -288,7 +325,12 @@ class UserConfigManager {
         }
     }
 
-    public function restore_backup() {
+    /**
+     * Restore the user config from a backup file.
+     *
+     * @return bool True if restored, false if backup does not exist.
+     */
+    public function restore_backup(): bool {
         $backup_file = $this->user_config_file.".bak";
         if (!file_exists($backup_file)) {
             return false;
@@ -310,7 +352,7 @@ class UserConfigManager {
     /**
      * @return string The name of the user.
      */
-    public function get_name() {
+    public function get_name(): string {
         return $this->user_data->name;
     }
 
@@ -319,21 +361,21 @@ class UserConfigManager {
      *
      * @param string $name The name of the user.
      */
-    public function set_name($name) {
+    public function set_name($name): void {
         $this->user_data->name = $name;
     }
 
     /**
      * @return string The username of the user.
      */
-    public function get_username() {
+    public function get_username(): string {
         return $this->user_data->username;
     }
 
     /**
      * @return string The language of the user.
      */
-    public function get_lang() {
+    public function get_lang(): string {
         return $this->user_data->lang;
     }
 
@@ -342,7 +384,7 @@ class UserConfigManager {
      *
      * @param string $lang The language of the user.
      */
-    public function set_lang($lang) {
+    public function set_lang($lang): void {
         $this->user_data->lang = $lang;
     }
 
@@ -351,7 +393,7 @@ class UserConfigManager {
      *
      * @return string The intro text of the user.
      */
-    public function get_intro() {
+    public function get_intro(): string {
         return $this->user_data->intro;
     }
 
@@ -360,7 +402,7 @@ class UserConfigManager {
      *
      * @param string $intro The intro text of the user.
      */
-    public function set_intro($intro) {
+    public function set_intro($intro): void {
         $this->user_data->intro = $intro;
     }
 
@@ -369,7 +411,7 @@ class UserConfigManager {
      *
      * @return array The hellos of the user.
      */
-    public function get_hellos() {
+    public function get_hellos(): array {
         return $this->user_data->hellos;
     }
 
@@ -378,14 +420,14 @@ class UserConfigManager {
      *
      * @param array $hellos The hellos of the user.
      */
-    public function set_hellos($hellos) {
+    public function set_hellos($hellos): void {
         $this->user_data->hellos = $hellos;
     }
 
     /**
      * Return a random hello to the user.
      */
-    public function hello() {
+    public function hello(): string {
         $hellos = $this->get_hellos();
         if (count($hellos) == 0) {
             return "Hi there, this is your personal assistant. How can I help you? Type /help to see what I can do.";
@@ -400,7 +442,7 @@ class UserConfigManager {
      * @param string $last_thinking
      * @return void
      */
-    public function set_last_thinking_output($last_thinking) {
+    public function set_last_thinking_output($last_thinking): void {
         $this->user_data->last_thinking = $last_thinking;
     }
 
@@ -409,7 +451,7 @@ class UserConfigManager {
      *
      * @return string The last thinking output of the model.
      */
-    public function get_last_thinking_output() {
+    public function get_last_thinking_output(): string {
         if (!isset($this->user_data->last_thinking)) {
             $this->user_data->last_thinking = "";
         }
@@ -420,14 +462,15 @@ class UserConfigManager {
     /**
      * Get the text-to-speech (TTS) config of the user.
      */
-    public function get_tts_config() {
+    public function get_tts_config(): object {
         return $this->user_data->tts_config;
     }
 
     /**
      * Set the text-to-speech (TTS) config of the user.
+     * @param mixed $tts_config
      */
-    public function save_tts_config($tts_config) {
+    public function save_tts_config($tts_config): void {
         $this->user_data->tts_config = $tts_config;
     }
 
@@ -437,7 +480,7 @@ class UserConfigManager {
      * @param string $name The name of the counter.
      * @param int $cnt The amount to increment the counter by (default: 1).
      */
-    public function increment($name, $cnt=1) {
+    public function increment($name, $cnt=1): void {
         if (!isset($this->user_data->counters->$name)) {
             $this->user_data->counters->$name = 0;
         }
@@ -447,7 +490,7 @@ class UserConfigManager {
     /**
      * Get all counters.
      */
-    public function get_counters() {
+    public function get_counters(): object {
         return $this->user_data->counters;
     }
 
@@ -457,7 +500,7 @@ class UserConfigManager {
      * @param mixed $openrouter_api_key
      * @return void
      */
-    public function set_openrouter_api_key($openrouter_api_key) {
+    public function set_openrouter_api_key($openrouter_api_key): void {
         $this->user_data->openrouter_api_key = $openrouter_api_key;
     }
 
@@ -466,7 +509,7 @@ class UserConfigManager {
      *
      * @return string The OpenRouter API key of the user.
      */
-    public function get_openrouter_api_key() {
+    public function get_openrouter_api_key(): string {
         return $this->user_data->openrouter_api_key;
     }
 
@@ -475,7 +518,7 @@ class UserConfigManager {
      *
      * @param string $openai_api_key The OpenAI API key of the user.
      */
-    public function set_openai_api_key($openai_api_key) {
+    public function set_openai_api_key($openai_api_key): void {
         $this->user_data->openai_api_key = $openai_api_key;
     }
 
@@ -484,7 +527,7 @@ class UserConfigManager {
      *
      * @return string The OpenAI API key of the user.
      */
-    public function get_openai_api_key() {
+    public function get_openai_api_key(): string {
         return $this->user_data->openai_api_key;
     }
 
@@ -493,7 +536,7 @@ class UserConfigManager {
      *
      * @param string $anthropic_api_key The Anthropic API key of the user.
      */
-    public function set_anthropic_api_key($anthropic_api_key) {
+    public function set_anthropic_api_key($anthropic_api_key): void {
         $this->user_data->anthropic_api_key = $anthropic_api_key;
     }
 
@@ -502,7 +545,7 @@ class UserConfigManager {
      *
      * @return string The Anthropic API key of the user.
      */
-    public function get_anthropic_api_key() {
+    public function get_anthropic_api_key(): string {
         return $this->user_data->anthropic_api_key;
     }
 
@@ -511,7 +554,7 @@ class UserConfigManager {
      *
      * @param string $time_zone The time zone of the user.
      */
-    public function set_timezone($time_zone) {
+    public function set_timezone($time_zone): void {
         $this->user_data->time_zone = $time_zone;
     }
 
@@ -520,7 +563,7 @@ class UserConfigManager {
      *
      * @return string The time zone of the user.
      */
-    public function get_timezone() {
+    public function get_timezone(): string {
         return $this->user_data->time_zone;
     }
 
@@ -529,11 +572,11 @@ class UserConfigManager {
      *
      * @param string $last_seen The last seen time of the user.
      */
-    public function update_last_seen($last_seen) {
+    public function update_last_seen($last_seen): void {
         $this->user_data->last_seen = $last_seen;
     }
 
-    public function toggle_post_processing() {
+    public function toggle_post_processing(): bool {
         $this->user_data->post_processing = !$this->user_data->post_processing;
         return $this->user_data->post_processing;
     }
@@ -543,7 +586,7 @@ class UserConfigManager {
      *
      * @return bool
      */
-    public function is_post_processing() {
+    public function is_post_processing(): bool {
         return $this->user_data->post_processing ?? false;
     }
 }
