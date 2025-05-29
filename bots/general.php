@@ -654,10 +654,7 @@ END:VTIMEZONE"));
             $user_config_manager->add_message("user", $query == "" ? "Please perform the web search." : $query);
 
             $response = $llm->message($chat, $enable_websearch=true);
-            if (has_error($response)) {
-                $user_config_manager->delete_messages(1);
-                $telegram->die($response." Chat history has not been changed.");
-            }
+            $telegram->die_if_error($response, $user_config_manager);
 
             // Handle websearch responses with citations
             if (is_array($response)) {
@@ -676,6 +673,12 @@ END:VTIMEZONE"));
 
         // The command /p generates a search prompt for research tools
         $command_manager->add_command(array("/p"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
+            // Require a query if the chat history is empty
+            $config = $user_config_manager->get_config();
+            if ($query == "" && count($config->messages) <= 2) {
+                $telegram->die("There is no chat history yet. Please provide a query or context after /p.");
+            }
+
             // Prompt the model to generate a search query
             $prompt = "Your task is to create an optimized search query based on the previous conversation";
             if ($query != "") {
@@ -690,26 +693,16 @@ END:VTIMEZONE"));
                     ."<research query>\n"
                     ."```";
 
-            // If there is only one message in the history and it is a system message, add an empty user message
-            $config = $user_config_manager->get_config();
-            // Require a query if the last message is not from 'assistant'
-            if (count($config->messages) <= 2) {
-                $telegram->die("There is no chat history yet. Please provide a query or context after /p.");
+            if (count($config->messages) === 1 && $config->messages[0]->role === 'system' && strpos($config->model, "claude-") === 0) {
+                // With Claude, do not integrate $prompt into the system message
+                $user_config_manager->add_message("user", $prompt);
+            } else {
+                $user_config_manager->add_message("system", $prompt);
             }
-            $n_messages_added = 1;
-            if (count($config->messages) === 1 && $config->messages[0]->role === 'system') {
-                // With this, for Claude, LLM_connector converts $prompt to "user" role instead of integrating it into the system message
-                $user_config_manager->add_message("user", ".");
-                $n_messages_added += 1;
-            }
-            $user_config_manager->add_message("system", $prompt);
 
             // Process the response from the model
             $response = $llm->message($config);
-            if (has_error($response)) {
-                $user_config_manager->delete_messages($n_messages_added);
-                $telegram->die($response." Chat history has not been changed.");
-            }
+            $telegram->die_if_error($response, $user_config_manager);
             $user_config_manager->add_message("assistant", $response);
 
             // Only add "Search with" if response starts with ```
@@ -734,7 +727,6 @@ END:VTIMEZONE"));
                 if ($query !== "") {
                     $context_prompt .= " and considering this additional context: \"$query\"";
                 }
-
                 $context_prompt .= ", generate a focused academic search query for finding relevant papers (sent to Semantic Scholar API). " .
                                   "The query should be specific and concise, focusing on the key concepts or research questions. " .
                                   "Return ONLY the search query text itself, with no additional commentary or explanation.";
@@ -755,9 +747,13 @@ END:VTIMEZONE"));
             // Get API key from global config manager if available
             $api_key = $global_config_manager->get("SEMANTIC_SCHOLAR_API_KEY");
             $papers = $llm->semantic_scholar_search($query, 10, $api_key);
-            $telegram->die_if_error($papers);
-            // $telegram->send_message(json_encode($papers));
-            !empty($papers) || $telegram->die("No papers found for your query.");
+            $user_config_manager->add_message("user", "Find papers about: $query");
+            $telegram->die_if_error($papers, $user_config_manager);
+            if (empty($papers)) {
+                $mes = "No papers found for your query.";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->die($mes);
+            }
 
             // Build the paper list message and abstracts with references in a single loop
             $abstracts = [];
@@ -775,7 +771,7 @@ END:VTIMEZONE"));
 
             if (!empty($abstracts)) {
                 // Use the existing papers list
-                $abstracts_text = "Here are abstracts from several academic papers related to your search query:\n\n" .
+                $abstracts_text = "Here are abstracts from several academic papers related to the search query:\n\n" .
                     "$papers_list.\n\n".implode("\n\n", $abstracts)."\n\n".
                     "Please provide a comprehensive synthesis of the key findings, methodologies, and insights from these papers. " .
                     "Consider how they relate to each other, any contradictions or consensus between them, and their significance to the field. " .
@@ -787,16 +783,15 @@ END:VTIMEZONE"));
                 // Ask the model to summarize
                 $config = $user_config_manager->get_config();
                 $summary = $llm->message($config);
+                $user_config_manager->delete_messages(1);  // Remove the abstracts message from the history
+                $telegram->die_if_error($summary, $user_config_manager);  // Remove "Find papers about..." message
 
-                // Remove the abstracts message from the history
-                array_pop($user_config_manager->get_config()->messages);
                 // Add the original query as a user message to maintain conversation flow
                 $response = "$summary\n\n$papers_list";
             } else {
                 // Only send the paper list if there are no abstracts
                 $response = "Results for: **$query**\n\n.$papers_list";
             }
-            $user_config_manager->add_message("user", "Find papers about: $query");
             $user_config_manager->add_message("assistant", $response);
             $telegram->send_message($response);
             exit;
@@ -1405,10 +1400,7 @@ END:VTIMEZONE"));
     // $telegram->send_message("Sending message: ".$message);
     $chat = $user_config_manager->get_config();
     $response = $llm->message($chat);
-    if (has_error($response)) {
-        $user_config_manager->delete_messages(1);
-        $telegram->die($response . " Chat history has not been changed.");
-    }
+    $telegram->die_if_error($response, $user_config_manager);
 
     // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
     if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {

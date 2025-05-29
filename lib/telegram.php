@@ -302,9 +302,17 @@ class Telegram {
      * when an error is detected.
      *
      * @param string $message The message to check for errors
+     * @param object $user_config_manager Optional UserConfigManager object to delete the last message from the chat history
      */
-    public function die_if_error($message): void {
-        has_error($message) && $this->die($message);
+    public function die_if_error($message, $user_config_manager=null): void {
+        if (has_error($message)) {
+            if ($user_config_manager !== null) {
+                $user_config_manager->delete_messages(1);
+                $this->die($message." Chat history has not been changed.");
+            } else {
+                $this->die($message);
+            }
+        }
     }
 
     /**
