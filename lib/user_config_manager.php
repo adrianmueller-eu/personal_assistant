@@ -58,7 +58,7 @@ class UserConfigManager {
     private $DEBUG;
 
     static $default_config = array(
-        "model" => "claude-3-7-sonnet-lastest",
+        "model" => "claude-3-7-sonnet-latest",
         "temperature" => 0.9,
         "messages" => array(),
     );
