@@ -81,6 +81,13 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 // direct download of text-like file content into $content
                 $content = @file_get_contents($link);
                 $content || $telegram->die("Error: Failed to download text file content from the link.");
+            } else if (preg_match('/\.(jpg|jpeg|png)$/i', $link)) {  // only the ones widely supported in APIs
+                // If the link is to an image, add it to the chat history as an image_url
+                $user_config_manager->add_message("assistant", array(
+                    array("type" => "image_url", "image_url" => array("url" => $link)),
+                    array("type" => "text", "text" => "Image: $link"),
+                ));
+                $content = "Image link detected and saved to chat history.";
             } else {
                 $content = parse_link($link);
                 $telegram->die_if_error($content);
