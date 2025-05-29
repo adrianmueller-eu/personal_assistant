@@ -6,7 +6,8 @@
         "TELEGRAM_ADMIN_CHAT_ID": "",
         "OPENROUTER_API_KEY": "",
         "OPENAI_API_KEY": "",
-        "ANTHROPIC_API_KEY": ""
+        "ANTHROPIC_API_KEY": "",
+        "SEMANTIC_SCHOLAR_API_KEY": ""
     },
     "users": {
         "general": [],

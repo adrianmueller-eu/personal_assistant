@@ -333,4 +333,98 @@ class LLMConnector {
         $openai = new OpenAI($this->user, $this->DEBUG);
         return $openai->whisper($audio, $model, $language);
     }
+
+    /**
+     * Search for academic papers using the Semantic Scholar API
+     *
+     * @param string $query The search query
+     * @param int $limit Maximum number of results to return (default: 12)
+     * @param string $api_key Optional API key for Semantic Scholar
+     * @param int $max_retries Maximum number of retries for rate limit errors (default: 5)
+     * @return array|string Array of papers with their details or error string
+     */
+    public function semantic_scholar_search($query, $limit = 12, $api_key = null, $max_retries = 15) {
+        // API endpoint for Semantic Scholar search
+        $url = "https://api.semanticscholar.org/graph/v1/paper/search";
+
+        // Prepare the query parameters
+        $params = [
+            "query" => $query,
+            "limit" => $limit,
+            "fields" => "url,title,abstract,year,authors,citationCount"
+        ];
+
+        // Add query parameters to URL
+        $url .= '?' . http_build_query($params);
+
+        // Prepare headers
+        $headers = ["Accept: application/json"];
+
+        // Use API key if provided, otherwise use null
+        if ($api_key) {
+            $headers[] = "x-api-key: " . $api_key;
+        }
+
+        // Make the GET request with retries for rate limit errors
+        $retries = 0;
+        while (true) {
+            $response = curl_get($url, $headers);
+
+            // If successful or error other than rate limit, break the loop
+            if (!has_error($response) || strpos($response, "(http: 429)") === false) {
+                break;
+            }
+
+            // For rate limit errors, retry if we haven't exceeded max_retries
+            if (++$retries >= $max_retries || $api_key) {
+                // Only retry when no API key is provided
+                break;
+            }
+
+            // Add a short delay between retries (increasing with each retry)
+            usleep(500000 * $retries); // 0.5, 1, 1.5, 2, 2.5 seconds
+        }
+
+        // Handle API errors after all retries
+        if (has_error($response)) {
+            // Check if this is a rate limit error (429)
+            if (strpos($response, "(http: 429)") !== false) {
+                return "Error: Semantic Scholar API rate limit exceeded ($retries). Please try again later.";
+            }
+            return $response;
+        }
+
+        if (!isset($response->data) || empty($response->data)) {
+            return [];
+        }
+
+        // Format the papers data as expected by the command handler
+        $papers = [];
+        foreach ($response->data as $paper) {
+            $authors_list = [];
+            if (isset($paper->authors) && is_array($paper->authors)) {
+                foreach ($paper->authors as $author) {
+                    if (isset($author->name)) {
+                        $authors_list[] = $author->name;
+                    }
+                }
+            }
+
+            // Format authors as a string (e.g., "Author1, Author2, et al.")
+            $authors_text = implode(", ", array_slice($authors_list, 0, 3));
+            if (count($authors_list) > 3) {
+                $authors_text .= " et al.";
+            }
+
+            $papers[] = [
+                'url' => $paper->url ?? '',
+                'title' => $paper->title ?? '',
+                'abstract' => $paper->abstract ?? '',
+                'year' => $paper->year ?? '',
+                'authors' => $authors_text,
+                'citationCount' => $paper->citationCount
+            ];
+        }
+        return $papers;
+    }
 }
