@@ -468,7 +468,7 @@ function markdownV2_escape($line, $j) {
             return True;
         case '[':
             // if there is a "](url)" after the [, do not escape it
-            if (preg_match('/^\[[^\[]*\]\([^\)]+\)/', substr($line, $j)))
+            if (preg_match('/^\[[^\[\]]*\]\([^\)]+\)/', substr($line, $j)))
                 return False;
             return True;
         case ']':
