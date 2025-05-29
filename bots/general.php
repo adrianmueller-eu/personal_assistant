@@ -1368,6 +1368,8 @@ END:VTIMEZONE"));
             $messages = $user_config_manager->get_config()->messages;
             $n_messages = count($messages);
             $all_messages = implode("\n", array_map(function($message) {
+                if (is_array($message->content))
+                    return implode("\n", array_map(fn($part) => $part->text ?? "", $message->content));
                 return $message->content;
             }, $messages));
             $n_words = str_word_count($all_messages);
