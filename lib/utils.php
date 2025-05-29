@@ -60,6 +60,44 @@ function curl_post($url, $data, $headers = array(), $field_name = null, $file_na
     return $response;
 }
 
+ /**
+ * Performs an HTTP GET request to the specified URL
+ *
+ * @param string $url The URL to send the GET request to
+ * @param array $headers Optional array of HTTP headers to include
+ * @param bool $return_json Whether to decode the response as JSON or return as string
+ * @return mixed JSON decoded response or raw string response, or error message string
+ */
+function curl_get($url, $headers = array(), $return_json = true) {
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    $server_output = curl_exec($ch);
+
+    // Error handling
+    if (curl_errno($ch)) {
+        $error = 'Error: (curl: '.curl_errno($ch).') ' . curl_error($ch);
+        curl_close($ch);
+        return $error;
+    }
+
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($http_code != 200 || $server_output === false) {
+        $domain = parse_url($url, PHP_URL_HOST);
+        return "Error: (http: ".$http_code.") ".$server_output;
+    }
+
+    if ($return_json) {
+        $response = json_decode($server_output, false);
+        // If server_output is not a valid JSON string, return it as is
+        return ($response === null) ? $server_output : $response;
+    }
+
+    return $server_output;
+}
+
 // Thanks to https://stackoverflow.com/questions/17862004/send-file-using-multipart-form-data-request-in-php
 function build_data_files($boundary, $fields, $field_name, $file_name, $file_content){
     $data = '';
