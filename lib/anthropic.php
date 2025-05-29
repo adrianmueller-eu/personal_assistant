@@ -76,6 +76,9 @@ class Anthropic {
         }
 
         $response = $this->send_request("messages", $data);
+        if (has_error($response))
+            return $response;
+
         // track token usage
         if (isset($response->usage)) {
             // Get a month year string
@@ -97,9 +100,6 @@ class Anthropic {
                 "data" => strip_long_messages($data),
                 "response" => $response,
             ));
-            if (is_string($response)) {
-                return $response;
-            }
             return "Error: The response from Anthropic is not in the expected format: ".json_encode($response);
         }
         return $response->content;
