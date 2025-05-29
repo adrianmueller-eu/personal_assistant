@@ -214,7 +214,7 @@ class Telegram {
      * For sending via URL: "In sendDocument, sending by URL will currently only work for GIF, PDF and ZIP files."
      *
      * @param string $file_name The name of the file.
-     * @param string $file_content The content of the file.
+     * @param string $file_content The content of the file as binary content.
      */
     public function send_document($file_name, $file_content): void {
         $this->send("sendDocument", array(
@@ -223,9 +223,12 @@ class Telegram {
     }
 
     /**
-     * Send a voice message to Telegram. The file name must be in an .OGG file encoded with OPUS.
+     * Send a voice message to Telegram. The file must be in OGG format encoded with OPUS codec.
+     * Telegram servers will transcode the audio to ensure compatibility across all devices.
+     * Maximum file size for voice messages is 50MB.
      *
-     * @param string $ogg_content The content of the OGG file.
+     * @param string $ogg_content The binary content of the OGG file encoded with OPUS.
+     * @return void
      */
     public function send_voice($ogg_content): void {
         $this->send("sendVoice", array(
@@ -275,7 +278,7 @@ class Telegram {
     /**
      * Enable or disable message post-processing for Markdown formatting.
      * When enabled, messages are formatted using MarkdownV2 syntax with proper escaping.
-     * 
+     *
      * @param bool $post_processing True to enable post-processing, false to disable
      */
     public function set_postprocessing($post_processing): void {
@@ -285,7 +288,7 @@ class Telegram {
     /**
      * Send a message to the chat and terminate script execution.
      * Useful for displaying critical errors to the user before exiting.
-     * 
+     *
      * @param string $message The error message to display before terminating
      */
     public function die($message): void {
@@ -297,7 +300,7 @@ class Telegram {
      * Check if a message contains an error and terminate if it does.
      * This is a convenience method to check response objects and terminate execution
      * when an error is detected.
-     * 
+     *
      * @param string $message The message to check for errors
      */
     public function die_if_error($message): void {
@@ -310,7 +313,7 @@ class Telegram {
      * - Converting LaTeX expressions to code blocks
      * - Processing markdown syntax for proper Telegram display
      * - Escaping special characters as required by Telegram's MarkdownV2 format
-     * 
+     *
      * @param string $response The original message text to format
      * @return string The formatted message ready for Telegram's MarkdownV2 parser
      */

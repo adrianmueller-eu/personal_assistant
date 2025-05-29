@@ -12,9 +12,15 @@ class Log {
     private static $echo_level = 0;  // 0: no echo, 1: echo error, 2: echo error and info, 3: echo error, info, and debug
 
     /**
-     * Set the echo level.
+     * Set the echo level that controls which log messages are output to the console.
+     * 
+     * Echo levels:
+     * - 0: No console output
+     * - 1: Output only errors
+     * - 2: Output errors and info messages
+     * - 3: Output errors, info, and debug messages
      *
-     * @param int $echo_level The echo level to set.
+     * @param int $echo_level The echo level to set (0-3)
      */
     public static function set_echo_level($echo_level): void {
         self::$echo_level = $echo_level;

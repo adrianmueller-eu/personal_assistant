@@ -425,7 +425,10 @@ class UserConfigManager {
     }
 
     /**
-     * Return a random hello to the user.
+     * Return a random hello message to the user from their configured greetings.
+     * If no custom greetings are set, returns a default welcome message.
+     * 
+     * @return string A randomly selected greeting message
      */
     public function hello(): string {
         $hellos = $this->get_hellos();
@@ -460,7 +463,10 @@ class UserConfigManager {
 
 
     /**
-     * Get the text-to-speech (TTS) config of the user.
+     * Get the text-to-speech (TTS) configuration of the user.
+     * Returns an object containing TTS settings like model, voice, and speed.
+     * 
+     * @return object Object containing the user's TTS configuration settings
      */
     public function get_tts_config(): object {
         return $this->user_data->tts_config;
@@ -488,7 +494,11 @@ class UserConfigManager {
     }
 
     /**
-     * Get all counters.
+     * Get all usage counters for the user.
+     * Counters track various metrics like number of messages sent, 
+     * commands used, etc. to monitor user activity and usage patterns.
+     * 
+     * @return object Object containing all counter values keyed by counter name
      */
     public function get_counters(): object {
         return $this->user_data->counters;
