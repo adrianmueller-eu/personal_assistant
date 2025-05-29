@@ -757,7 +757,7 @@ END:VTIMEZONE"));
             $papers = $llm->semantic_scholar_search($query, 10, $api_key);
             $telegram->die_if_error($papers);
             // $telegram->send_message(json_encode($papers));
-            !empty($papers) || $telegram->die_if_error("No papers found for your query.");
+            !empty($papers) || $telegram->die("No papers found for your query.");
 
             // Build the paper list message and abstracts with references in a single loop
             $abstracts = [];
