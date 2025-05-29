@@ -3,10 +3,18 @@
 // This is for debugging
 $DEBUG=false;
 
+// Log PHP errors
+function customErrorHandler($errno, $errstr, $errfile, $errline) {
+    $error_message = date('Y-m-d H:i:s').": [$errno] $errstr in $errfile on line $errline\n";
+    file_put_contents(__DIR__.'/logs/php_errors.log', $error_message, FILE_APPEND);
+    return false; // Let PHP handle the error as well
+}
+// error_reporting(E_ALL);
+set_error_handler("customErrorHandler");
+
 if ($DEBUG) {
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');
-    error_reporting(E_ALL);
 }
 
 // Set here the bot you want to use
