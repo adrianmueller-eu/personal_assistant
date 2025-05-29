@@ -89,11 +89,12 @@ class Anthropic {
                 $this->user->increment("anthropic_".$month."_web_search_requests", $response->usage->server_tool_use->web_search_requests);
             }
         }
-        if (!isset($response->content[0]->text) && !isset($response->content[1]->text)) {
+
+        if (!isset($response->content)) {
             Log::error(array(
                 "interface" => "anthropic",
                 "endpoint" => "messages",
-                "data" => $data,
+                "data" => strip_long_messages($data),
                 "response" => $response,
             ));
             if (is_string($response)) {
@@ -131,7 +132,7 @@ class Anthropic {
             Log::debug(array(
                 "interface" => "anthropic",
                 "endpoint" => $endpoint,
-                "data" => $data,
+                "data" => strip_long_messages($data),
                 "response" => $response_log,
             ));
         }
@@ -150,7 +151,7 @@ class Anthropic {
             Log::error(array(
                 "interface" => "anthropic",
                 "endpoint" => $endpoint,
-                "data" => $data,
+                "data" => strip_long_messages($data),
                 "response" => $response,
                 "retry" => $this->RETRY_CNT,
             ));

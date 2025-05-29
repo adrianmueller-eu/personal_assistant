@@ -254,3 +254,34 @@ function text_from_websearch($array_response, $use_post_processing) {
     }
     return $formatted_text;
 }
+
+function strip_long_messages($data, $max_length=200) {
+    $data = json_decode(json_encode($data));  // deep copy
+    foreach ($data->messages as $message) {
+        // Handle string content
+        if (is_string($message->content)) {
+            $message->content = substr($message->content, 0, $max_length) . '...';
+        }
+        // Handle array content
+        else if (is_array($message->content)) {
+            foreach ($message->content as $key => $item) {
+                if (isset($item->text)) {
+                    $item->text = substr($item->text, 0, $max_length) . '...';
+                }
+                else if (isset($item->source) && isset($item->source->data)) {
+                    $item->source->data = strlen(json_encode($item->source->data)).' bytes';
+                }
+                else {
+                    $len = strlen(json_encode($item));
+                    if ($len > $max_length) {
+                        $message->content[$key] = "$len bytes";
+                    }
+                }
+            }
+        }
+    }
+    if (isset($data->system)) {
+        $data->system = substr($data->system, 0, $max_length) . '...';
+    }
+    return $data;
+}

@@ -199,7 +199,7 @@ class OpenAI {
             Log::debug(array(
                 "interface" => "openai",
                 "endpoint" => $endpoint,
-                "data" => $data,
+                "data" => strip_long_messages($data),
                 "response" => $response_log,
             ));
         }
@@ -219,7 +219,7 @@ class OpenAI {
             Log::error(array(
                 "interface" => "openai",
                 "endpoint" => $endpoint,
-                "data" => $data,
+                "data" => strip_long_messages($data),
                 "response" => $response,
             ));
             // Return the error message
