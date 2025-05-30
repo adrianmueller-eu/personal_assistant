@@ -368,7 +368,7 @@ class LLMConnector {
         // Make the GET request with retries for rate limit errors
         $retries = 0;
         while (true) {
-            $response = curl_get($url, $headers);
+            $response = curl($url, $headers);
 
             // If successful or error other than rate limit, break the loop
             if (!has_error($response) || strpos($response, "(http: 429)") === false) {

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * This function is a generic wrapper for cURL POST requests. To send a file, set $field_name, $file_name, *and* $file_content.
+ * Perform cURL POST requests. To send a file, set $field_name, $file_name, *and* $file_content.
  *
  * @param string $url The URL to send the request to
  * @param object|array $data Data
@@ -9,7 +9,7 @@
  * @param string $field_name (optional) The name of the field
  * @param string $file_name (optional) The name of the file
  * @param string $file_content (optional) The content of the file
- * @return object|string The response from the API or an error message
+ * @return object|string The response from the API, error object with 'error' property, or error string
  */
 function curl_post($url, $data, $headers = array(), $field_name = null, $file_name = null, $file_content = null) {
     if ($field_name != null && $file_name != null && $file_content != null) {
@@ -26,76 +26,53 @@ function curl_post($url, $data, $headers = array(), $field_name = null, $file_na
             "Content-Length: " . strlen($data)
         ));
     }
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    $server_output = curl_exec($ch);
-    curl_close($ch);
-
-    // Error handling
-    if (curl_errno($ch)) {
-        return 'Error: (curl: '.curl_errno($ch).') ' . curl_error($ch);
-    }
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $response = json_decode($server_output, false);
-    if ($http_code != 200 || $server_output === false) {
-        if (is_object($response) && str_contains($server_output, "error")) {
-            $response->http_code = $http_code;
-        }
-        else if (is_string($server_output)) {
-            return "Error: (http: ".$http_code.") ".$server_output;
-        }
-        else {
-            $domain = parse_url($url, PHP_URL_HOST);
-            return 'Error: No response from '.$domain;
-        }
-    }
-    // if server_output is not a valid JSON string, return it as is
-    if ($response === null) {
-        return $server_output;
-    }
-    return $response;
+    return curl($url, $headers, $data);
 }
 
- /**
- * Performs an HTTP GET request to the specified URL
+/**
+ * Perform cURL requests.
  *
- * @param string $url The URL to send the GET request to
- * @param array $headers Optional array of HTTP headers to include
- * @param bool $return_json Whether to decode the response as JSON or return as string
- * @return mixed JSON decoded response or raw string response, or error message string
+ * @param string $url The URL to send the request to
+ * @param array $headers Headers for the request
+ * @param mixed $data Data for POST requests (null for GET)
+ * @return object|string Response data, error object with 'error' property, or error string
  */
-function curl_get($url, $headers = array(), $return_json = true) {
+function curl($url, $headers = array(), $data = null) {
+    if (!filter_var($url, FILTER_VALIDATE_URL))
+        return 'Error: Invalid URL format';
     $ch = curl_init($url);
+    if ($ch === false)
+        return 'Error: Failed to initialize cURL';
+
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Add timeout to prevent hanging requests
+
+    if ($data !== null) {
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    } else {
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);  // Follow redirects for GET
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 3);          // Maximum number of redirects to follow
+    }
+
     $server_output = curl_exec($ch);
 
     // Error handling
     if (curl_errno($ch)) {
-        $error = 'Error: (curl: '.curl_errno($ch).') ' . curl_error($ch);
-        curl_close($ch);
-        return $error;
-    }
-
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($http_code != 200 || $server_output === false) {
-        $domain = parse_url($url, PHP_URL_HOST);
-        return "Error: (http: ".$http_code.") ".$server_output;
-    }
-
-    if ($return_json) {
+        $response = 'Error: (curl: '.curl_errno($ch).') '.curl_error($ch);
+    } else {
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $response = json_decode($server_output, false);
-        // If server_output is not a valid JSON string, return it as is
-        return ($response === null) ? $server_output : $response;
+        if ($http_code < 200 || $http_code >= 300 || $server_output === false) {
+            if (isset($response->error))
+                return $response;
+            $mes = $server_output ?? "No valid response from ".parse_url($url, PHP_URL_HOST);
+            return "Error: (http: $http_code) $mes";
+        }
     }
-
-    return $server_output;
+    curl_close($ch);
+    return $response ?? $server_output;
 }
 
 // Thanks to https://stackoverflow.com/questions/17862004/send-file-using-multipart-form-data-request-in-php
@@ -185,8 +162,8 @@ function get_usage_string($user, $month, $show_info) {
 /**
  * Checks if the given text starts with 'Error: '
  *
- * @param string $text
- * @return bool
+ * @param string|mixed $text The text to check
+ * @return bool True if the text starts with 'Error: ', false otherwise
  */
 function has_error($text) {
     return is_string($text) && substr($text, 0, 7) == "Error: ";
