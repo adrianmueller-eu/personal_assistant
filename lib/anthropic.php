@@ -157,10 +157,13 @@ class Anthropic {
                 "retry" => $this->RETRY_CNT,
             ));
             // Retry the request if the error is a temporary error
-            if ($response->error->type == "overloaded_error" && $this->RETRY_CNT < $this->MAX_RETRY) {
-                $this->RETRY_CNT++;
-                sleep(5*$this->RETRY_CNT);
-                return $this->send_request($endpoint, $data);
+            if ($response->error->type == "overloaded_error") {
+                if ($this->RETRY_CNT < $this->MAX_RETRY) {
+                    $this->RETRY_CNT++;
+                    sleep(5 * $this->RETRY_CNT);
+                    return $this->send_request($endpoint, $data);
+                }
+                return 'Error: The Anthropic API is currently overloaded. Please use another /model or try again in a few minutes.';
             }
             // Return the error message
             return 'Error: '.$response->error->message.' ('.$response->error->type.')';
