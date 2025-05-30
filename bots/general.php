@@ -722,8 +722,8 @@ END:VTIMEZONE"));
 
             // Check if there's chat history
             if (count($config->messages) > 2) {
-                // If query is provided, use it as additional context, otherwise just use chat history
                 $context_prompt = "Based on the conversation history";
+                // If query is provided, use it as additional context, otherwise use chat history only
                 if ($query !== "") {
                     $context_prompt .= " and considering this additional context: \"$query\"";
                 }
@@ -734,11 +734,9 @@ END:VTIMEZONE"));
                 $user_config_manager->add_message("system", $context_prompt);
                 $config = $user_config_manager->get_config();
                 $query = $llm->message($config);
-                // Remove the system prompt after generating the query
-                array_pop($config->messages);
+                array_pop($config->messages);  // Remove the system prompt after generating the query
                 $telegram->die_if_error($query);
 
-                // Use the generated query
                 $telegram->send_message("Searching for papers about: $query");
             } else if ($query === "") {
                 $telegram->die("Please provide a search query after the command, like `/papers <query>`");

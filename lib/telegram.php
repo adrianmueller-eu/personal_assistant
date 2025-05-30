@@ -308,10 +308,9 @@ class Telegram {
         if (has_error($message)) {
             if ($user_config_manager !== null) {
                 $user_config_manager->delete_messages(1);
-                $this->die($message." Chat history has not been changed.");
-            } else {
-                $this->die($message);
+                $message .= " Chat history has not been changed.";
             }
+            $this->die($message);
         }
     }
 
