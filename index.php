@@ -72,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
 }
 
 // Security check, to know that the request comes from Telegram
-if (!$DEBUG && $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] != $secret_token) {
+// Use hash_equals for constant-time comparison to prevent timing attacks
+if (!$DEBUG && !hash_equals($secret_token, $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '')) {
     http_response_code(401); // 401 Unauthorized
     exit;
 }
