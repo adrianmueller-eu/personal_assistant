@@ -173,9 +173,9 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 $name_string = "";
             } else {
                 if ($user_config_manager->get_lang() == "de") {
-                    $name_string = " (mein Name ist $name_string)";
+                    $name_string = " (mein Name ist $name)";
                 } else {
-                    $name_string = " (my name is $name_string)";
+                    $name_string = " (my name is $name)";
                 }
             }
             $mode_prompt = $mode_prompts[$session_info->mode ?? "none"];
