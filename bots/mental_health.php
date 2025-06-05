@@ -30,10 +30,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         $file_url = $telegram->get_file_url($file_id);
         $file_url != null || $telegram->die("Error: Could not get the file URL from Telegram.");
 
-        $message = array(
-            array("type" => "image_url", "image_url" => array("url" => $file_url)),
-            array("type" => "text", "text" => $caption),
-        );
+        $message = "$file_url $caption";
     } else if (isset($update->voice)) {
         // 1. Get the file content from file_id with $telegram->get_file
         $file_id = $update->voice->file_id;

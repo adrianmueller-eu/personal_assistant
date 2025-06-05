@@ -44,7 +44,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($user_message !== '') {
                 $message .= "\n\n$user_message";
             }
-        } else if (preg_match('/^\s*(https?:\/\/[^\s]+)\s*(.*)$/i', $message, $matches)) {
+        } else if (preg_match('/^\s*(https?:\/\/[^\s]+)\s*(.*)$/i', $message, $matches) && !preg_match('/\.(jpg|jpeg|png)$/i', $matches[1])) {
             $link = $matches[1];
             $user_message = trim($matches[2] ?? '');
 
@@ -81,13 +81,6 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 // direct download of text-like file content into $content
                 $content = @file_get_contents($link);
                 $content || $telegram->die("Error: Failed to download text file content from the link.");
-            } else if (preg_match('/\.(jpg|jpeg|png)$/i', $link)) {  // only the ones widely supported in APIs
-                // If the link is to an image, add it to the chat history as an image_url
-                $user_config_manager->add_message("assistant", array(
-                    array("type" => "image_url", "image_url" => array("url" => $link)),
-                    array("type" => "text", "text" => "Image: $link"),
-                ));
-                $content = "Image link detected and saved to chat history.";
             } else {
                 $content = parse_link($link);
                 $telegram->die_if_error($content);
@@ -121,10 +114,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         $file_url = $telegram->get_file_url($file_id);
         $file_url != null || $telegram->die("Error: Could not get the file URL from Telegram.");
 
-        $message = array(
-            array("type" => "image_url", "image_url" => array("url" => $file_url)),
-            array("type" => "text", "text" => $caption),
-        );
+        $message = "$file_url $caption";
     } else if (isset($update->document) && preg_match('/\.pdf$/i', $update->document->file_name)) {
         // Prefer arXiv TeX if filename matches arXiv ID
         $content = '';
@@ -1311,10 +1301,7 @@ END:VTIMEZONE"));
             Log::image($prompt, $image_url, $telegram->get_chat_id());
             $telegram->die_if_error($image_url);
             // Add the image to the chat history
-            $user_config_manager->add_message("assistant", array(
-                array("type" => "image_url", "image_url" => array("url" => $image_url)),
-                array("type" => "text", "text" => $prompt),
-            ));
+            $user_config_manager->add_message("assistant", "$image_url $prompt");
             // Show the image to the user
             $telegram->send_image($image_url, $prompt);
             exit;
@@ -1370,8 +1357,12 @@ END:VTIMEZONE"));
                     $telegram->send_message("/$message->role $content", $command == "/dmf");
                 } else if (is_array($message->content) && isset($message->content[0]->image_url)) {
                     $image_url = $message->content[0]->image_url->url;
-                    $caption = $message->content[1]->text;
-                    $telegram->send_message("/$message->role $caption\n$image_url", $command == "/dmf");
+                    $caption = isset($message->content[1]) ? $message->content[1]->text : "";
+                    if ($command == "/dmf") {
+                        $telegram->send_image($image_url, "/$message->role\n$caption");
+                    } else {
+                        $telegram->send_message("/$message->role $image_url\n$caption", false);
+                    }
                 } else if (is_array($message->content)) {
                     // Handle web search responses with citations
                     $formatted_text = text_from_websearch($message->content, $user_config_manager->is_post_processing());

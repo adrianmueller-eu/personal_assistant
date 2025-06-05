@@ -205,6 +205,19 @@ class UserConfigManager {
             array_pop($content);
             $content = implode("\n", $content);
         }
+
+        // If content is string and starts with an image URL, convert to array format
+        // This is important for role commands to work with images (e.g. "/user", "/assistant")
+        // and allows us to handle images consistently by simply concatenating URL and caption
+        if (is_string($content) && preg_match('/^(https?:\/\/.*?\.(?:jpg|jpeg|png))/i', $content, $matches)) {
+            $image_url = $matches[1];
+            $text = trim(substr($content, strlen($image_url)));
+            $content = [["type" => "image_url", "image_url" => ["url" => $image_url]]];
+            if ($text !== "") {
+                $content[] = ["type" => "text", "text" => $text];
+            }
+        }
+
         $chat = $this->get_config();
         // Add the message
         $chat->messages[] = (object) array(
