@@ -1415,8 +1415,7 @@ END:VTIMEZONE"));
                 if (count($messages) > 0 && $messages[count($messages)-1]->role != "system") {
                     $prompt = $messages[count($messages)-1]->content;
                 } else {
-                    $telegram->send_message("Please provide a prompt with command $command.");
-                    exit;
+                    $telegram->die("Please provide a prompt with command $command.");
                 }
             }
             $tts_config = $user_config_manager->get_tts_config();
