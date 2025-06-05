@@ -511,7 +511,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $chat["temperature"] = 0;
             $chat["messages"] = array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
                 ."event in iCalendar format. Try to infer the time zone from the location. Use can use the example for the timezone below as "
-                ."a template. Ensure that the code is valid. Output the code only. Today is ".date("l, j.n.Y").".\n\n"
+                ."a template. Ensure that the code is valid. Output the code only, and do NOT enclose the output in backticks. Today is ".date("l, j.n.Y").".\n\n"
 ."BEGIN:VTIMEZONE
 TZID:$timezone
 END:VTIMEZONE"));
@@ -523,8 +523,14 @@ END:VTIMEZONE"));
                 // If the response starts with "Error: ", it is an error message
                 if (has_error($response)) {
                     $telegram->send_message($response, false);
-                // If the response starts with "BEGIN:VCALENDAR", it is an iCalendar event
-                } else if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
+                }
+                // If the response starts with "BEGIN:VCALENDAR", send as iCalendar
+                if (preg_match('/^```\\n?BEGIN:VCALENDAR/', $response)) {
+                    $response = preg_replace('/^```\\n?|```$/', '', $response);
+                    $response = trim($response);
+                }
+                if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
+                    $user_config_manager->add_message("assistant", $response);
                     $file_name = "event.ics";
                     $telegram->send_document($file_name, $response);
                 } else {
