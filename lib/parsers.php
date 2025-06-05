@@ -53,17 +53,38 @@ function text_from_pdf($url) {
  * @param string $text The raw text extracted from a PDF
  * @return string The improved text after post-processing
  */
-function post_process_pdf_text($text) {
-    // Clean whitespace and normalize text
-    $text = preg_replace('/\s+/', ' ', $text);
-    $text = preg_replace('/\s*\n\s*/', "\n", $text);
+ function post_process_pdf_text($text) {
+     // Ensure valid UTF-8 (replace invalid sequences) FIRST
+     $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
 
-    // Fix hyphenation and spacing
-    $text = preg_replace('/(\w+)-\s*\n\s*(\w+)/', '$1$2', $text);
-    $text = preg_replace('/\s+([.,;:!?)])/', '$1', $text);
-    $text = preg_replace('/([[(])\s+/', '$1', $text);
-    return $text;
-}
+     // Remove control characters except tab (\x09), newline (\x0A), and carriage return (\x0D)
+     $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $text);
+
+     // Replace common problematic Unicode characters with ASCII equivalents
+     $replace = [
+         "\xC2\xA0"    => " ",  // non-breaking space
+         "\xE2\x80\x93" => "-", // en-dash
+         "\xE2\x80\x94" => "-", // em-dash
+         "\xE2\x80\x98" => "'", // left single quote
+         "\xE2\x80\x99" => "'", // right single quote
+         "\xE2\x80\x9C" => '"', // left double quote
+         "\xE2\x80\x9D" => '"', // right double quote
+         "\xE2\x80\xA6" => "...", // ellipsis
+     ];
+     $text = strtr($text, $replace);
+
+     // Normalize newlines, then collapse only spaces (not all whitespace)
+     $text = preg_replace('/\s*\n\s*/', "\n", $text);
+     $text = preg_replace('/[ ]+/', ' ', $text);
+
+     // Fix hyphenation and spacing
+     $text = preg_replace('/(\w+)-\s*\n\s*(\w+)/', '$1$2', $text);
+     $text = preg_replace('/\s+([.,;:!?)])/', '$1', $text);
+     $text = preg_replace('/([[(])\s+/', '$1', $text);
+
+     return $text;
+ }
+
 /**
  * Processes an arXiv link, downloads the TeX source, and returns formatted content
  *
@@ -176,6 +197,8 @@ function get_arxiv_source($arxiv_id) {
         }
         // Remove comments
         $tex_content = preg_replace('/(?<!\\\\)%.*$/m', '', $tex_content);
+        // Remove thebibliography section
+        $tex_content = preg_replace('/\\\\begin\s*{\s*thebibliography\s*}.*?\\\\end\s*{\s*thebibliography\s*}/s', '', $tex_content);
         return $tex_content;
     } else {
         return "Error: Could not read TeX content.";
