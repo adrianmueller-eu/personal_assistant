@@ -202,6 +202,25 @@ class Telegram {
      * @return void
      */
     public function send_image($image, $caption = ""): void {
+        // Check if this is a Telegram CDN URL
+        if (strpos($image, 'api.telegram.org/file/bot') !== false) {
+            // Download the image content
+            $image_content = @file_get_contents($image);
+            if ($image_content !== false) {
+                // Extract the filename from the URL
+                $file_name = basename(parse_url($image, PHP_URL_PATH));
+                // Send the image as a file upload
+                $this->send("sendPhoto", array(
+                    "chat_id" => $this->chat_id,
+                    "caption" => $caption
+                ), [], "photo", $file_name, $image_content);
+                return;
+            }
+            $this->send_message("Error: Failed to download image from Telegram's servers. The image might no longer be available.");
+            return;
+        }
+
+        // Regular URL or file_id method
         $this->send("sendPhoto", array(
             "chat_id" => $this->chat_id,
             "photo" => $image,
