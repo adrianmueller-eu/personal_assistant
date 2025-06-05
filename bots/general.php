@@ -941,12 +941,12 @@ END:VTIMEZONE"));
 
         // The command /timezone allows the user to change their timezone
         $command_manager->add_command(array("/timezone"), function($command, $timezone) use ($telegram, $user_config_manager) {
-            $timezone != "" || $telegram->die("Your timezone is currently set to \"".$user_config_manager->get_timezone()."\". To change it, please provide a timezone with the command, e.g. \"/timezone Europe/Berlin\".");
+            $timezone != "" || $telegram->die("Your timezone is currently set to \"".$user_config_manager->get_timezone()."\". To change it, please provide a timezone with the command, e.g. `/timezone Europe/Berlin`.", true);
             // Validate the timezone
             try {
                 new DateTimeZone($timezone);
             } catch (Exception $e) {
-                $telegram->die("The timezone \"$timezone\" is not valid. Please provide a valid timezone, e.g. \"/timezone Europe/Berlin\".");
+                $telegram->die("The timezone \"$timezone\" is not valid. Please provide a valid timezone, e.g. `/timezone Europe/Berlin`.", true);
             }
             $user_config_manager->set_timezone($timezone);
             $telegram->send_message("Your timezone has been set to \"$timezone\".");
