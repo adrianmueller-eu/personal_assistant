@@ -189,12 +189,6 @@ class UserConfigManager {
         if (is_string($content) && trim($content) === "") {
             return;
         }
-        // if the *last* line of content ends with ], remove the last line
-        if ($this->DEBUG && is_string($content) && substr($content, -1) === "]") {
-            $content = explode("\n", $content);
-            array_pop($content);
-            $content = implode("\n", $content);
-        }
 
         // If content is string and starts with an image URL, convert to array format
         // This is important for role commands to work with images (e.g. "/user", "/assistant")
@@ -414,7 +408,7 @@ class UserConfigManager {
     /**
      * Return a random hello message to the user from their configured greetings.
      * If no custom greetings are set, returns a default welcome message.
-     * 
+     *
      * @return string A randomly selected greeting message
      */
     public function hello(): string {
@@ -452,7 +446,7 @@ class UserConfigManager {
     /**
      * Get the text-to-speech (TTS) configuration of the user.
      * Returns an object containing TTS settings like model, voice, and speed.
-     * 
+     *
      * @return object Object containing the user's TTS configuration settings
      */
     public function get_tts_config(): object {
@@ -482,9 +476,9 @@ class UserConfigManager {
 
     /**
      * Get all usage counters for the user.
-     * Counters track various metrics like number of messages sent, 
+     * Counters track various metrics like number of messages sent,
      * commands used, etc. to monitor user activity and usage patterns.
-     * 
+     *
      * @return object Object containing all counter values keyed by counter name
      */
     public function get_counters(): object {

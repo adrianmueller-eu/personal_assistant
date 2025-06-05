@@ -583,7 +583,7 @@ END:VTIMEZONE"));
                 ."Avoid generic advice, but instead find specific, actionable steps. "
                 ."As soon as the steps are clear, walk the user through them one by one to ensure they are completed. ";
             $user_config_manager->add_message("system", $prompt);
-        }, "Presets", "Helps the user to break down a task and track immediate progress (preserves the chat history)");
+        }, "Presets", "Helps the user to break down a task and track immediate progress.");
 
         // The command /anki adds a command to create an Anki flashcard from the previous text
         $command_manager->add_command(array("/anki"), function($command, $topic) use ($user_config_manager) {

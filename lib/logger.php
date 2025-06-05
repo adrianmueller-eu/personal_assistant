@@ -13,7 +13,7 @@ class Log {
 
     /**
      * Set the echo level that controls which log messages are output to the console.
-     * 
+     *
      * Echo levels:
      * - 0: No console output
      * - 1: Output only errors
