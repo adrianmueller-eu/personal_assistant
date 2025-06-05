@@ -1212,7 +1212,9 @@ END:VTIMEZONE"));
                 $stats = get_message_stats($config->messages);
                 $message .= "- `$name` ({$stats['messages']} messages, {$stats['words']} words ≈ {$stats['tokens']} tokens)\n";
             }
-            $message = substr($message, 0, -1);  // Delete the last newline
+            // Add stats of the current session
+            $stats = get_message_stats($user_config_manager->get_config()->messages);
+            $message .= "\nCurrent session: {$stats['messages']} messages, {$stats['words']} words ≈ {$stats['tokens']} tokens\n";
             $telegram->send_message($message);
             exit;
         }, "Chat history management", "List all available sessions");
