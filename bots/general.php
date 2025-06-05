@@ -44,6 +44,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($user_message !== '') {
                 $message .= "\n\n$user_message";
             }
+            $user_config_manager->add_message("user", $message);
+            exit;
         } else if (preg_match('/^\s*(https?:\/\/[^\s]+)\s*(.*)$/i', $message, $matches) && !preg_match('/\.(jpg|jpeg|png)$/i', $matches[1])) {
             $link = $matches[1];
             $user_message = trim($matches[2] ?? '');
@@ -102,6 +104,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($user_message !== '') {
                 $message .= "\n\n$user_message";
             }
+            $user_config_manager->add_message("user", $message);
+            exit;
         }
     } else if (isset($update->photo)) {
         $chat = $user_config_manager->get_config();
@@ -171,6 +175,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         if (!empty($caption)) {
             $message .= "\n\n$caption";
         }
+        $user_config_manager->add_message("user", $message);
+        exit;
     } else if (isset($update->voice) || isset($update->audio)) {
         // Get the file content from file_id with $telegram->get_file
         if (isset($update->voice)) {
