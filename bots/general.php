@@ -712,6 +712,13 @@ END:VTIMEZONE"));
             // Process the response from the model
             $response = $llm->message($config);
             $telegram->die_if_error($response, $user_config_manager);
+            // Replace system call by informing the model about the query
+            $user_config_manager->delete_messages(1);
+            if ($query !== "") {
+                $user_config_manager->add_message("user", "Search query with this additional context: $query");
+            } else {
+                $user_config_manager->add_message("user", "Search query based on the previous conversation.");
+            }
             $user_config_manager->add_message("assistant", $response);
 
             // Only add "Search with" if response starts with ```
