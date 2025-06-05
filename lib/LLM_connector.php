@@ -428,4 +428,25 @@ class LLMConnector {
         }
         return $papers;
     }
+
+    /**
+     * Approximate the number of LLM tokens in a string to ~5-10%.
+     *
+     * @param string $text
+     * @return int Estimated token count
+     */
+    public static function approximate_token_count($text): int {
+        // Basic estimates
+        $char_est = strlen($text) / 4;
+        $word_est = str_word_count($text) * 1.33;
+
+        // Count special characters (punctuation, emoji, symbols)
+        $specials = preg_match_all('/[\p{P}\p{S}\x{1F600}-\x{1F64F}]/u', $text);
+
+        // Average char/word, add a fraction for specials
+        $base = ($char_est + $word_est) / 2;
+        $estimate = $base + ($specials * 0.5);
+
+        return max(1, intval(round($estimate)));
+    }
 }

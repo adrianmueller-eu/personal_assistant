@@ -262,3 +262,36 @@ function strip_long_messages($data, $max_length=200) {
     }
     return $data;
 }
+
+/**
+ * Get statistics for messages: number of messages, words, and tokens.
+ *
+ * @param mixed $input String, array of messages, or array of objects with 'content'
+ * @return array ['messages' => int, 'words' => int, 'tokens' => int]
+ */
+function get_message_stats($input) {
+    // If input is a string, treat as one message
+    if (is_string($input)) {
+        $n_messages = ($input === '') ? 0 : 1;
+    }
+    // If input is an array of messages
+    else {
+        $input = array_map(function($msg) {
+            if (is_array($msg->content)) {
+                // If content is array (e.g. parts), join their text fields
+                return implode("\n", array_map(function($part) {
+                    return is_object($part) && isset($part->text) ? $part->text : '';
+                }, $msg->content));
+            }
+            return $msg->content;
+        }, $input);
+        $n_messages = count($input);
+        $input = implode("\n", $input);
+    }
+
+    return [
+        'messages' => $n_messages,
+        'words'    => str_word_count($input),
+        'tokens'   => LLMConnector::approximate_token_count($input),
+    ];
+}

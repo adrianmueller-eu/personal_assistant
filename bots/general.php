@@ -36,8 +36,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             // Format paper information for the chat
             $paper_title = $result['title'];
             $tex_content = $result['content'];
-            if ($DEBUG)
-                $telegram->send_message("arXiv paper processed: \"$paper_title\"\n- ID: $arxiv_id\n- Words: ".str_word_count($tex_content));
+            $stats = get_message_stats($tex_content);
+            $telegram->send_message("arXiv:$arxiv_id \"$paper_title\" ({$stats['words']} words ≈ {$stats['tokens']} tokens). Write /continue to obtain a response.");
 
             // Format the message with paper content and metadata
             $message = "arXiv:$arxiv_id \"$paper_title\"\n\n```\n$tex_content\n```";
@@ -93,11 +93,18 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 $telegram->die_if_error($content);
             }
 
-            if ($DEBUG)
-                $telegram->send_message("Link processed: \"$link\"\n- Words: ".str_word_count($content));
-                // $telegram->die("Debug:\n\n$message");
+            // Use get_message_stats for consistency with PDF/archive handling
+            $stats = get_message_stats($content);
+            $stats['words'] != 0 || $telegram->die("Error: Sorry, I couldn't extract text from the link!");
 
-            // Format the message with extracted content
+            // Reject links that are too large (parity with PDF, 42,000 words)
+            if ($stats['words'] > 42000) {
+                $telegram->die("Error: Content is too long ({$stats['words']} words). Maximum size is 42,000 words.");
+            }
+
+            $telegram->send_message("Link processed ({$stats['words']} words ≈ {$stats['tokens']} tokens). Write /continue to obtain a response.");
+
+            // Store the content and user message for later use, but do not display it now
             $message = "Link: $link\n\n```\n$content\n```";
             if ($user_message !== '') {
                 $message .= "\n\n$user_message";
@@ -126,7 +133,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $telegram->send_message("PDF filename matches arXiv ID `$arxiv_id`. Fetching arXiv TeX source...");
             $result = text_from_arxiv_id($arxiv_id);
             if (has_error($result)) {
-                $telegram->send_message("$result\n\nExtracting text from pdf file...");
+                $telegram->send_message($result);
             } else {
                 assert(is_array($result));
                 $title = $result['title'];
@@ -135,6 +142,8 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
         }
         if (empty($content)) {
+            $telegram->send_message("Extracting text from pdf file...");
+
             // Handle PDF document as usual
             $file_id = $update->document->file_id;
 
@@ -154,15 +163,15 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $title = $update->document->file_name;
             $header = "PDF";
         }
-        $word_count = str_word_count($content);
-        $word_count != 0 || $telegram->die("Error: Sorry, I couldn't extract text from the PDF!");
-        if ($DEBUG)
-            $telegram->send_message("Content has $word_count words");
+        $stats = get_message_stats($content);
+        $stats['words'] != 0 || $telegram->die("Error: Sorry, I couldn't extract text from the PDF! (".strlen($content).")");
 
         // Reject PDFs that are too large
-        if ($word_count > 42000) {
-            $telegram->die("Error: Content is too long ($word_count words). Maximum size is 42,000 words.");
+        if ($stats['words'] > 42000) {
+            $telegram->die("Error: Content is too long ({$stats['words']} words). Maximum size is 42,000 words.");
         }
+
+        $telegram->send_message("PDF has {$stats['words']} words (≈ {$stats['tokens']} tokens). Write /continue to obtain a response.");
 
         // Format the message with PDF content and metadata
         $message = "{$header}: \"{$title}\"\n\n```\n$content\n```";
@@ -1085,8 +1094,8 @@ END:VTIMEZONE"));
             $session != "" || $telegram->die("Please provide a session name with the command.");
             $config = $user_config_manager->get_config();
             $user_config_manager->save_session($session, $config);
-            $n_messages = count($config->messages);
-            $telegram->send_message("Chat history saved as `$session` ({$n_messages} messages)");
+            $stats = get_message_stats($config->messages);
+            $telegram->send_message("Chat history saved as `$session` ({$stats['messages']} messages, {$stats['words']} words ≈ {$stats['tokens']} tokens)");
             exit;
         }, "Chat history management", "Save the chat history to a session");
 
@@ -1103,8 +1112,8 @@ END:VTIMEZONE"));
             if ($command == "/restore") {
                 $user_config_manager->delete_session($session);
             }
-            $n_messages = count($new->messages);
-            $telegram->send_message("Session `$session` loaded ({$n_messages} messages). You are talking to `$new->model`.");
+            $stats = get_message_stats($new->messages);
+            $telegram->send_message("Session `$session` loaded ({$stats['messages']} messages, {$stats['words']} words ≈ {$stats['tokens']} tokens). You are talking to `$new->model`.");
             exit;
         }, "Chat history management", "Load a saved session (/restore deletes it after restoring, while /load keeps it)");
 
@@ -1114,8 +1123,8 @@ END:VTIMEZONE"));
             $message = "Available sessions:\n";
             // Print session names and number of messages
             foreach ($sessions as $name => $config) {
-                $n_messages = count($config->messages);
-                $message .= "- `$name` ($n_messages messages)\n";
+                $stats = get_message_stats($config->messages);
+                $message .= "- `$name` ({$stats['messages']} messages, {$stats['words']} words ≈ {$stats['tokens']} tokens)\n";
             }
             $message = substr($message, 0, -1);  // Delete the last newline
             $telegram->send_message($message);
