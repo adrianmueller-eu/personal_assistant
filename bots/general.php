@@ -591,6 +591,56 @@ END:VTIMEZONE"));
             $user_config_manager->add_message("system", $prompt);
         }, "Presets", "Helps the user to break down a task and track immediate progress.");
 
+        // The command /reframe helps the user find better reframing of their current stories
+        $command_manager->add_command(array("/reframe"), function($command, $_) use ($user_config_manager, $telegram) {
+            $prompt = "The task is to lead me to find a better reframing of my current stories. For every new proposal I make, "
+                    ."answer with a validation of it and end in the question \"Can you find a frame that is even more helpful?\"\n\n"
+                    ."For example\n"
+                    ."Me: \"They don't want to talk with me at all! Now they send me that person as a carrier just to avoid being in contact with me. I'm always alone, noone likes me.\"\n\n"
+                    ."Answer: \"Great, you assessed your situation and identified someone contributing to the issue. Can you find a frame that is even more helpful?\"\n\n"
+                    ."Me: \"I don't need them! They are just harmful to me and I don't need such negativity in my life. I still feel alone, but it's better without them.\"\n\n"
+                    ."Answer: \"Wonderful how you assert your boundaries and aim for less pain and more positivity in your life! Can you find a frame that is even more helpful?\"\n\n"
+                    ."Your responses should acknowledge the user's reframing efforts positively while consistently encouraging them to explore "
+                    ."even more constructive perspectives. Keep responses supportive and focused on guiding the user toward increasingly helpful "
+                    ."cognitive reframes. Always end with the question \"Can you find a frame that is even more helpful?\"";
+            $user_config_manager->save_session();
+            $user_config_manager->clear_messages();
+            $user_config_manager->add_message("system", $prompt);
+            $mes = "I'll help you reframe your thoughts to find more helpful perspectives. Please share a situation or thought you'd like to reframe, and I'll guide you through the process.";
+            $user_config_manager->add_message("assistant", $mes);
+            $telegram->send_message($mes);
+            exit;
+        }, "Presets", "Start a cognitive reframing exercise to develop more helpful perspectives.");
+
+        // The command /chinesetutor creates a Chinese language tutor
+        $command_manager->add_command(array("/chinesetutor"), function($command, $_) use ($user_config_manager, $telegram) {
+            $prompt = "You are a helpful language assistant teaching the Chinese langauge through natural conversation. "
+                    ."We use English as meta language to discuss language usage. It make me used to replace parts in a "
+                    ."Chinese sentence we don't know the character of, but it is never used to actually discuss the "
+                    ."content on the non-meta level.\n\n"
+                    ."When the user writes in Chinese (or attempts to)\n"
+                    ."1. Respond conversationlly with Chinese characters (simplified) at a slightly higher level than the user\n"
+                    ."2. Include pinyin with correct tone mark and an English translation\n"
+                    ."3. Offer constructive corrections on important errors in the user's language usage. "
+                    ."If English words were written, suggest appropriate Chinese translations.\n"
+                    ."4. As relevant and appropriate, add brief contextual/cultural information, pronounciation hints or usage.\n\n"
+                    ."When the user writes in English:\n"
+                    ."1. Do not respond in Chinese\n"
+                    ."2. Discuss any language-related issues, but refuse to talk about anything else\n"
+                    ."3. Motivate the user to respond in Chinese\n\n"
+                    ."Keep exchanges concise. Focus on practical language that helps the user navigate real situations and "
+                    ."gradually build reading confidence. When the user shares their attempts, provide gentle corrections "
+                    ."focusing only on critical errors. Track common mistakes and occasionally suggest patterns to practice. "
+                    ."Respond conversationally without formal lesson structures.";
+            $user_config_manager->save_session();
+            $user_config_manager->clear_messages();
+            $user_config_manager->add_message("system", $prompt);
+            $mes = "你好！I'm your Chinese language tutor. Feel free to write in Chinese (even just a few words) and I'll help you learn through conversation. What is on your mind today?";
+            $user_config_manager->add_message("assistant", $mes);
+            $telegram->send_message($mes);
+            exit;
+        }, "Presets", "Start a Chinese language tutoring session with natural conversation practice.");
+
         // The command /anki adds a command to create an Anki flashcard from the previous text
         $command_manager->add_command(array("/anki"), function($command, $topic) use ($user_config_manager) {
             // Prompt the model to write an Anki flashcard
@@ -815,6 +865,33 @@ END:VTIMEZONE"));
             $telegram->send_message($response);
             exit;
         }, "Shortcuts", "Search Semantic Scholar for academic papers and summarize abstracts.");
+
+        $command_manager->add_command(array("/summary"), function($command, $prompt) use ($telegram, $user_config_manager, $llm) {
+            $chat = $user_config_manager->get_config();
+            count($chat->messages) > 3 || $telegram->die("There's not enough chat history to summarize.");
+            $chat_original = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
+
+            $telegram->send_message("Creating a summary of the conversation...");
+
+            // Create a summary request to the AI
+            $summary_request = "Please provide a concise summary of the conversation so far. Include key points, decisions, and important information that was discussed. Format the summary to be clear and well-organized.";
+            if (!empty($prompt)) {
+                $summary_request .= " Focus especially on: $prompt";
+            }
+            $user_config_manager->add_message("user", $summary_request);
+            $summary_response = $llm->message($chat);
+            $telegram->die_if_error($summary_response, $user_config_manager);
+
+            // Backup
+            $user_config_manager->save_session("last", $chat_original);
+            // Clear all messages, except potential initial system prompt
+            $chat->messages = array_slice($chat_original->messages, 0, (int)($chat_original->messages[0]->role === "system"));
+
+            // Add the summary as an assistant message
+            $user_config_manager->add_message("assistant", $summary_response);
+            $telegram->send_message("$summary_response\n\n_(Previous conversation saved as 'last'. You can restore it with /restore.)_");
+            exit;
+        }, "Chat history management", "Summarize the conversation, save current chat in 'last', and start fresh with the summary. Optional: add focus area for summary.");
 
         // TODO !!! Add more presets here !!!
 
@@ -1151,6 +1228,26 @@ END:VTIMEZONE"));
             exit;
         }, "Chat history management", "Delete a session");
 
+        // The command /remove_appendix removes the appendix section from the previous arXiv extraction message if present
+        $command_manager->add_command(array("/remove_appendix"), function($command, $query) use ($telegram, $user_config_manager) {
+            $config = $user_config_manager->get_config();
+            $messages = $config->messages;
+            if (empty($messages)) {
+                $telegram->die("No previous messages found.");
+            }
+            // Only allow if the last message is an arXiv extraction message
+            $last_msg = end($messages)->content;
+            if (!is_string($last_msg) || !preg_match('/^arXiv:\d{4}\.\d{4,5}/s', $last_msg)) {
+                $telegram->die("The last message is not an arXiv extraction.");
+            }
+            // Remove appendix if present
+            $filtered = preg_replace('/\\\\begin\s*{\s*appendix(?:es)?\s*}.*?\\\\end\s*{\s*appendix(?:es)?\s*}/is', '', $last_msg, -1, $count1);
+            $filtered = preg_replace('/\\\\appendix\b.*$/is', '', $filtered, -1, $count2);
+            $messages[count($messages) - 1]->content = $filtered;
+            $telegram->send_message($count1 || $count2 ? "Appendix section removed." : "No appendix section found.");
+            exit;
+        }, "Chat history management", "Remove appendix section from previous arXiv extraction.");
+
         if (!$is_admin) {
             // The command /usage allows the user to see their usage statistics
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $user_config_manager) {
@@ -1391,6 +1488,43 @@ END:VTIMEZONE"));
             $telegram->send_message($msg);
             exit;
         }, "Misc", "Count the number of messages in the chat history.");
+
+        // The command /self lets the model answer for the user and then respond to itself
+        $command_manager->add_command(array("/self"), function($command, $n) use ($telegram, $user_config_manager, $llm) {
+            $n = $n ?: 1;  // default to 1
+            is_numeric($n) || $telegram->die("Please provide a positive integer less than 12.");
+            $n = intval($n);
+            (0 < $n && $n <= 12) || $telegram->die("Please provide a positive integer less than 12.");
+
+            $chat = $user_config_manager->get_config();
+            // Loop for the specified number of iterations
+            for ($i = 0; $i < $n; $i++) {
+                // Swap roles in a copy of $chat
+                $temp_chat = json_decode(json_encode($chat));
+                foreach ($temp_chat->messages as $msg) {
+                    if ($msg->role === "user") {
+                        $msg->role = "assistant";
+                    } else if ($msg->role === "assistant") {
+                        $msg->role = "user";
+                    }
+                }
+
+                // Generate a response with swapped roles
+                $user_response = $llm->message($temp_chat);
+                $telegram->die_if_error($user_response, $user_config_manager);
+                $user_config_manager->add_message("user", $user_response);
+                $telegram->send_message("/user $user_response");
+                $user_config_manager->save();
+
+                // Now get the assistant's response to the generated user message
+                $assistant_response = $llm->message($chat);
+                $telegram->die_if_error($assistant_response, $user_config_manager);
+                $user_config_manager->add_message("assistant", $assistant_response);
+                $telegram->send_message("/assistant $assistant_response");
+                $user_config_manager->save();
+            }
+            exit;
+        }, "Misc", "Let the model respond as the user and then respond to itself. Optionally specify the number of turns (default: 1, max: 12).");
 
         // ############################
         // Actually run the command!
