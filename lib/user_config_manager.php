@@ -274,7 +274,7 @@ class UserConfigManager {
         if (isset($session_info->messages) && count($session_info->messages) <= 1) {
             return;
         }
-        $this->user_data->sessions->$key = json_decode(json_encode($session_info));
+        $this->user_data->sessions->$key = json_decode(json_encode($session_info, JSON_UNESCAPED_UNICODE));
     }
 
     /**

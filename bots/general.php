@@ -202,14 +202,14 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         $telegram->die("I can only process PDF documents. The file you sent doesn't appear to be a PDF.");
     } else {
         if ($DEBUG) {
-            $telegram->send_message("Unknown message: ".json_encode($update, JSON_PRETTY_PRINT), false);
+            $telegram->send_message("Unknown message: ".json_encode($update, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), false);
         }
         $telegram->die("Sorry, I don't know yet what do to this message! :/");
     }
 
     if ($DEBUG) {
-        // $telegram->send_message("You said: ".json_encode($message, JSON_PRETTY_PRINT));
-        echo "You said: ".json_encode($message, JSON_PRETTY_PRINT)."\n";
+        // $telegram->send_message("You said: ".json_encode($message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        echo "You said: ".json_encode($message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n";
     }
 
     $telegram->set_postprocessing($user_config_manager->is_post_processing());
@@ -280,7 +280,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
 
             $chat = $user_config_manager->get_config();
-            $chat = json_decode(json_encode($chat));
+            $chat = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
             $chat->messages = array();
             $chat->messages[] = (object) array("role" => "user", "content" => $prompt);
             $description = $llm->message($chat);
@@ -1192,7 +1192,7 @@ END:VTIMEZONE"));
                 try {
                     $global_config_manager->remove_allowed_user($username, "general");
                 } catch (Exception $e) {
-                    $telegram->send_message("Error: ".json_encode($e), false);
+                    $telegram->send_message("Error: ".json_encode($e, JSON_UNESCAPED_UNICODE), false);
                     exit;
                 }
                 $telegram->send_message("Removed user @$username from the list of authorized users.");
@@ -1247,7 +1247,7 @@ END:VTIMEZONE"));
                     // List all jobs
                     $message = "List of jobs:";
                     foreach ($jobs as $job) {
-                        $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT);
+                        $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
                     }
                     $telegram->send_message($message, false);
                 }

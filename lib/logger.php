@@ -38,7 +38,7 @@ class Log {
         if (is_string($message))
             $message = $message.PHP_EOL;
         else
-            $message = json_encode($message, JSON_PRETTY_PRINT).PHP_EOL;
+            $message = json_encode($message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE).PHP_EOL;
 
         if ($echo_level > 1) {
             file_put_contents("php://stdout", $message);
@@ -66,7 +66,7 @@ class Log {
         if ($prepend_timestamp) {
             $content = array_merge(array("timestamp" => date("Y-m-d H:i:s O")), $content);
         }
-        $content = json_encode($content);
+        $content = json_encode($content, JSON_UNESCAPED_UNICODE);
         file_put_contents(self::$log_dir."/".$log_file, $content.PHP_EOL, $flags);
     }
 

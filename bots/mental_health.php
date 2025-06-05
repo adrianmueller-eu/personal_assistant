@@ -251,7 +251,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             // If there were more than 5 messages (2x system, 2 responses), request a session summary
             if ($command != "/endskip" && count($chat->messages) > 7) {
                 // make a copy of $chat to not save it permanently for now
-                $chat = json_decode(json_encode($chat));
+                $chat = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
                 if ($user_config_manager->get_lang() == "de") {
                     $telegram->send_message("Bitte gib mir einen Moment, um über unsere Sitzung zu reflektieren...");
                 } else {
@@ -674,7 +674,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 try {
                     $global_config_manager->remove_allowed_user($username, "general");
                 } catch (Exception $e) {
-                    $telegram->send_message("Error: ".json_encode($e), false);
+                    $telegram->send_message("Error: ".json_encode($e, JSON_UNESCAPED_UNICODE), false);
                     exit;
                 }
                 $telegram->send_message("Removed user @$username from the list of authorized users.");
@@ -801,7 +801,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     // List all jobs
                     $message = "List of jobs:";
                     foreach ($jobs as $job) {
-                        $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT);
+                        $message .= "\n\n".json_encode($job, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
                     }
                     $telegram->send_message($message, false);
                 }

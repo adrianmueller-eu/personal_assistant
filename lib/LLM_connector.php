@@ -32,7 +32,7 @@ class LLMConnector {
      * @return string|array The response from the model or an error message (starts with "Error: ").
      */
     public function message($data, $enable_websearch = false): string|array {
-        $data = json_decode(json_encode($data), false);  // copy data do not modify the original object
+        $data = json_decode(json_encode($data, JSON_UNESCAPED_UNICODE), false);  // copy data do not modify the original object
 
         // If not using Claude, convert any structured array content in messages to text
         if (!str_starts_with($data->model, "claude-") && isset($data->messages)) {

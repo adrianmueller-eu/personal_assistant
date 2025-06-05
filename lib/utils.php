@@ -20,7 +20,7 @@ function curl_post($url, $data, $headers = array(), $field_name = null, $file_na
             "Content-Length: " . strlen($data)
         ));
     } else {
-        $data = json_encode($data);
+        $data = json_encode($data, JSON_UNESCAPED_UNICODE);
         $headers = array_merge($headers, array(
             "Content-Type: application/json",
             "Content-Length: " . strlen($data)
@@ -233,7 +233,7 @@ function text_from_websearch($array_response, $use_post_processing) {
 }
 
 function strip_long_messages($data, $max_length=200) {
-    $data = json_decode(json_encode($data));  // deep copy
+    $data = json_decode(json_encode($data, JSON_UNESCAPED_UNICODE));  // deep copy
     foreach ($data->messages as $message) {
         // Handle string content
         if (is_string($message->content)) {
@@ -246,10 +246,10 @@ function strip_long_messages($data, $max_length=200) {
                     $item->text = substr($item->text, 0, $max_length) . '...';
                 }
                 else if (isset($item->source) && isset($item->source->data)) {
-                    $item->source->data = strlen(json_encode($item->source->data)).' bytes';
+                    $item->source->data = strlen(json_encode($item->source->data, JSON_UNESCAPED_UNICODE)).' bytes';
                 }
                 else {
-                    $len = strlen(json_encode($item));
+                    $len = strlen(json_encode($item, JSON_UNESCAPED_UNICODE));
                     if ($len > $max_length) {
                         $message->content[$key] = "$len bytes";
                     }

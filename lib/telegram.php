@@ -89,7 +89,7 @@ class Telegram {
         } else if (is_string($server_output)) {
             $this->send_message($server_output, false);
         } else {
-            $this->send_message("Error: [/$endpoint] ".json_encode($server_output, JSON_PRETTY_PRINT), false);
+            $this->send_message("Error: [/$endpoint] ".json_encode($server_output, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), false);
         }
         // echo json_encode($server_output);
         return null;
@@ -177,7 +177,7 @@ class Telegram {
                 // Try again without parse mode if $server_output is a string that contains "can't parse entities"
                 if (strpos($server_output->description, "can't parse entities") !== false) {
                     if ($this->DEBUG) {
-                        $message = $this->format_message($message)."\n".json_encode($server_output->description);
+                        $message = $this->format_message($message)."\n".json_encode($server_output->description, JSON_UNESCAPED_UNICODE);
                     }
                     $this->send_message($message, false);
                 }

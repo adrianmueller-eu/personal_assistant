@@ -60,7 +60,7 @@ class OpenAI {
         $response = $this->send_request("chat/completions", $data);
         if (isset($response->choices)) {
             // if ($this->DEBUG) {
-            //     echo "Response is: ".json_encode($response, JSON_PRETTY_PRINT)."\n";
+            //     echo "Response is: ".json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n";
             // }
             // Get a month year string
             $month = date("ym");
@@ -74,7 +74,7 @@ class OpenAI {
             return $res;
         }
         if (!is_string($response)) {
-            return "Error: ".json_encode($response);
+            return "Error: ".json_encode($response, JSON_UNESCAPED_UNICODE);
         }
         return $response;
     }
@@ -118,7 +118,7 @@ class OpenAI {
             return $image_url;
         }
         if (!is_string($response)) {
-            return "Error: ".json_encode($response);
+            return "Error: ".json_encode($response, JSON_UNESCAPED_UNICODE);
         }
         return $response;
     }
@@ -164,7 +164,7 @@ class OpenAI {
             return $response->text;
         }
         if (!is_string($response)) {
-            return "Error: ".json_encode($response);
+            return "Error: ".json_encode($response, JSON_UNESCAPED_UNICODE);
         }
         return $response;
     }
@@ -192,7 +192,7 @@ class OpenAI {
 
         $response = curl_post($url, $data, $headers, $field_name, $file_name, $file_content);
         if ($this->DEBUG) {
-            $response_log = json_encode($response);
+            $response_log = json_encode($response, JSON_UNESCAPED_UNICODE);
             if (strlen($response_log) > 10000) {
                 $response_log = substr($response_log, 0, 10000)."...";
             }

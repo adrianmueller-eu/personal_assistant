@@ -48,7 +48,7 @@ class GlobalConfigManager {
     }
 
     private function save() {
-        file_put_contents($this->global_config_file, json_encode($this->global_config, JSON_PRETTY_PRINT));
+        file_put_contents($this->global_config_file, json_encode($this->global_config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     }
 
     /**

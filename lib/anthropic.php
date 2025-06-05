@@ -101,7 +101,7 @@ class Anthropic {
                 "data" => strip_long_messages($data),
                 "response" => $response,
             ));
-            return "Error: The response from Anthropic is not in the expected format: ".json_encode($response);
+            return "Error: The response from Anthropic is not in the expected format: ".json_encode($response, JSON_UNESCAPED_UNICODE);
         }
         return $response->content;
     }
@@ -126,7 +126,7 @@ class Anthropic {
 
         $response = curl_post($url, $data, $headers);
         if ($this->DEBUG) {
-            $response_log = json_encode($response);
+            $response_log = json_encode($response, JSON_UNESCAPED_UNICODE);
             if (strlen($response_log) > 10000) {
                 $response_log = substr($response_log, 0, 10000)."...";
             }
