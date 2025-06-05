@@ -413,6 +413,10 @@ class Telegram {
                 preg_match_all('/(?<!`)([^ `]+_[^ `]+)(?!`)/u', $line, $matches, PREG_OFFSET_CAPTURE);
                 $offset = 0;
                 foreach ($matches[0] as $match) {
+                    // Don't backtick matches that contain links
+                    if (preg_match('/https?:\/\//', $match[0])) {
+                        continue;
+                    }
                     $start = $match[1] + $offset;
                     $end = $start + strlen($match[0]);
                     $count_before = substr_count(substr($line, 0, $start), '`');
