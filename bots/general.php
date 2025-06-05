@@ -1416,13 +1416,8 @@ END:VTIMEZONE"));
     $response = $llm->message($chat);
     $telegram->die_if_error($response, $user_config_manager);
 
-    // If the response starts with "BEGIN:VCALENDAR", send it as an iCalendar event file
-    if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
-        $user_config_manager->add_message("assistant", $response);
-        $file_name = "event.ics";
-        $telegram->send_document($file_name, $response);
     // If the response starts with "MAIL", parse the response and build a mailto link
-    } else if (substr($response, 0, 5) == "MAIL\n") {
+    if (substr($response, 0, 5) == "MAIL\n") {
         // Build a mailto link from the response
         $mailto = "https://adrianmueller.eu/mailto/";
         // Find the recipient
