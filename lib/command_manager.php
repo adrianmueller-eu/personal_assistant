@@ -42,7 +42,7 @@ class CommandManager {
         $this->categories = $categories;
         // Ensure $categoies is not empty
         if (count($this->categories) == 0) {
-            throw new Exception("Categories cannot be empty.");
+            Log::die("Categories cannot be empty.");
         }
         // Add /help command to the last category
         $last_category = $this->categories[count($this->categories) - 1];
@@ -61,7 +61,7 @@ class CommandManager {
      */
     public function add_command($alternatives, $function, $category, $description) {
         // if (!in_array($category, $this->categories)) {
-        //     throw new Exception("Invalid category: ".$category);
+        //     Log::die("Invalid category: ".$category);
         // }
         $this->commands[] = array(
             "alternatives" => $alternatives,

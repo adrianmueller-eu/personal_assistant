@@ -25,27 +25,15 @@ if ($DEBUG) {
 // Tokens and keys
 $global_config_manager = new GlobalConfigManager();
 $telegram_token = $global_config_manager->get("TELEGRAM_BOT_TOKEN");
-if ($telegram_token == null || $telegram_token == "") {
-    Log::error("TELEGRAM_BOT_TOKEN is not set.");
-    exit;
-}
+$telegram_token || Log::die("TELEGRAM_BOT_TOKEN is not set.");
 $secret_token = $global_config_manager->get("TELEGRAM_BOT_SECRET");
-if ($secret_token == null || $secret_token == "") {
-    Log::error("TELEGRAM_BOT_SECRET is not set.");
-    exit;
-}
+$secret_token || Log::die("TELEGRAM_BOT_SECRET is not set.");
 $chat_id_admin = $global_config_manager->get("TELEGRAM_ADMIN_CHAT_ID");
-if ($chat_id_admin == null || $chat_id_admin == "") {
-    Log::error("TELEGRAM_ADMIN_CHAT_ID is not set.");
-    exit;
-}
+$chat_id_admin || Log::die("TELEGRAM_ADMIN_CHAT_ID is not set.");
 
 // Get jobs from GlobalConfigManager
 $jobs = $global_config_manager->get_jobs();
-if ($jobs == null || count($jobs) == 0) {
-    Log::error("No jobs found.");
-    exit;
-}
+$jobs && count($jobs) > 0 || Log::die("No jobs found.");
 
 // Each entry in the jobs array is a job object, which has the following format:
 // {

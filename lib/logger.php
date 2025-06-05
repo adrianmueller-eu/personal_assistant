@@ -81,6 +81,16 @@ class Log {
     }
 
     /**
+     * Log an error and terminate the script with HTTP 200.
+     *
+     * @param string|array $message The error message to log and send.
+     */
+    public static function die($message): void {
+        self::error($message);
+        exit;
+    }
+
+    /**
      * Append a message to the log file.
      *
      * @param string|array $message The message to append to the log file.

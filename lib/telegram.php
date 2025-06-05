@@ -24,11 +24,11 @@ class Telegram {
      */
     public function __construct($telegram_token, $chat_id, $DEBUG = false) {
         if (!preg_match("/^[0-9]+:[a-zA-Z0-9_-]+$/", $telegram_token)) {
-            throw new Exception("Invalid Telegram token: ".$telegram_token);
+            Log::die("Invalid Telegram token: ".$telegram_token);
         }
         // Check if the chat ID is valid
         if (!preg_match("/^-?[0-9]+$/", $chat_id)) {
-            throw new Exception("Invalid chat ID: ".$chat_id);
+            Log::die("Invalid chat ID: ".$chat_id);
         }
         $this->telegram_token = $telegram_token;
         $this->chat_id = $chat_id;
@@ -291,9 +291,9 @@ class Telegram {
      *
      * @param string $message The error message to display before terminating
      */
-    public function die($message): void {
-        $this->send_message($message, false);
-        exit;
+    public function die($message, $as_markdown=false): void {
+        $this->send_message($message, $as_markdown);
+        Log::die($message);
     }
 
     /**

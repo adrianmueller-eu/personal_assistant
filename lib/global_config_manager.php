@@ -42,8 +42,7 @@ class GlobalConfigManager {
             } else {
                 $error_message = "Global config file not found. A new one could not be created at $this->global_config_file. Please create it manually and restart the assistant.";
             }
-            Log::error($error_message);
-            throw new Exception($error_message);
+            Log::die($error_message);
         }
         $this->global_config = json_decode(file_get_contents($this->global_config_file), false);
     }

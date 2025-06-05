@@ -108,16 +108,8 @@ class UserConfigManager {
     private function load($username, $name, $lang): void {
         if (file_exists($this->user_config_file)) {
             $this->user_data = json_decode(file_get_contents($this->user_config_file), false);
-            if ($this->user_data === null || $this->user_data === false) {
-                if ($this->user_data === null) {
-                    $error = "JSON error: ".json_last_error_msg();
-                } else {
-                    $error = "Could not read file: $this->user_config_file";
-                }
-                Log::error($error);
-                http_response_code(500);
-                throw new Exception($error);
-            }
+            $this->user_data !== null || Log::die("JSON error: " . json_last_error_msg());
+            $this->user_data !== false || Log::die("Could not read file: $this->user_config_file");
         } else {
             $this->user_data = (object) array(
                 "username" => $username,
@@ -144,13 +136,11 @@ class UserConfigManager {
      *
      * @return void
      */
-    private function save(): void {
-        $res = file_put_contents($this->user_config_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
-        if ($res === false) {
-            Log::error("Could not save user config file: $this->user_config_file");
-            http_response_code(500);
-            throw new Exception("Could not save user config file: $this->user_config_file");
-        }
+    public function save(): void {
+        $json = json_encode($this->user_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $json !== false || Log::die("JSON encoding failed: " . json_last_error_msg());
+        $res  = file_put_contents($this->user_config_file, $json);
+        $res  !== false || Log::die("Could not save user config file: $this->user_config_file");
     }
 
     /**
@@ -315,11 +305,7 @@ class UserConfigManager {
             return false;
         }
         $res = unlink($this->user_config_file);
-        if ($res === false) {
-            Log::error("Could not delete user config file: $this->user_config_file");
-            http_response_code(500);
-            throw new Exception("Could not delete user config file: $this->user_config_file");
-        }
+        $res !== false || Log::die("Could not delete user config file: $this->user_config_file");
         return true;
     }
 
@@ -330,12 +316,8 @@ class UserConfigManager {
      */
     public function save_backup(): void {
         $backup_file = $this->user_config_file.".bak";
-        $res = file_put_contents($backup_file, json_encode($this->user_data, JSON_PRETTY_PRINT));
-        if ($res === false) {
-            Log::error("Could not save user config backup file: $backup_file");
-            http_response_code(500);
-            throw new Exception("Could not save user config backup file: $backup_file");
-        }
+        $res = file_put_contents($backup_file, json_encode($this->user_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $res !== false || Log::die("Could not save user config backup file: $backup_file");
     }
 
     /**
@@ -349,16 +331,8 @@ class UserConfigManager {
             return false;
         }
         $this->user_data = json_decode(file_get_contents($backup_file), false);
-        if ($this->user_data === null || $this->user_data === false) {
-            if ($this->user_data === null) {
-                $error = "JSON error: ".json_last_error_msg();
-            } else {
-                $error = "Could not read file: $backup_file";
-            }
-            Log::error($error);
-            http_response_code(500);
-            throw new Exception($error);
-        }
+        $this->user_data !== null  || Log::die("JSON error: " . json_last_error_msg());
+        $this->user_data !== false || Log::die("Could not read file: $backup_file");
         return true;
     }
 
