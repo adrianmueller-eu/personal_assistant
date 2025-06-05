@@ -316,7 +316,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             ."Spread love! ❤️✨";
 
         // The command is /start or /reset resets the bot and sends a welcome message
-        $reset = function($command, $show_message = true) use ($telegram, $user_config_manager, $default_intro) {
+        $reset = function($command) use ($telegram, $user_config_manager, $default_intro) {
             $user_config_manager->save_session();
             $user_config_manager->clear_messages();
             # If the user config contains an intro message, add it as system message
@@ -324,15 +324,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             # replace {DATE} with the current date
             $intro = str_replace("{DATE}", date("l, j.n.Y"), $intro);
             $user_config_manager->get_config()->messages = array();
-            if ($intro != "") {
-                $user_config_manager->add_message("system", $intro);
-            } else {
-                $user_config_manager->add_message("system", $default_intro);
-            }
-            if ($show_message) {
-                $hello = $user_config_manager->hello();
-                $telegram->send_message($hello);
-            }
+            $user_config_manager->add_message("system", $intro !== "" ? $intro : $default_intro);
         };
 
         $invite = function($new_characters) use ($telegram, $user_config_manager, $llm, $get_character_description) {
@@ -406,11 +398,13 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
         };
 
-        $command_manager->add_command(array("/start", "/reset", "/r"), function($command, $description) use ($reset, $invite) {
+        $command_manager->add_command(array("/start", "/reset", "/r"), function($command, $description) use ($reset, $invite, $user_config_manager, $telegram) {
+            $reset($command);
             if ($description == "") {
-                $reset($command, true);
+                $hello = $user_config_manager->hello();
+                $telegram->send_message($hello);
             } else {
-                $reset($command, false);
+                $user_config_manager->delete_messages(1);
                 $invite($description);
             }
             exit;
@@ -587,7 +581,7 @@ END:VTIMEZONE"));
         // The command /task helps the user to break down a task and track progress
         $command_manager->add_command(array("/task"), function($command, $task) use ($telegram, $user_config_manager, $reset) {
             $task != "" || $telegram->die("Please provide a task with the command.");
-            $reset($command, false);  // general prompt
+            $reset($command);  // general prompt
             $prompt = "Your task is to help the user achieve the following goal: \"$task\". "
                 ."Break down it into subtasks, negotiate a schedule, and provide live accountabilty at each step. "
                 ."Avoid generic advice, but instead find specific, actionable steps. "
