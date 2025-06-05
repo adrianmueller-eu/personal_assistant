@@ -610,8 +610,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         if (!$is_admin) {
             // The command /usage allows the user to see their usage statistics
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $user_config_manager) {
-                if ($month == "")
-                    $month = date("ym");
+                $month = $month ?: date("ym");
 
                 preg_match("/^[0-9]{4}$/", $month) || $telegram->die("Please provide a month in the format \"YYMM\".");
                 $usage = get_usage_string($user_config_manager, $month, true);
@@ -811,8 +810,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             // The command /usage prints the usage statistics of all users for a given month
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
                 // If monthstring is not in format "ym", send an error message
-                if ($month == "")
-                    $month = date("ym");
+                $month = $month ?: date("ym");
 
                 preg_match("/^[0-9]{4}$/", $month) || $telegram->die("Please provide a month in the format \"YYMM\".");
                 $chatids = $global_config_manager->get_chatids();

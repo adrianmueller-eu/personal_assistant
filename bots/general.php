@@ -320,7 +320,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             # replace {DATE} with the current date
             $intro = str_replace("{DATE}", date("l, j.n.Y"), $intro);
             $user_config_manager->get_config()->messages = array();
-            $user_config_manager->add_message("system", $intro !== "" ? $intro : $default_intro);
+            $user_config_manager->add_message("system", $intro ?: $default_intro);
         };
 
         $invite = function($new_characters) use ($telegram, $user_config_manager, $llm, $get_character_description) {
@@ -1060,8 +1060,7 @@ END:VTIMEZONE"));
 
         // The command /delete deletes the last n messages, or the last message if no number is provided
         $command_manager->add_command(array("/del"), function($command, $n) use ($telegram, $user_config_manager) {
-            if ($n == "")
-                $n = 1;
+            $n = $n ?: 1;
             is_numeric($n) || $telegram->die("Please provide a number of messages to delete.");
             $n = intval($n);
             $n > 0 || $telegram->die("You can only delete a positive number of messages.");
@@ -1113,9 +1112,7 @@ END:VTIMEZONE"));
 
         // The commands /restore and /load load a saved session
         $command_manager->add_command(array("/restore", "/load"), function($command, $session) use ($telegram, $user_config_manager) {
-            if ($session == "") {
-                $session = "last";
-            }
+            $session = $session ?: "last";
             // Load the session
             $new = $user_config_manager->get_session($session);
             $new !== null || $telegram->die("Session `$session` not found. Use command /sessions to see available sessions. Chat history not changed.");
@@ -1157,8 +1154,7 @@ END:VTIMEZONE"));
         if (!$is_admin) {
             // The command /usage allows the user to see their usage statistics
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $user_config_manager) {
-                if ($month == "")
-                    $month = date("ym");
+                $month = $month ?: date("ym");
 
                 preg_match("/^[0-9]{4}$/", $month) || $telegram->die("Please provide a month in the format \"YYMM\".");
                 $usage = get_usage_string($user_config_manager, $month, true);
@@ -1263,8 +1259,7 @@ END:VTIMEZONE"));
             // The command /usage prints the usage statistics of all users for a given month
             $command_manager->add_command(array("/usage"), function($command, $month) use ($telegram, $global_config_manager) {
                 // If monthstring is not in format "ym", send an error message
-                if ($month == "")
-                    $month = date("ym");
+                $month = $month ?: date("ym");
 
                 preg_match("/^[0-9]{4}$/", $month) || $telegram->die("Please provide a month in the format \"YYMM\".");
                 $chatids = $global_config_manager->get_chatids();
