@@ -122,7 +122,7 @@ class LLMConnector {
             // set the thinking parameter
             $data->thinking = (object) array(
                 "type" => "enabled",
-                "budget_tokens" => 32000
+                "budget_tokens" => (str_contains($data->model, "opus") ? 8000 : 32000)
             );
             // remove temperature parameter
             if (isset($data->temperature)) {
