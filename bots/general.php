@@ -743,9 +743,18 @@ END:VTIMEZONE"));
                 if ($query !== "") {
                     $context_prompt .= " and considering this additional context: \"$query\"";
                 }
-                $context_prompt .= ", generate a focused academic search query for finding relevant papers (sent to Semantic Scholar API). " .
-                                  "The query should be specific and concise, focusing on the key concepts or research questions. " .
-                                  "Return ONLY the search query text itself, with no additional commentary or explanation.";
+                $context_prompt .= ", create an optimized search query for the Semantic Scholar API by following these guidelines:\n".
+                                  "\n1. Extract exactly 2-4 key concepts that represent the core research question\n".
+                                  "2. Use natural language phrasing to allow for terminology variations\n".
+                                  "3. Separate terms with spaces (Semantic Scholar's default behavior handles term relationships well)\n".
+                                  "4. For temporal filtering, use specific year ranges when relevant (e.g., 'since 2020', '2023-2024')\n".
+                                  "5. For compound technical concepts:\n".
+                                  "   - Keep them as single units when they represent established specialized fields (e.g., 'reinforcement learning')\n".
+                                  "   - Consider separating them when the research spans multiple fields rather than their specific intersection\n".
+                                  "6. Use established terminology over cutting-edge terms that might not be widely adopted in the literature yet\n".
+                                  "7. When creating the query, identify whether the primary focus is on domain knowledge or methodology, and ensure the query reflects this primary focus\n".
+                                  "8. Use the most specific level of terminology that accurately captures the research question while still being well-represented in academic literature\n".
+                                  "\nReturn ONLY the search query with no explanations or additional text.";
 
                 $user_config_manager->add_message("system", $context_prompt);
                 $config = $user_config_manager->get_config();
@@ -776,7 +785,7 @@ END:VTIMEZONE"));
                 $n = $i + 1;
                 $ref = $paper['url'] ? "[[$n]({$paper['url']})]" : "[$n]";
                 $pdf_link = $paper['pdfUrl'] ? " ([PDF]({$paper['pdfUrl']}))" : "";
-                $line = "{$ref} (*{$paper['citationCount']}* cit.) {$paper['authors']} ({$paper['year']}) _{$paper['title']}_{$pdf_link}\n\n";
+                $line = "{$ref} (*{$paper['citationCount']}* cit.) {$paper['authors']} ({$paper['year']}) *{$paper['title']}*{$pdf_link}\n\n";
                 if ($paper['abstract']) {
                     $abstracts[] = "$ref {$paper['title']}\n{$paper['abstract']}";
                 }
@@ -809,7 +818,7 @@ END:VTIMEZONE"));
             $user_config_manager->add_message("assistant", $response);
             $telegram->send_message($response);
             exit;
-        }, "Shortcuts", "Search Semantic Scholar for academic papers, summarize abstracts, and provide markdown citations. Usage: /semanticscholar [your search query]");
+        }, "Shortcuts", "Search Semantic Scholar for academic papers and summarize abstracts.");
 
         // TODO !!! Add more presets here !!!
 
