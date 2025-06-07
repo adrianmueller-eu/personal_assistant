@@ -82,10 +82,8 @@ class Telegram {
             "data" => $data,
         ));
         if ($endpoint == "sendMessage") {
-            if (is_object($server_output) && !$server_output->ok) {
-                return $server_output;
-            }
-            // else, silently fail
+            // let the function handle it
+            return $server_output;
         } else if (is_string($server_output)) {
             $this->send_message($server_output, false);
         } else {

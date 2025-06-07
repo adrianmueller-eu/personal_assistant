@@ -65,7 +65,7 @@ function curl($url, $headers = array(), $data = null) {
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $response = json_decode($server_output, false);
         if ($http_code < 200 || $http_code >= 300 || $server_output === false) {
-            if (isset($response->error))
+            if (isset($response->error) || isset($response->ok))
                 return $response;
             $mes = $server_output ?? "No valid response from ".parse_url($url, PHP_URL_HOST);
             return "Error: (http: $http_code) $mes";
