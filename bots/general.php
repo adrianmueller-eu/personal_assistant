@@ -311,15 +311,12 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             ."You can use Markdown and emojis to format and enrich your messages. "
             ."Spread love! ❤️✨";
 
-        // The command is /start or /reset resets the bot and sends a welcome message
-        $reset = function($command) use ($telegram, $user_config_manager, $default_intro) {
+        $reset = function($command) use ($user_config_manager, $default_intro) {
             $user_config_manager->save_session();
             $user_config_manager->clear_messages();
-            # If the user config contains an intro message, add it as system message
+            # Add intro as system message
             $intro = $user_config_manager->get_intro();
-            # replace {DATE} with the current date
             $intro = str_replace("{DATE}", date("l, j.n.Y"), $intro);
-            $user_config_manager->get_config()->messages = array();
             $user_config_manager->add_message("system", $intro ?: $default_intro);
         };
 
@@ -394,6 +391,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
         };
 
+        // The command is /start or /reset resets the bot and sends a welcome message
         $command_manager->add_command(array("/start", "/reset", "/r"), function($command, $description) use ($reset, $invite, $user_config_manager, $telegram) {
             $reset($command);
             if ($description == "") {
@@ -708,7 +706,7 @@ END:VTIMEZONE"));
 
             $user_config_manager->add_message("user", $query == "" ? "Please perform the web search." : $query);
 
-            $response = $llm->message($chat, $enable_websearch=true);
+            $response = $llm->message($chat, true);
             $telegram->die_if_error($response, $user_config_manager);
 
             // Handle websearch responses with citations
