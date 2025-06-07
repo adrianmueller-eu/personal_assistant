@@ -327,10 +327,13 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 $telegram->send_message("Trying to find $new_characters...");
                 # If the first message is intro, remove it and append it to "new characters" message
                 $intro = $user_config_manager->get_intro();
-                if (count($chat->messages) > 0 && $chat->messages[0]->content == $intro) {
-                    $new_characters = "$new_characters\n\nAlso add a personal assistant with a characterization following this prompt:\n$intro";
+                $intro_prefix_len = strpos($intro, '{') ?: strlen($intro);  // if variable at the start, simply always fail
+                $chat_has_intro = substr($chat->messages[0]->content, 0, $intro_prefix_len) === substr($intro, 0, $intro_prefix_len);
+
+                if (count($chat->messages) > 0 && $chat_has_intro) {
+                    $new_characters = "$new_characters\n\nAlso add a personal assistant with a characterization following this prompt:\n```{$chat->messages[0]->content}```";
                     array_shift($chat->messages);
-                    // Prepend any "assistant" message with "Presonal assistant:\n"
+                    // Prepend any "assistant" message with "Personal assistant:\n"
                     foreach ($chat->messages as $message) {
                         if ($message->role == "assistant") {
                             $message->content = "Personal assistant:\n$message->content";
