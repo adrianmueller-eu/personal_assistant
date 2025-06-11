@@ -94,7 +94,7 @@ class CommandManager {
         $command = $command[0];
         foreach ($this->commands as $command_info) {
             if (in_array($command, $command_info["alternatives"])) {
-                return $command_info["function"]($command, $argument);
+                return $command_info["function"]($command, trim($argument));
             }
         }
         return "Command \"$command\" not found. Type /help to see the list of available commands.";
