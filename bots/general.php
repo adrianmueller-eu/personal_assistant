@@ -316,27 +316,35 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $user_config_manager->clear_messages();
             # Add intro as system message
             $intro = $user_config_manager->get_intro();
-            $intro = str_replace("{DATE}", date("l, j.n.Y"), $intro);
+            // Replace <datetime></datetime> with the current date
+            $intro = preg_replace(
+                '#<datetime>.*?</datetime>#',
+                '<datetime>'.date("l, j.n.Y").'</datetime>',
+                $intro
+            );
             $user_config_manager->add_message("system", $intro ?: $default_intro);
         };
 
         $invite = function($new_characters) use ($telegram, $user_config_manager, $llm, $get_character_description) {
             $chat = $user_config_manager->get_config();
-            $is_conversation_room = count($chat->messages) > 1 && substr($chat->messages[1]->content, 0, 25) == "Character description(s):";
+            $is_conversation_room = count($chat->messages) > 1 && is_string($chat->messages[1]->content) && substr($chat->messages[1]->content, 0, 25) == "Character description(s):";
             if (!$is_conversation_room) {
                 $telegram->send_message("Trying to find $new_characters...");
                 # If the first message is intro, remove it and append it to "new characters" message
-                $intro = $user_config_manager->get_intro();
-                $intro_prefix_len = strpos($intro, '{') ?: strlen($intro);  // if variable at the start, simply always fail
-                $chat_has_intro = substr($chat->messages[0]->content, 0, $intro_prefix_len) === substr($intro, 0, $intro_prefix_len);
+                if (is_string($chat->messages[0]->content)) {
+                    $intro = $user_config_manager->get_intro();
+                    // Strip <datetime>...</datetime> tags for comparison
+                    $intro_stripped = preg_replace('#<datetime>.*?</datetime>#', '', $intro);
+                    $msg0_stripped = preg_replace('#<datetime>.*?</datetime>#', '', $chat->messages[0]->content);
 
-                if (count($chat->messages) > 0 && $chat_has_intro) {
-                    $new_characters = "$new_characters\n\nAlso add a personal assistant with a characterization following this prompt:\n```{$chat->messages[0]->content}```";
-                    array_shift($chat->messages);
-                    // Prepend any "assistant" message with "Personal assistant:\n"
-                    foreach ($chat->messages as $message) {
-                        if ($message->role == "assistant") {
-                            $message->content = "Personal assistant:\n$message->content";
+                    if (count($chat->messages) > 0 && $msg0_stripped === $intro_stripped) {
+                        $new_characters = "$new_characters\n\nAlso add a personal assistant with a characterization following this prompt:\n```{$chat->messages[0]->content}```";
+                        array_shift($chat->messages);
+                        // Prepend any "assistant" message with "Personal assistant:\n"
+                        foreach ($chat->messages as $message) {
+                            if ($message->role == "assistant") {
+                                $message->content = "Personal assistant:\n$message->content";
+                            }
                         }
                     }
                 }
