@@ -176,7 +176,7 @@ function has_error($text) {
  * @param bool $use_post_processing Whether to use post-processing formatting (quotes vs code blocks)
  * @return string The formatted text with citations
  */
-function text_from_websearch($array_response, $use_post_processing) {
+function text_from_claude_websearch($array_response, $use_post_processing) {
     $formatted_text = "";
     $citations = [];
 

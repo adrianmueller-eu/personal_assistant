@@ -704,18 +704,11 @@ END:VTIMEZONE"));
             $response = $llm->message($chat, true);
             $telegram->die_if_error($response, $user_config_manager);
 
-            // Handle websearch responses with citations
-            if (is_array($response)) {
-                // Store the original array response directly in the message history
-                $user_config_manager->get_config()->messages[] = (object)["role" => "assistant", "content" => $response];
-                // Use the formatted text for display
-                $formatted_text = text_from_websearch($response, $user_config_manager->is_post_processing());
-                $telegram->send_message($formatted_text);
-            } else {
-                // If not an array, just add as a regular message
-                $user_config_manager->add_message("assistant", $response);
-                $telegram->send_message($response);
+            $user_config_manager->add_message("assistant", $response);
+            if (is_array($response)) { // we're storing claude websearches in all detail, so convert it here for output
+                $response = text_from_claude_websearch($response, $user_config_manager->is_post_processing());
             }
+            $telegram->send_message($response);
             exit;
         }, "Shortcuts", "Allow to perform a web search based on the chat history (and optional additional query).");
 
@@ -1464,7 +1457,7 @@ END:VTIMEZONE"));
                     }
                 } else if (is_array($message->content)) {
                     // Handle web search responses with citations
-                    $formatted_text = text_from_websearch($message->content, $user_config_manager->is_post_processing());
+                    $formatted_text = text_from_claude_websearch($message->content, $user_config_manager->is_post_processing());
                     $telegram->send_message("/$message->role $formatted_text", $command == "/dmf");
                 }
             }

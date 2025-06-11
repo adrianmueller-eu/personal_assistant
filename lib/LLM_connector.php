@@ -35,10 +35,10 @@ class LLMConnector {
         $data = json_decode(json_encode($data, JSON_UNESCAPED_UNICODE), false);  // copy data do not modify the original object
 
         // If not using Claude, convert any structured array content in messages to text
-        if (!str_starts_with($data->model, "claude-") && isset($data->messages)) {
+        if (!str_starts_with($data->model, "claude-")) {
             foreach ($data->messages as $message) {
                 if (is_array($message->content) && array_reduce($message->content, fn($c, $item) => $c || ($item->type === "web_search_tool_result"), false)) {
-                    $message->content = text_from_websearch($message->content, true);
+                    $message->content = text_from_claude_websearch($message->content, true);
                 }
             }
         }
