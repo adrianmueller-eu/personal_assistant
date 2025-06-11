@@ -27,7 +27,7 @@ class OpenAI {
      * @param object|array $data The data to send to the OpenAI API.
      * @return string The response from GPT or an error message (starts with "Error: ").
      */
-    public function gpt($data): string {
+    public function complete($data): string {
         // Request a chat completion from OpenAI
         // The response has the following format:
         // $server_output = '{

@@ -68,7 +68,7 @@ class LLMConnector {
      */
     private function parse_gpt($data): string|array {
         $openai = new OpenAI($this->user, $this->DEBUG);
-        $content = $openai->gpt($data);
+        $content = $openai->complete($data);
         if (is_string($content)) {
             return $content;
         }
@@ -97,7 +97,7 @@ class LLMConnector {
         }
         $data->reasoning_effort = "high";  # "low", "medium", "high"
         $openai = new OpenAI($this->user, $this->DEBUG);
-        $content = $openai->gpt($data);
+        $content = $openai->complete($data);
         if (is_string($content)) {
             return $content;
         }
