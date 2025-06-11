@@ -190,15 +190,15 @@ function text_from_claude_websearch($array_response, $use_post_processing) {
                     if (isset($citation->url) && isset($citation->title)) {
                         // Create a unique ID for this citation
                         $citation_id = count($citations) + 1;
-                        $citations[] = [
+                        $citations[] = (object) [
                             'url' => $citation->url,
                             'title' => $citation->title,
-                            'text' => $citation->cited_text ?? "",
+                            // 'text' => $citation->cited_text ?? "",
                             'id' => $citation_id
                         ];
 
                         // Add a reference number after the text
-                        $text .= " [" . $citation_id . "]";
+                        $text .= " [[$citation_id]({$citation->url})]";
                     }
                 }
                 $formatted_text .= $text;
@@ -213,24 +213,73 @@ function text_from_claude_websearch($array_response, $use_post_processing) {
     if (!empty($citations)) {
         $formatted_text .= "\n\n*Sources:*\n";
         foreach ($citations as $citation) {
-            $formatted_text .= "[" . $citation['id'] . "] [" . $citation['title'] . "](" . $citation['url'] . ")";
+            $formatted_text .= "[{$citation->id}] [{$citation->title}]({$citation->url})\n";
 
-            // Format cited text based on post-processing setting
-            if (!empty($citation['text'])) {
-                if ($use_post_processing) {
-                    // Use Telegram markdown v2 quote for the citation
-                    $formatted_text .= "\n>";
-                    $formatted_text .= str_replace("\n", "\n>", $citation['text']);
-                } else {
-                    // Use code blocks
-                    $formatted_text .= "\n```\n" . $citation['text'] . "\n```";
-                }
-            }
-            $formatted_text .= "\n\n";
+            // // Format cited text based on post-processing setting
+            // if (!empty($citation->text)) {
+            //     if ($use_post_processing) {
+            //         // Use Telegram markdown v2 quote for the citation
+            //         $formatted_text .= "\n>";
+            //         $formatted_text .= str_replace("\n", "\n>", $citation->text);
+            //     } else {
+            //         // Use code blocks
+            //         $formatted_text .= "\n```\n{$citation->text}\n```";
+            //     }
+            // }
+            // $formatted_text .= "\n\n";
         }
     }
     return $formatted_text;
 }
+
+/**
+ * Converts an OpenAI websearch output object to a string with citation markers and sources.
+ *
+ * @param object $content An object with properties:
+ *   - text: string
+ *   - annotations: array of objects, each with start_index, end_index, url, title, and optionally text
+ *
+ * Note: $content must be an object, not an array.
+ */
+function text_from_openai_websearch($content) {
+    $text = $content->text;
+    $annotations = $content->annotations;
+    if (empty($annotations))
+        return $text;
+    // Sort annotations by start_index ascending
+    usort($annotations, function($a, $b) {
+        return $a->start_index <=> $b->start_index;
+    });
+    $result = '';
+    $last_index = 0;
+    $citations = [];
+    foreach ($annotations as $i => $ann) {
+        $start = $ann->start_index;
+        $end = $ann->end_index;
+        // Clean the URL of utm_source=openai
+        $url = preg_replace('/[&?]utm_source=openai$/', '', $ann->url);
+        // Add text up to the start of the citation span
+        $result .= mb_substr($text, $last_index, $start - $last_index);
+        // Replace the citation span with the citation marker
+        $citation_id = $i + 1;
+        $result .= "[[{$citation_id}]({$url})]";
+        $citations[] = (object) [
+            'id' => $citation_id,
+            'title' => isset($ann->title) ? $ann->title : $url,
+            'url' => $url
+        ];
+        $last_index = $end;
+    }
+    $result .= mb_substr($text, $last_index);
+    if (count($citations) > 0) {
+        $result .= "\n\n*Sources:*\n";
+        foreach ($citations as $citation) {
+            $result .= "[{$citation->id}] [{$citation->title}]({$citation->url})\n";
+        }
+    }
+    return $result;
+}
+
 
 function strip_long_messages($data, $max_length=200) {
     $data = json_decode(json_encode($data, JSON_UNESCAPED_UNICODE));  // deep copy

@@ -44,9 +44,9 @@ class LLMConnector {
         }
 
         if (str_starts_with($data->model, "gpt-")) {
-            $result = $this->parse_gpt($data);
+            $result = $this->parse_gpt($data, $enable_websearch);
         } else if (preg_match("/^o\d/", $data->model)) {
-            $result = $this->parse_o($data);
+            $result = $this->parse_o($data, $enable_websearch);
         } else if (str_starts_with($data->model, "claude-")) {
             $result = $this->parse_claude($data, $enable_websearch);
         } else {
@@ -64,14 +64,15 @@ class LLMConnector {
      * Parse requests for gpt-* models.
      *
      * @param object|array $data
+     * @param bool $enable_websearch
      * @return string|array
      */
-    private function parse_gpt($data): string|array {
+    private function parse_gpt($data, $enable_websearch = false): string|array {
         $openai = new OpenAI($this->user, $this->DEBUG);
         // For responses api, rename "messages" to "input"
         $data->input = $data->messages;
         unset($data->messages);
-        $content = $openai->respond($data);
+        $content = $openai->respond($data, $enable_websearch);
         if (is_string($content)) {
             return $content;
         }
@@ -85,9 +86,10 @@ class LLMConnector {
      * Parse requests for o* models.
      *
      * @param object|array $data
+     * @param bool $enable_websearch
      * @return string|array
      */
-    private function parse_o($data): string|array {
+    private function parse_o($data, $enable_websearch = false): string|array {
         // replace all "system" roles with "developer"
         for ($i = 0; $i < count($data->messages); $i++) {
             if ($data->messages[$i]->role == "system") {
@@ -106,7 +108,7 @@ class LLMConnector {
         );
         $data->store = false;
         $openai = new OpenAI($this->user, $this->DEBUG);
-        $content = $openai->respond($data);
+        $content = $openai->respond($data, $enable_websearch);
         if (has_error($content))
             return $content;
 

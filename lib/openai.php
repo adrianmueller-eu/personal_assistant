@@ -26,8 +26,16 @@ class OpenAI {
      *
      * @param object $data The data to send to the OpenAI API.
      * @return string|array The response text, output array, or an error message (starts with "Error: ").
+     * @param bool $enable_websearch Whether to enable web search tool in the payload.
      */
-    public function respond($data) {
+    public function respond($data, $enable_websearch = false) {
+        // Optionally add web search tool to the payload
+        if ($enable_websearch) {
+            $data->tools = [
+                (object) ["type" => "web_search_preview"]
+            ];
+        }
+
         // Request a response from OpenAI using the Responses API
         // The response has the following format:
         // {
@@ -76,7 +84,7 @@ class OpenAI {
                     if ($content->type === "refusal") {
                         return "Error: Model refused. ".$content->refusal;
                     } else {
-                        return $content->text;
+                        return text_from_openai_websearch($content);
                     }
                 }
             }

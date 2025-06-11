@@ -694,13 +694,9 @@ END:VTIMEZONE"));
 
         // The command /search enables web search for a single query
         $command_manager->add_command(array("/search"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
-            $chat = $user_config_manager->get_config();
-            if (strpos($chat->model, "claude-") !== 0) {
-                $telegram->die("Only Claude can perform websearch.");
-            }
-
             $user_config_manager->add_message("user", $query == "" ? "Please perform the web search." : $query);
 
+            $chat = $user_config_manager->get_config();
             $response = $llm->message($chat, true);
             $telegram->die_if_error($response, $user_config_manager);
 
