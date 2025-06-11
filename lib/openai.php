@@ -22,56 +22,65 @@ class OpenAI {
     }
 
     /**
-     * Send a request to the OpenAI API to create a chat completion.
+     * Send a request to the OpenAI API using the Responses API.
      *
-     * @param object|array $data The data to send to the OpenAI API.
-     * @return string The response from GPT or an error message (starts with "Error: ").
+     * @param object $data The data to send to the OpenAI API.
+     * @return string|array The response text, output array, or an error message (starts with "Error: ").
      */
-    public function complete($data): string {
-        // Request a chat completion from OpenAI
+    public function respond($data) {
+        // Request a response from OpenAI using the Responses API
         // The response has the following format:
-        // $server_output = '{
-        //     "id": "chatcmpl-123",
-        //     "object": "chat.completion",
-        //     "created": 1677652288,
-        //     "choices": [{
-        //         "index": 0,
-        //         "message": {
-        //         "role": "assistant",
-        //         "content": "\n\nHello there, how may I assist you today?"
-        //         },
-        //         "finish_reason": "stop"
-        //     }],
-        //     "usage": {
-        //         "prompt_tokens": 9,
-        //         "completion_tokens": 12,
-        //         "total_tokens": 21
+        // {
+        //   "id": "resp_67ccd2bed1ec8190b14f964abc0542670bb6a6b452d3795b",
+        //   "object": "response",
+        //   "created_at": 1741476542,
+        //   "output": [
+        //     {
+        //       "type": "message",
+        //       "role": "assistant",
+        //       "content": [
+        //         {
+        //           "type": "output_text",
+        //           "text": "Response text here"
+        //         }
+        //       ]
         //     }
-        // }';
+        //   ],
+        //   "usage": {
+        //     "input_tokens": 36,
+        //     "output_tokens": 87,
+        //     "total_tokens": 123
+        //   }
+        // }
 
-        // curl https://api.openai.com/v1/chat/completions \
+        // curl https://api.openai.com/v1/responses \
         // -H "Content-Type: application/json" \
         // -H "Authorization: Bearer $OPENAI_API_KEY" \
         // -d '{
-        //   "model": "gpt-3.5-turbo",
-        //   "messages": [{"role": "user", "content": "Hello!"}]
+        //   "model": "gpt-4.1",
+        //   "input": "Tell me a story"
         // }'
 
-        $response = $this->send_request("chat/completions", $data);
-        if (isset($response->choices)) {
-            // if ($this->DEBUG) {
-            //     echo "Response is: ".json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n";
-            // }
+        $response = $this->send_request("responses", $data);
+        if (isset($response->output) && is_array($response->output)) {
             // Get a month year string
             $month = date("ym");
             // Count the usages
-            $this->user->increment("openai_".$month."_chat_prompt_tokens", $response->usage->prompt_tokens);
-            $this->user->increment("openai_".$month."_chat_completion_tokens", $response->usage->completion_tokens);
-            $res = $response->choices[0]->message->content;
-            // if ($this->DEBUG && isset($response->usage->prompt_tokens_details->cached_tokens)) {
-            //     $res .= "\n[cached tokens: ".$response->usage->prompt_tokens_details->cached_tokens."]";
-            // }
-            return $res;
+            $this->user->increment("openai_".$month."_input_tokens", $response->usage->input_tokens);
+            $this->user->increment("openai_".$month."_output_tokens", $response->usage->output_tokens);
+
+            // convert output to string
+            foreach ($response->output as $item) {
+                if ($item->type === "message") {
+                    $content = $item->content[0];
+                    if ($content->type === "refusal") {
+                        return "Error: Model refused. ".$content->refusal;
+                    } else {
+                        return $content->text;
+                    }
+                }
+            }
+            return "Error: Model response did not contain a message.";
         }
         if (!is_string($response)) {
             return "Error: ".json_encode($response, JSON_UNESCAPED_UNICODE);

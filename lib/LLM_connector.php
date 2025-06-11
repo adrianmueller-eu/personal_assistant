@@ -68,7 +68,10 @@ class LLMConnector {
      */
     private function parse_gpt($data): string|array {
         $openai = new OpenAI($this->user, $this->DEBUG);
-        $content = $openai->complete($data);
+        // For responses api, rename "messages" to "input"
+        $data->input = $data->messages;
+        unset($data->messages);
+        $content = $openai->respond($data);
         if (is_string($content)) {
             return $content;
         }
@@ -95,12 +98,18 @@ class LLMConnector {
         if (isset($data->temperature)) {
             unset($data->temperature);
         }
-        $data->reasoning_effort = "high";  # "low", "medium", "high"
+        // For responses api, rename "messages" to "input"
+        $data->input = $data->messages;
+        unset($data->messages);
+        $data->reasoning = (object) array(
+            "effort" => "high"  // "low", "medium", "high"
+        );
+        $data->store = false;
         $openai = new OpenAI($this->user, $this->DEBUG);
-        $content = $openai->complete($data);
-        if (is_string($content)) {
+        $content = $openai->respond($data);
+        if (has_error($content))
             return $content;
-        }
+
         return [
             'content' => $content,
             'thinking' => "OpenAI doesn't provide reasoning output."
