@@ -916,6 +916,7 @@ END:VTIMEZONE"));
             "/claude37sonnet" => "claude-3-7-sonnet-latest",
             "/claude37sonnetthinking" => "claude-3-7-sonnet-latest-thinking",
             "/o4mini" => "o4-mini",
+            "/o3" => "o3",
             "/o3mini" => "o3-mini",
             "/gemini25pro" => "google/gemini-2.5-pro-preview",
             "/mistralmedium3" => "mistralai/mistral-medium-3",
@@ -925,7 +926,6 @@ END:VTIMEZONE"));
         $shortcuts_large = array(
             "/claude4opus" => "claude-opus-4-20250514",
             "/claude4opusthinking" => "claude-opus-4-20250514-thinking",
-            "/o3" => "o3",
             "/gpt45" => "gpt-4.5-preview",
         );
 
