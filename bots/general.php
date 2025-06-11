@@ -899,6 +899,7 @@ END:VTIMEZONE"));
         $shortcuts_large = array(
             "/claude4opus" => "claude-opus-4-20250514",
             "/claude4opusthinking" => "claude-opus-4-20250514-thinking",
+            "/o3pro" => "o3-pro",
             "/gpt45" => "gpt-4.5-preview",
         );
 
