@@ -164,7 +164,7 @@ class Telegram {
         } else {
             $data = (object) array(
                 "chat_id" => $this->chat_id,
-                "text" => $is_markdown && $this->post_processing ? $this->format_message($message) : $message,
+                "text" => $is_markdown ? $this->format_message($message, $this->post_processing) : $message,
                 "disable_web_page_preview" => "true",
             );
             if ($is_markdown) {
@@ -339,10 +339,16 @@ class Telegram {
      * - Escaping special characters as required by Telegram's MarkdownV2 format
      *
      * @param string $response The original message text to format
+     * @param bool $postprocessing (optional) Whether to apply MarkdownV2 post-processing.
      * @return string The formatted message ready for Telegram's MarkdownV2 parser
      */
-    private function format_message($response): string {
+    private function format_message($response, $postprocessing=true): string {
         // $this->send_message("Original response: $response", false);
+        if (!$postprocessing) {
+            // Replace "* " at the start with "- "
+            $response = preg_replace('/^\\* /m', '- ', $response);
+            return $response;
+        }
 
         // Replace "```\n$$" or "```\n\[" with "```"
         $response = preg_replace('/```(.*)\n *(\$\$?|\\\\\[|\\\\\()\s*\n/', "```$1\n", $response);
@@ -424,6 +430,8 @@ class Telegram {
                         $offset += 2;
                     }
                 }
+                // Replace an "* " at the start of the line with "- "
+                $line = preg_replace('/^\* /', '- ', $line);
                 // Replace all ** outside of code blocks by *
                 $line = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $line);
                 // Replace headings (a line beginning with at least one #) by bold text
@@ -458,6 +466,7 @@ class Telegram {
 }
 
 function markdownV2_escape($line, $j) {
+    # see https://core.telegram.org/bots/api#markdownv2-style
     switch ($line[$j]) {
         case '!':
             // if ! is followed by [ (link), do not escape it
