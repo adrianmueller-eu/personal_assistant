@@ -13,7 +13,7 @@ class Telegram {
     private $post_processing;
     private $DEBUG;
     private $RETRY_CNT = 0;
-    private $MAX_RETRY = 4;
+    private $MAX_RETRY = 3;
 
     /**
      * Create a new Telegram instance.
@@ -325,7 +325,7 @@ class Telegram {
         if (has_error($message)) {
             if ($user_config_manager !== null) {
                 $user_config_manager->delete_messages(1);
-                $message .= " Chat history has not been changed.";
+                $message .= "\n\nChat history has not been changed.";
             }
             $this->die($message);
         }
