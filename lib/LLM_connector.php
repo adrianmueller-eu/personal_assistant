@@ -255,18 +255,6 @@ class LLMConnector {
             }
         }
 
-        if ($this->DEBUG) {
-            // get the indices of all cached messages
-            $cached_indices = array();
-            for ($i = 0; $i < count($data->messages); $i++) {
-                if (isset($data->messages[$i]->content[0]->cache_control)) {
-                    array_push($cached_indices, $i);
-                }
-            }
-            $cached_indices = implode(", ", $cached_indices);
-            $text .= "\nCached indices: ".$cached_indices;
-        }
-
         return [
             'content' => $enable_websearch ? $content : $text,
             'thinking' => $thinking
