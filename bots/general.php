@@ -1500,17 +1500,35 @@ END:VTIMEZONE"));
         }, "Misc", "Count the number of messages in the chat history.");
 
         // The command /self lets the model answer for the user and then respond to itself
-        $command_manager->add_command(array("/self"), function($command, $n) use ($telegram, $user_config_manager, $llm) {
-            $n = $n ?: 1;  // default to 1
-            is_numeric($n) || $telegram->die("Please provide a positive integer less than 12.");
-            $n = intval($n);
-            (0 < $n && $n <= 12) || $telegram->die("Please provide a positive integer less than 12.");
+        $command_manager->add_command(array("/self"), function($command, $context) use ($telegram, $user_config_manager, $llm) {
+            $n = 1;
+            $model = null;
+
+            if ($context) {
+                $parts = explode(' ', $context, 2);
+                if (is_numeric($parts[0])) {
+                    $n = intval($parts[0]);
+                    if (isset($parts[1])) {
+                        $model = $parts[1];
+                    }
+                } else {
+                    $model = $parts[0];
+                    if (isset($parts[1]) && is_numeric($parts[1])) {
+                        $n = intval($parts[1]);
+                    }
+                }
+            }
+
+            (is_int($n) && 0 < $n && $n <= 12) || $telegram->die("Please provide a positive integer less than 12.");
 
             $chat = $user_config_manager->get_config();
             // Loop for the specified number of iterations
             for ($i = 0; $i < $n; $i++) {
                 // Swap roles in a copy of $chat
                 $temp_chat = json_decode(json_encode($chat));
+                if ($model) {
+                    $temp_chat->model = $model;
+                }
                 foreach ($temp_chat->messages as $msg) {
                     if ($msg->role === "user") {
                         $msg->role = "assistant";
@@ -1534,7 +1552,7 @@ END:VTIMEZONE"));
                 $user_config_manager->save();
             }
             exit;
-        }, "Misc", "Let the model respond as the user and then respond to itself. Optionally specify the number of turns (default: 1, max: 12).");
+        }, "Misc", "Let the model respond as the user and then respond to itself. Optionally specify the number of turns and/or a model (e.g. `/self 3 gpt-4.1`).");
 
         // ############################
         // Actually run the command!
