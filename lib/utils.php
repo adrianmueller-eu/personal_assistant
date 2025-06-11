@@ -46,7 +46,7 @@ function curl($url, $headers = array(), $data = null) {
 
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30); // Add timeout to prevent hanging requests
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60); // Add timeout to prevent hanging requests
 
     if ($data !== null) {
         curl_setopt($ch, CURLOPT_POST, 1);
