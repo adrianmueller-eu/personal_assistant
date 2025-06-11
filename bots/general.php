@@ -1013,6 +1013,13 @@ END:VTIMEZONE"));
             exit;
         }, "Settings", "Post-processing of text (especially for equations)");
 
+        // The command /auditing toggles the response auditing feature
+        $command_manager->add_command(array("/auditing"), function($command, $_) use ($telegram, $user_config_manager) {
+            $active = $user_config_manager->toggle_auditing();
+            $telegram->send_message("Response auditing ".($active ? "activated" : "deactivated").".");
+            exit;
+        }, "Settings", "Toggle auditing of responses against system guidance");
+
         // The command /name allows the user to change their name
         $command_manager->add_command(array("/name"), function($command, $name) use ($telegram, $user_config_manager) {
             $name != "" || $telegram->die("Your name is currently set to ".$user_config_manager->get_name().". To change it, provide a name with the command.");
@@ -1612,6 +1619,45 @@ END:VTIMEZONE"));
         $telegram->send_message($response);
     } else {
         $user_config_manager->add_message("assistant", $response);
+
+        // Audit the response if auditing is enabled and the first message is a system message
+        if ($user_config_manager->is_auditing() && isset($chat->messages[0]) && $chat->messages[0]->role === "system" &&
+            isset($chat->messages[1]) && $chat->messages[1]->role !== "system") {
+            $system_message = $chat->messages[0]->content;
+            $attempt = 1;
+            $max_attempts = 3;
+            $valid_response = false;
+
+            $chat = $user_config_manager->get_config();
+            $audit_chat = (object) UserConfigManager::$default_config;
+            $audit_chat->model = "gpt-4.1-nano";
+            $audit_chat->temperature = 0.0;
+            $audit_chat->messages = [["role" => "system", "content" => "You are an auditor. Your job is to check if the model's response adheres to the system guidance. Focus on strong qualifiers in the guidance, like \"NEVER\" or \"avoid\"."
+                                                                      ."If it adheres, reply with ONLY the word 'YES'. If it doesn't adhere, provide a brief explanation of why it doesn't."]];
+
+            while (!$valid_response && $attempt <= $max_attempts) {
+                $audit_chat->messages[] = ["role" => "user", "content" => "System guidance:\n\n```\n$system_message\n```\n\nModel response:\n\n```\n$response\n```\n\nDoes this response adhere to the system guidance?"];
+                $audit_response = $llm->message($audit_chat);
+
+                if (strpos(strtoupper($audit_response), 'YES') === 0) {
+                    $valid_response = true;
+                } else {
+                    if ($attempt < $max_attempts) {
+                        $telegram->send_message("Audit failed (attempt $attempt/$max_attempts): $audit_response");
+                        $user_config_manager->add_message("system", "Your previous response was rejected because it did not adhere to the system guidance. $audit_response Please try again.");
+                        $response = $llm->message($chat);
+                        $telegram->die_if_error($response, $user_config_manager);
+                        $attempt++;
+                    } else {
+                        $warning = "Warning: After $max_attempts attempts, the response still does not adhere to the system guidance. $audit_response";
+                        $user_config_manager->add_message("system", $warning);
+                        $telegram->send_message("$warning Showing the last attempt.");
+                        $valid_response = true; // exit from loop
+                    }
+                }
+            }
+        }
+
         $telegram->send_message($response);
     }
 }

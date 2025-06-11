@@ -126,6 +126,7 @@ class UserConfigManager {
                 "time_zone" => "Europe/Helsinki",
                 "last_seen" => date("Y-m-d H:i:s e"),
                 "post_processing" => false,
+                "auditing" => false,
                 "counters" => (object) array(),
             );
         }
@@ -568,7 +569,7 @@ class UserConfigManager {
     }
 
     public function toggle_post_processing(): bool {
-        $this->user_data->post_processing = !$this->user_data->post_processing;
+        $this->user_data->post_processing = !$this->is_post_processing();
         return $this->user_data->post_processing;
     }
 
@@ -579,6 +580,25 @@ class UserConfigManager {
      */
     public function is_post_processing(): bool {
         return $this->user_data->post_processing ?? false;
+    }
+
+    /**
+     * Toggle auditing on/off.
+     *
+     * @return bool The new state
+     */
+    public function toggle_auditing(): bool {
+        $this->user_data->auditing = !$this->is_auditing();
+        return $this->user_data->auditing;
+    }
+
+    /**
+     * Get whether response auditing is enabled.
+     *
+     * @return bool
+     */
+    public function is_auditing(): bool {
+        return $this->user_data->auditing ?? false;
     }
 }
 
