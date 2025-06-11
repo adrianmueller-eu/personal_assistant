@@ -517,11 +517,6 @@ function markdownV2_escape($line, $j) {
 
             // Default: escape the character
             return True;
-        case '>':
-            // if > is at the beginning of the line or preceded by "**", do not escape it
-            if ($j == 0 || ($j == 2 && $line[0] == "*" && $line[1] == "*"))
-                return False;
-            return True;
         case '#':
             // if # is at the beginning of the line or preceded only by #s, do not escape it
             if ($j == 0 || ($j > 0 && preg_match('/^#+$/', substr($line, 0, $j))))
@@ -553,6 +548,10 @@ function markdownV2_escape($line, $j) {
             if ($j > 3 && preg_match('/\[[^\]]+\]\([^\)]+$/', substr($line, 0, $j)))
                 return False;
             return True;
+        case '>':
+            // if > is at the beginning of the line or preceded by "**", do not escape it
+            if ($j == 0 || ($j == 2 && $line[0] == "*" && $line[1] == "*"))
+                return False;
         case '+':
         case '-':
         case '=':
@@ -560,6 +559,9 @@ function markdownV2_escape($line, $j) {
         case '{':
         case '}':
         case '.':
+            if ($j != 0 && $line[$j-1] == '\\') {
+                return False;
+            }
             return True;
     }
     return False;
