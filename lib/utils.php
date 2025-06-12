@@ -192,8 +192,8 @@ function text_from_claude_websearch($array_response, $use_post_processing) {
                         $citation_id = count($citations) + 1;
                         $citations[] = (object) [
                             'url' => $citation->url,
-                            'title' => $citation->title,
-                            // 'text' => $citation->cited_text ?? "",
+                            'title' => $citation->title ?: $citation->url,
+                            // 'text' => $citation->cited_text,
                             'id' => $citation_id
                         ];
 
@@ -265,7 +265,7 @@ function text_from_openai_websearch($content) {
         $result .= "[[{$citation_id}]({$url})]";
         $citations[] = (object) [
             'id' => $citation_id,
-            'title' => isset($ann->title) ? $ann->title : $url,
+            'title' => $ann->title ?: $url,
             'url' => $url
         ];
         $last_index = $end;
