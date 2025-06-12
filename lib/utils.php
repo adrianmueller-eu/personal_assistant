@@ -281,7 +281,14 @@ function text_from_openai_websearch($content) {
 }
 
 
-function strip_long_messages($data, $max_length=200) {
+/**
+ * Return a copy of $data in which long message contents are trimmed. Useful for logging or display purposes.
+ *
+ * @param object $data The data object containing messages to process.
+ * @param int $max_length The maximum length for message content (default: 200).
+ * @return object The processed data object with truncated message contents.
+ */
+function strip_long_messages($data, $max_length=20) {
     $data = json_decode(json_encode($data, JSON_UNESCAPED_UNICODE));  // deep copy
     foreach ($data->messages as $message) {
         // Handle string content
