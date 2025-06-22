@@ -1625,31 +1625,57 @@ END:VTIMEZONE"));
 
             $chat = $user_config_manager->get_config();
             $audit_chat = (object) UserConfigManager::$default_config;
-            $audit_chat->model = "gpt-4.1-nano";
+            $audit_chat->model = "gpt-4.1-mini";
             $audit_chat->temperature = 0.0;
-            $audit_chat->messages = [["role" => "system", "content" => "You are an auditor. Your job is to check if the model's response adheres to the system guidance. Focus on strong qualifiers in the guidance, like \"NEVER\" or \"avoid\"."
-                                                                      ."If it adheres, reply with ONLY the word 'YES'. If it doesn't adhere, provide a brief explanation of why it doesn't."]];
+            $audit_prompt = "You are an auditor. Your job is to check if the model's response adheres to the system guidance. "
+                         ."Generally be lenient and in particular in technical contexts allow for highly technical, thought-focused language. "
+                         ."Remember that being technical is in no way inherently non-compassionate. "
+                         ."However, be very strict on strong negative qualifiers in the guidance, like \"NEVER\" or \"avoid\". "
+                         ."ALWAYS reject preemptively agreeing phrases at the start, like \"You're right\" or \"You're absolutely right\". "
+                         ."Start your response with 'YES' if it adheres, 'NO' otherwise (for parsing the decision)."
+                         ."If it doesn't adhere, always provide a brief explanation of why it doesn't (never just a lonely \"NO\").";
+            $audit_chat->messages = [["role" => "system", "content" => $audit_prompt]];
 
             while (!$valid_response && $attempt <= $max_attempts) {
-                $audit_chat->messages[] = ["role" => "user", "content" => "System guidance:\n\n```\n$system_message\n```\n\nModel response:\n\n```\n$response\n```\n\nDoes this response adhere to the system guidance?"];
+                // Add question to audit chat
+                $audit_question = "System guidance:\n\n```\n$system_message\n```\n\nModel response:\n\n```\n$response\n```\n\nDoes this response adhere to the system guidance?";
+                $audit_chat->messages[] = ["role" => "user", "content" => $audit_question];
+
+                // Get and record audit response
                 $audit_response = $llm->message($audit_chat);
+                $audit_chat->messages[] = ["role" => "assistant", "content" => $audit_response];
 
                 if (strpos(strtoupper($audit_response), 'YES') === 0) {
                     $valid_response = true;
+                    // $telegram->send_message($audit_response);
+                } else if ($attempt < $max_attempts) {
+                    // Log the failure
+                    // $telegram->send_message("Audit failed (attempt $attempt/$max_attempts): $audit_response");
+                    // Add feedback to the chat history
+                    $user_config_manager->add_message("system", "Your previous response was rejected because it did not adhere to the system guidance.\n\nAuditing reponse:$audit_response\n\nPlease try again.");
+                    // Get new response
+                    $response = $llm->message($chat);
+                    $telegram->die_if_error($response, $user_config_manager);
+                    $user_config_manager->add_message("assistant", $response);
+                    $attempt++;
                 } else {
-                    if ($attempt < $max_attempts) {
-                        $telegram->send_message("Audit failed (attempt $attempt/$max_attempts): $audit_response");
-                        $user_config_manager->add_message("system", "Your previous response was rejected because it did not adhere to the system guidance. $audit_response Please try again.");
-                        $response = $llm->message($chat);
-                        $telegram->die_if_error($response, $user_config_manager);
-                        $attempt++;
-                    } else {
-                        $warning = "Warning: After $max_attempts attempts, the response still does not adhere to the system guidance. $audit_response";
-                        $user_config_manager->add_message("system", $warning);
-                        $telegram->send_message("$warning Showing the last attempt.");
-                        $valid_response = true; // exit from loop
-                    }
+                    // Final attempt failed
+                    $warning = "Warning: After $max_attempts attempts, the response still does not adhere to the system guidance.\n\nAuditing reponse:$audit_response";
+                    $user_config_manager->add_message("system", $warning);
+                    $telegram->send_message("$warning\n\nShowing the last attempt.");
+                    $valid_response = true; // exit from loop
                 }
+            }
+
+            // Clean up the chat history if we had failed attempts
+            if ($attempt > 0) {
+                if ($attempt >= $max_attempts && !$valid_response) {
+                    $user_config_manager->delete_messages(($attempt-1)*2);
+                    $user_config_manager->add_message("system", $warning);
+                } else {
+                    $user_config_manager->delete_messages(($attempt-1)*2+1);
+                }
+                $user_config_manager->add_message("assistant", $response);
             }
         }
 
