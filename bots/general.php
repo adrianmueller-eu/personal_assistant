@@ -901,10 +901,17 @@ END:VTIMEZONE"));
             "/gpt41" => "gpt-4.1",
             "/claude37sonnet" => "claude-3-7-sonnet-latest",
             "/claude37sonnetthinking" => "claude-3-7-sonnet-latest-thinking",
-            "/o4mini" => "o4-mini",
-            "/o3" => "o3",
-            "/o3mini" => "o3-mini",
-            "/gemini25pro" => "google/gemini-2.5-pro-preview",
+            "/claude35sonnet" => "claude-3-5-sonnet-20240620",
+            "/o4mini" => "o4-mini-high",  // o4-mini default: "high"
+            "/o4minilow" => "o4-mini-low",
+            "/o4minimedium" => "o4-mini-medium",
+            "/o4minihigh" => "o4-mini-high",
+            "/o3" => "o3-medium",  // o3 default: "medium"
+            "/o3low" => "o3-low",
+            "/o3medium" => "o3-medium",
+            "/o3high" => "o3-high",
+            // "/o3mini" => "o3-mini",
+            "/gemini25pro" => "google/gemini-2.5-pro",
             "/mistralmedium3" => "mistralai/mistral-medium-3",
             "/gpt4o" => "gpt-4o",
         );
@@ -912,17 +919,18 @@ END:VTIMEZONE"));
         $shortcuts_large = array(
             "/claude4opus" => "claude-opus-4-20250514",
             "/claude4opusthinking" => "claude-opus-4-20250514-thinking",
-            "/o3pro" => "o3-pro",
+            // "/o3pro" => "o3-pro",
             "/gpt45" => "gpt-4.5-preview",
         );
 
         $shortcuts_small = array(
+            "/deepseekv3" => "deepseek/deepseek-chat-v3-0324",
             "/claude35haiku" => "claude-3-5-haiku-latest",
             "/gpt41mini" => "gpt-4.1-mini",
             "/gpt41nano" => "gpt-4.1-nano",
             "/mistralsmall31" => "mistralai/mistral-small-3.1-24b-instruct",
-            "/googlegeminiflash25" => "google/gemini-2.5-flash-preview-05-20",
-            "/googlegeminiflash25thinking" => "google/gemini-2.5-flash-preview-05-20:thinking"
+            "/geminiflash25" => "google/gemini-2.5-flash",
+            "/geminiflash20" => "google/gemini-2.0-flash-001"
         );
 
         // The command /model shows the current model and allows to change it

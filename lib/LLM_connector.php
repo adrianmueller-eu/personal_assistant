@@ -43,14 +43,12 @@ class LLMConnector {
             }
         }
 
-        if (str_starts_with($data->model, "gpt-")) {
-            $result = $this->parse_gpt($data, $enable_websearch);
-        } else if (preg_match("/^o\d/", $data->model)) {
-            $result = $this->parse_o($data, $enable_websearch);
-        } else if (str_starts_with($data->model, "claude-")) {
+        if (str_starts_with($data->model, "claude-")) {
             $result = $this->parse_claude($data, $enable_websearch);
-        } else {
+        } else if (strpos($data->model, "/") !== false) {
             $result = $this->parse_openrouter($data);
+        } else {
+            $result = $this->parse_openai($data, $enable_websearch);
         }
 
         if (is_string($result))
@@ -61,60 +59,65 @@ class LLMConnector {
     }
 
     /**
-     * Parse requests for gpt-* models.
+     * Parse requests for OpenAI models (gpt-* or o*).
      *
      * @param object|array $data
      * @param bool $enable_websearch
      * @return string|array
      */
-    private function parse_gpt($data, $enable_websearch = false): string|array {
-        $openai = new OpenAI($this->user, $this->DEBUG);
-        // For responses api, rename "messages" to "input"
-        $data->input = $data->messages;
-        unset($data->messages);
-        $content = $openai->respond($data, $enable_websearch);
-        if (is_string($content)) {
-            return $content;
+    private function parse_openai($data, $enable_websearch = false): string|array {
+        $is_o_model = preg_match("/^o\\d/", $data->model);
+        if (!$is_o_model && !str_starts_with($data->model, "gpt-")) {
+            return "Error: Model \"{$data->model}\" is not a supported OpenAI model";
         }
-        return [
-            'content' => $content,
-            'thinking' => ""
-        ];
-    }
 
-    /**
-     * Parse requests for o* models.
-     *
-     * @param object|array $data
-     * @param bool $enable_websearch
-     * @return string|array
-     */
-    private function parse_o($data, $enable_websearch = false): string|array {
-        // replace all "system" roles with "developer"
-        for ($i = 0; $i < count($data->messages); $i++) {
-            if ($data->messages[$i]->role == "system") {
-                $data->messages[$i]->role = "developer";
+        if ($is_o_model) {
+            // replace all "system" roles with "developer"
+            for ($i = 0; $i < count($data->messages); $i++) {
+                if ($data->messages[$i]->role == "system") {
+                    $data->messages[$i]->role = "developer";
+                }
+            }
+            // remove temperature parameter
+            if (isset($data->temperature)) {
+                unset($data->temperature);
+            }
+            // Set reasoning effort based on "-*" ending (e.g., "o3-medium")
+            $effort = "high";
+            if (preg_match('/^(.*?)-(low|medium|high)$/', $data->model, $matches)) {
+                $data->model = $matches[1];
+                $effort = $matches[2];
+            }
+            $data->reasoning = (object) array(
+                "effort" => $effort  // "low", "medium", "high"
+            );
+            $data->store = false;
+        }
+
+        // for each message with array content rename all types: 'text' -> 'input_text' and 'image_url' -> 'input_image'
+        foreach ($data->messages as $message) {
+            if (is_array($message->content)) {
+                foreach ($message->content as $item) {
+                    if ($item->type === 'text') {
+                        $item->type = 'input_text';
+                    } else if ($item->type === 'image_url') {
+                        $item->type = 'input_image';
+                        $item->image_url = $item->image_url->url;
+                    }
+                }
             }
         }
-        // remove temperature parameter
-        if (isset($data->temperature)) {
-            unset($data->temperature);
-        }
-        // For responses api, rename "messages" to "input"
+
+        $openai = new OpenAI($this->user, $this->DEBUG);
         $data->input = $data->messages;
         unset($data->messages);
-        $data->reasoning = (object) array(
-            "effort" => "high"  // "low", "medium", "high"
-        );
-        $data->store = false;
-        $openai = new OpenAI($this->user, $this->DEBUG);
         $content = $openai->respond($data, $enable_websearch);
         if (has_error($content))
             return $content;
 
         return [
             'content' => $content,
-            'thinking' => "OpenAI doesn't provide reasoning output."
+            'thinking' => $is_o_model ? "OpenAI doesn't provide reasoning output." : ""
         ];
     }
 
