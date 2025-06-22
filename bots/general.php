@@ -881,9 +881,10 @@ END:VTIMEZONE"));
             // Clear all messages, except potential initial system prompt
             $chat->messages = array_slice($chat_original->messages, 0, (int)($chat_original->messages[0]->role === "system"));
 
-            // Add the summary as an assistant message
-            $user_config_manager->add_message("assistant", $summary_response);
-            $telegram->send_message("$summary_response\n\n_(Previous conversation saved as 'last'. You can restore it with /restore.)_");
+            // Add the summary as a system message
+            $user_config_manager->add_message("system", $summary_response);
+            $telegram->send_message("/system $summary_response");
+            $telegram->send_message("_(Previous conversation saved as 'last'. You can restore it with /restore.)_");
             exit;
         }, "Chat history management", "Summarize the conversation, save current chat in 'last', and start fresh with the summary. Optional: add focus area for summary.");
 
