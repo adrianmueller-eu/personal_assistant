@@ -325,7 +325,7 @@ class Telegram {
         if (has_error($message)) {
             if ($user_config_manager !== null) {
                 $user_config_manager->delete_messages(1);
-                $message .= "\n\nChat history has not been changed.";
+                $message .= "\n\Message has not been added to the chat history.";
             }
             $this->die($message);
         }
