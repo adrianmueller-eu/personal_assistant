@@ -190,19 +190,27 @@ function get_arxiv_source($arxiv_id) {
     rmdir($temp_dir);
 
     // Process the TeX content
-    if ($tex_content) {
-        // Extract content between \begin{document} and \end{document}
-        if (preg_match('/\\\\begin\s*{\s*document\s*}(.+)\\\\end\s*{\s*document\s*}/s', $tex_content, $matches)) {
-            $tex_content = $matches[1];
-        }
-        // Remove comments
-        $tex_content = preg_replace('/(?<!\\\\)%.*$/m', '', $tex_content);
-        // Remove thebibliography section
-        $tex_content = preg_replace('/\\\\begin\s*{\s*thebibliography\s*}.*?\\\\end\s*{\s*thebibliography\s*}/s', '', $tex_content);
-        return $tex_content;
-    } else {
+    if (!$tex_content)
         return "Error: Could not read TeX content.";
+    return clean_tex($tex_content);
+}
+
+/**
+ * Cleans LaTeX content by extracting the main document body, removing comments and bibliography.
+ *
+ * @param string $tex_content The raw TeX content
+ * @return string The cleaned TeX content
+ */
+function clean_tex($tex_content) {
+    // Extract content between \begin{document} and \end{document}
+    if (preg_match('/\\\\begin\s*{\s*document\s*}(.+)\\\\end\s*{\s*document\s*}/s', $tex_content, $matches)) {
+        $tex_content = $matches[1];
     }
+    // Remove comments
+    $tex_content = preg_replace('/(?<!\\\\)%.*$/m', '', $tex_content);
+    // Remove thebibliography section
+    $tex_content = preg_replace('/\\\\begin\s*{\s*thebibliography\s*}.*?\\\\end\s*{\s*thebibliography\s*}/s', '', $tex_content);
+    return $tex_content;
 }
 
 function parse_link($link) {

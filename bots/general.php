@@ -119,59 +119,71 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         $file_url != null || $telegram->die("Error: Could not get the file URL from Telegram.");
 
         $message = "$file_url $caption";
-    } else if (isset($update->document) && preg_match('/\.pdf$/i', $update->document->file_name)) {
-        // Prefer arXiv TeX if filename matches arXiv ID
-        $content = '';
-        if (preg_match('/^(\d{4}\.\d{4,5}(?:v\d+)?)\.pdf$/i', $update->document->file_name, $matches)) {
-            $arxiv_id = $matches[1];
-            $telegram->send_message("PDF filename matches arXiv ID `$arxiv_id`. Fetching arXiv TeX source...");
-            $result = text_from_arxiv_id($arxiv_id);
-            if (has_error($result)) {
-                $telegram->send_message($result);
+    } else if (isset($update->document)) {
+        $file_name = $update->document->file_name;
+        $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+        // File size check (PDF: 10MB, others: 2MB)
+        $max_size = ($ext === 'pdf') ? 10 * 1024 * 1024 : 2 * 1024 * 1024;
+        if (isset($update->document->file_size) && $update->document->file_size > $max_size) {
+            $size_mb = round($update->document->file_size / (1024 * 1024), 1);
+            $telegram->die("Error: File is too large ($size_mb MB). Maximum size is " . ($ext === 'pdf' ? "10 MB" : "2 MB") . ".");
+        }
+
+        $file_id = $update->document->file_id;
+        $file_url = $telegram->get_file_url($file_id);
+        $file_url != null || $telegram->die("Error: Could not get the file URL from Telegram.");
+        $caption = $update->caption ?? "";
+        $title = $file_name;
+
+        if ($ext === 'pdf') {
+            // Prefer arXiv TeX if filename matches arXiv ID
+            $content = '';
+            if (preg_match('/^(\d{4}\.\d{4,5}(?:v\d+)?)\.pdf$/i', $file_name, $matches)) {
+                $arxiv_id = $matches[1];
+                $telegram->send_message("PDF filename matches arXiv ID `$arxiv_id`. Fetching arXiv TeX source...");
+                $result = text_from_arxiv_id($arxiv_id);
+                if (has_error($result)) {
+                    $telegram->send_message($result);
+                } else {
+                    assert(is_array($result));
+                    $title = $result['title'] ?: $title;  // overwrite title
+                    $content = $result['content'];
+                    $label = "arXiv:$arxiv_id";
+                }
+            }
+            if (empty($content)) {
+                $telegram->send_message("Extracting text from pdf file...");
+                $content = text_from_pdf($file_url);
+                $telegram->die_if_error($content);
+                $label = "PDF";
+            }
+        } else {
+            $content = @file_get_contents($file_url);
+            $content !== false || $telegram->die("Error: Could not download the file.");
+            // Text-like and .tex handling
+            if ($ext === 'tex') {
+                $content = clean_tex($content);
+                $label = "TeX";
             } else {
-                assert(is_array($result));
-                $title = $result['title'];
-                $content = $result['content'];
-                $header = "arXiv:$arxiv_id";
+                $label = ucfirst($ext) ?: "Text";
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime_type = finfo_buffer($finfo, $content);
+                finfo_close($finfo);
+                if (strpos($mime_type, 'text/') !== 0 && (
+                    !mb_check_encoding($content, 'UTF-8') ||
+                    preg_match_all('/[^\P{C}\n\r\t]/u', $content) > 0.01 * strlen($content)
+                )) $telegram->die("Error: The file you sent does not appear to be a supported text-like document.");
             }
         }
-        if (empty($content)) {
-            $telegram->send_message("Extracting text from pdf file...");
-
-            // Handle PDF document as usual
-            $file_id = $update->document->file_id;
-
-            // Reject PDFs that are too large (over 10MB)
-            if (isset($update->document->file_size) && $update->document->file_size > 10 * 1024 * 1024) {
-                $size_mb = round($update->document->file_size / (1024 * 1024), 1);
-                $telegram->die("Error: PDF is too large ($size_mb MB). Maximum size is 10 MB.");
-            }
-
-            $file_url = $telegram->get_file_url($file_id);
-            $file_url != null || $telegram->die("Error: Could not get the PDF file URL from Telegram.");
-
-            // Extract text from PDF
-            $content = text_from_pdf($file_url);
-            $telegram->die_if_error($content);
-
-            $title = $update->document->file_name;
-            $header = "PDF";
-        }
+        // Common ending for both PDF and text-like files
         $stats = get_message_stats($content);
-        $stats['words'] != 0 || $telegram->die("Error: Sorry, I couldn't extract text from the PDF! (".strlen($content).")");
-
-        // Reject PDFs that are too large
+        $stats['words'] != 0 || $telegram->die("Error: Sorry, I couldn't extract text from the file! (".strlen($content).")");
         if ($stats['words'] > 42000) {
             $telegram->die("Error: Content is too long ({$stats['words']} words). Maximum size is 42,000 words.");
         }
-
-        $telegram->send_message("PDF has {$stats['words']} words (≈ {$stats['tokens']} tokens). Write /continue to obtain a response.");
-
-        // Format the message with PDF content and metadata
-        $message = "{$header}: \"{$title}\"\n\n```\n$content\n```";
-
-        // Append caption
-        $caption = $update->caption ?? "";
+        $telegram->send_message("$label file processed ({$stats['words']} words ≈ {$stats['tokens']} tokens). Write /continue to obtain a response.");
+        $message = "$label: \"{$title}\"\n\n```\n$content\n```";
         if (!empty($caption)) {
             $message .= "\n\n$caption";
         }
@@ -205,7 +217,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             exit;
         }
     } else if (isset($update->document)) {
-        $telegram->die("I can only process PDF documents. The file you sent doesn't appear to be a PDF.");
+        $telegram->die("I can only process PDF or plain-text files. The file you sent doesn't appear to be a supported document type.");
     } else {
         if ($DEBUG) {
             $telegram->send_message("Unknown message: ".json_encode($update, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), false);
