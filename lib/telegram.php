@@ -434,6 +434,8 @@ class Telegram {
                 $line = preg_replace('/^\* /', '- ', $line);
                 // Replace all ** outside of code blocks by *
                 $line = preg_replace('/(?<!`)\*\*(.*?)(?<!`)\*\*/', '*$1*', $line);
+                // Strip asterisks around heading text itself
+                $line = preg_replace('/^(#+ )\*{1,2}(.*?)\*{1,2}$/', '$1$2', $line);
                 // Replace headings (a line beginning with at least one #) by bold text
                 $line = preg_replace('/^(#+ .*)$/', '*$1*', $line);
 
@@ -481,8 +483,10 @@ function markdownV2_escape($line, $j) {
         case '~':
             $char = $line[$j];
 
+            // Temporarily mask inline code spans so we ignore them when counting special chars
+            $masked_line = preg_replace_callback('/`[^`]*`/', function($m) { return str_repeat(' ', strlen($m[0])); }, $line);
             // Find all non-escaped occurrences of the character
-            preg_match_all('/(?<!\\\\)' . preg_quote($char, '/') . '/', $line, $matches, PREG_OFFSET_CAPTURE);
+            preg_match_all('/(?<!\\\\)' . preg_quote($char, '/') . '/', $masked_line, $matches, PREG_OFFSET_CAPTURE);
 
             // Extract positions and find current index
             $positions = array_column($matches[0], 1);
