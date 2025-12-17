@@ -80,12 +80,12 @@ class LLMConnector {
      * @return string|array
      */
     private function parse_openai($data, $enable_websearch = false): string|array {
-        $is_o_model = preg_match("/^o\\d/", $data->model);
-        if (!$is_o_model && !str_starts_with($data->model, "gpt-")) {
+        $is_reasoning_model = preg_match("/^o\\d/", $data->model) || str_starts_with($data->model, "gpt-5");
+        if (!$is_reasoning_model && !str_starts_with($data->model, "gpt-")) {
             return "Error: Model \"{$data->model}\" is not a supported OpenAI model";
         }
 
-        if ($is_o_model) {
+        if ($is_reasoning_model) {
             // replace all "system" roles with "developer"
             for ($i = 0; $i < count($data->messages); $i++) {
                 if ($data->messages[$i]->role == "system") {
@@ -131,7 +131,7 @@ class LLMConnector {
 
         return [
             'content' => $content,
-            'thinking' => $is_o_model ? "OpenAI doesn't provide reasoning output." : ""
+            'thinking' => $is_reasoning_model ? "OpenAI doesn't provide reasoning output." : ""
         ];
     }
 
