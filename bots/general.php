@@ -1684,8 +1684,10 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     // add username
                     $username = $user->get_username();
                     $message .= '- ';
-                    if ($username != "")
-                        $message .= "@".$user->get_username()." ";
+                    if (empty($username))
+                        $message .= "$chatid ";
+                    else
+                        $message .= "@$username ";
                     // add usage info
                     $message .= get_usage_string($user, $month, false)."\n";
                 }

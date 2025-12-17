@@ -346,16 +346,16 @@ class UserConfigManager {
     /**
      * Set the name of the user.
      *
-     * @param string $name The name of the user.
+     * @param string|null $name The name of the user.
      */
     public function set_name($name): void {
         $this->user_data->name = $name;
     }
 
     /**
-     * @return string The username of the user.
+     * @return string|null The username of the user.
      */
-    public function get_username(): string {
+     public function get_username(): string|null {
         return $this->user_data->username;
     }
 
