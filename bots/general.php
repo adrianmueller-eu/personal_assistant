@@ -402,6 +402,14 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             }
         };
 
+        // Allow /start command to carry any other command
+        if (is_string($message) && preg_match('/^\/start\s+(\S.*)$/', $message, $m)) {
+            // $reset(true);
+            // $hello = $user_config_manager->hello();
+            // $telegram->send_message($hello);
+            $message = '/'.$m[1];
+        }
+
         // The command is /start or /reset resets the bot and sends a welcome message
         $command_manager->add_command(array("/start", "/reset", "/r"), function($command, $description) use ($reset, $invite, $user_config_manager, $telegram) {
             $reset(true);
