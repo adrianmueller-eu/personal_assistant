@@ -333,8 +333,8 @@ class Telegram {
     public function die_if_error($message, $user_config_manager=null): void {
         if (has_error($message)) {
             if ($user_config_manager !== null) {
-                $user_config_manager->delete_messages(1);
-                $message .= "\n\Message has not been added to the chat history.";
+                // $user_config_manager->delete_messages(1);
+                $message .= "\n\nMessage has been added to the chat history. Retry with /continue.";
             }
             $this->die($message);
         }
