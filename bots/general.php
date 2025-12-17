@@ -933,6 +933,151 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             exit;
         }, "Shortcuts", "Search Semantic Scholar for academic papers and summarize abstracts.");
 
+        // The command /papersupdate fetches and summarizes recent papers relevant to a given topic
+        $command_manager->add_command(array("/papersupdate"), function($command, $args) use ($telegram, $user_config_manager, $llm, $shortcuts_large, $shortcuts_medium) {
+            $args = explode(" ", $args, 4);
+            $today = new DateTime();
+            $dt = DateTime::createFromFormat('Y-m-d', $args[0]);
+            if ($dt) array_shift($args);
+            else $dt = $today;
+            $date = $dt->format('Y-m-d');
+            if ($dt > $today) {
+                $telegram->die("The date provided \"$date\" is in the future. Please provide a date that is in the past.");
+            }
+            $days = $args[0] ?: 7;
+            $args[1] ?? $telegram->die("Please provide a category.");
+            $category = $args[1];
+            $topic = $args[2] ?? "general";
+            if (!ctype_digit((string)$days) || (int)$days <= 0) {
+                $telegram->die("Please provide a positive integer for the number of days.");
+            }
+            $days = (int)$days;
+            // 1. Fetch latest papers from SciRate
+            $max_pages = 20;
+            $results = fetch_and_parse_scirate($category, $date, $days, $max_pages);
+            $telegram->die_if_error($results);
+            $max_pages_reached = $results['max_pages_reached'];
+            $results = $results['papers'];
+            // Reject if there are more than 500 papers
+            $chat = $user_config_manager->get_config();
+            // Paper limit for large models
+            if (in_array($chat->model, array_values($shortcuts_large)) and count($results) > 500)
+                $telegram->die("There are more than 500 papers in this time window. Please choose a shorter time window or a smaller model.");
+            if ($max_pages_reached)
+                $telegram->send_message("Warning: Only the first $max_pages pages are shown to prevent excessive requests.");
+
+            // 2. Prepare a list of papers for the LLM
+            $paper_list = [];
+            foreach ($results as $arxiv_id => $paper) {
+                $title = $paper['title'];
+                $authors = $paper['authors'];
+                $paper_list[] = "- [arXiv:$arxiv_id](https://arxiv.org/abs/$arxiv_id): \"$title\" by $authors";
+            }
+
+            // Smart phrasing for date range
+            if ($date === $today->format('Y-m-d')) {
+                if ($days == 1) {
+                    $range_phrase = "today";
+                } else if ($days == 2) {
+                    $range_phrase = "since yesterday";
+                } else {
+                    $range_phrase = "for the last $days days";
+                }
+            } else {
+                $interval = $today->diff($dt);
+                $days_ago = $interval->days;
+                $date_str = "$date ($days_ago days ago)";
+
+                if ($days == 1) {
+                    $range_phrase = "on $date_str";
+                } else {
+                    $prev_date = (clone $dt)->modify("-$days days")->format('Y-m-d');
+                    $range_phrase = "from $prev_date until $date_str";
+                }
+            }
+
+            if (empty($paper_list)) {
+                $telegram->die("No new papers found on SciRate $range_phrase.");
+            }
+            $n_papers = count($paper_list);
+            $telegram->send_message("Found $n_papers new papers on SciRate $range_phrase. Filtering for relevance for $topic...");
+
+            $papers_text = implode("\n", $paper_list);
+
+            // 3. Prompt the LLM to filter for relevant papers by arXiv ID only
+            $filter_prompt =
+               "You are an expert in $topic. Here is a list of new quantum physics papers from arXiv/SciRate $range_phrase, each on its own line in the format:\n"
+                . "<arxivid>: <authors> \"<title>\"\n\n"
+                . $papers_text . "\n\n"
+                . "Please return only the arXiv IDs (one per line) of those that may be relevant in $topic. Do not include any other text before or after. If none are relevant, return 'NONE'.";
+
+            $chat = (object) array(
+                "model" => $chat->model,
+                "temperature" => $chat->temperature,
+                "messages" => [["role" => "user", "content" => $filter_prompt]]
+            );
+            $llm_response = $llm->message($chat);
+            $telegram->die_if_error($llm_response);
+            // $telegram->send_message("Raw LLM output:\n\n" . $llm_response);
+
+            $filtered_ids = array_filter(array_map('trim', explode("\n", trim($llm_response))));
+            $filtered_ids = array_filter($filtered_ids, function($id) {
+                return preg_match('/^([0-9]{4}\.[0-9]{4,5}|[a-z\-]+\/[0-9]{7})$/', $id);
+            });
+            $filtered_ids = array_values(array_unique($filtered_ids));
+
+            if (!empty($filtered_ids)) {
+                // Build a numbered list of filtered papers
+                $n_filtered = count($filtered_ids);
+                $abstract_limit = 20;
+
+                $idx = 1;
+                $numbered_for_llm = "";
+                $numbered_for_user = "";
+                $filtered_ids_set = array_flip($filtered_ids);
+                foreach ($results as $arxiv_id => $paper) {
+                    if (!isset($filtered_ids_set[$arxiv_id])) {
+                        continue;
+                    }
+                    $authors = $paper['authors'];
+                    $title = $paper['title'];
+                    if ($idx <= $abstract_limit) {
+                        $abstract = $paper['abstract'];
+                        $numbered_for_llm .= "[$idx] $authors \"$title\"\nAbstract: $abstract\n\n";
+                    } else {
+                        $numbered_for_llm .= "[$idx] $authors \"$title\"\n";
+                    }
+                    if ($idx <= 42) {
+                        $numbered_for_user .= "[[$idx](https://arxiv.org/abs/$arxiv_id)] $authors \"$title\" ([pdf](https://arxiv.org/pdf/$arxiv_id.pdf))\n";
+                    }
+                    $idx++;
+                }
+                $numbered_for_user = trim($numbered_for_user);
+
+                // Inform user how many papers remain after filtering
+                $telegram->send_message("After filtering, ".($idx-1)." papers remain as relevant:\n$numbered_for_user");
+
+                // 4. Ask the LLM for a summary referencing the numbers and abstracts for the first $abstract_limit papers
+                $summary_prompt =
+                    "You are an expert in $topic. Here is a numbered list of relevant papers $range_phrase. For the first $abstract_limit papers, the abstract is included; for the rest, only the title and authors are shown:\n\n"
+                    ."$numbered_for_llm\n"
+                    ."Important: Only use information that is explicitly present in the abstracts and titles above. Do not speculate or infer any details that are not directly stated. If an abstract does not mention a detail, do not assume or guess it.\n\n"
+                    ."Please summarize any notable updates or trends based on these papers, referencing the numbers in your summary. "
+                    ."Write your summary in prose, not as a list. Be concise and focus on what is new or interesting for the community."
+                    ."End with a one-sentence recommendation which papers may be worth checking out.";
+
+                $chat->messages = [["role" => "user", "content" => $summary_prompt]];
+                $mes = $llm->message($chat);
+                $telegram->die_if_error($mes);
+            } else {
+                $mes = "No relevant papers found for the selected period.";
+            }
+            $user_config_manager->add_message("system", "Summarize the papers $range_phrase in arXiv category $category relevant in $topic.");  // pseudo-prompt
+            $user_config_manager->add_message("assistant", $mes);
+            $telegram->send_message($mes);
+            exit;
+        }, "Shortcuts", "Fetches the latest topic-relevant papers and summarizes updates. Usage: `/papersupdate <days> <arXiv category> <topic>`.");
+
         $command_manager->add_command(array("/summary"), function($command, $prompt) use ($telegram, $user_config_manager, $llm) {
             $chat = $user_config_manager->get_config();
             count($chat->messages) > 3 || $telegram->die("There's not enough chat history to summarize.");

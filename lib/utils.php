@@ -351,3 +351,108 @@ function get_message_stats($input) {
         'tokens'   => LLMConnector::approximate_token_count($input),
     ];
 }
+
+/**
+ * Fetch and parse all SciRate results, aggregating across all pages.
+ *
+ * @param string $category The arXiv category to fetch (e.g. "quant-ph").
+ * @param string $date The date string to use (e.g. "2024-06-01").
+ * @param int $days Number of days for the range parameter.
+ * @return array Aggregated parsed results.
+ */
+function fetch_and_parse_scirate($category, $date, $days, $max_pages=20) {
+    $url = "https://scirate.com/arxiv/$category?date={$date}&range={$days}";
+    $papers = [];
+
+    $page = 0;
+    $max_pages_reached = false;
+    while (true) {
+        $page++;
+        $result = fetch_and_parse_scirate_page("$url&page=$page");
+        if (has_error($result))
+            return $result;
+        $papers += $result['papers'];  // keep the most recent version of a given paper (earlier pages)
+        if (!$result['has_next_page'])
+            break;
+        if ($page > $max_pages) {
+            $max_pages_reached = true;
+            break;
+            // return "Error: Too many pages (>$page) requested from SciRate. Aborting to prevent excessive requests.";
+        }
+    }
+    return array(
+        'max_pages_reached' => $max_pages_reached,
+        'papers' => $papers
+    );
+}
+
+/**
+ * Fetch and parse SciRate results.
+ *
+ * @param string $url The SciRate URL to fetch.
+ * @return array Parsed results (stub).
+ */
+function fetch_and_parse_scirate_page($url) {
+    // Step 1: Fetch the HTML content using curl
+    $html = curl($url);
+    if (!is_string($html))
+        $html = "Error: SciRate server response: ".json_encode($html);
+    if (has_error($html))
+        return $html;
+
+    // Step 2: Extract the <ul class="papers">...</ul> list from the HTML
+    if (preg_match('/<ul class="papers">(.*?)<\/ul>/s', $html, $matches)) {
+        $ul = $matches[0];
+    } else {
+        return "Error: <ul class=\"papers\"> not found in SciRate HTML";
+    }
+
+    // Step 3: Extract <li> blocks from the <ul>
+    $li_blocks = [];
+    if (preg_match_all('/<li class="paper[^"]*">(.*?)<\/li>/s', $ul, $li_matches)) {
+        $li_blocks = $li_matches[0];
+    }
+    // If no <li> blocks, treat as empty result set (not an error)
+
+    $papers = [];
+    foreach ($li_blocks as $idx => $li) {
+        // arXiv ID from bibtex
+        if (preg_match('/<textarea class="bibtex">.*?arXiv:((?:[0-9]{4}\.[0-9]{4,5})|(?:[a-z\-]+\/[0-9]{7}))v[0-9]+/s', $li, $m)) {
+            $arxiv_id = $m[1];
+        } else {
+            return "Error: Missing arXiv ID in paper entry #".($idx+1);
+        }
+
+        // Title
+        if (preg_match('/<div class="title"><a [^>]*>(.*?)<\/a><\/div>/', $li, $m)) {
+            $title = html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        } else {
+            return "Error: Missing title in paper entry #".($idx+1);
+        }
+
+        // Authors
+        if (preg_match('/<div class="authors">(.*?)<\/div>/', $li, $m)) {
+            $authors = html_entity_decode(trim(strip_tags($m[1])), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        } else {
+            return "Error: Missing authors in paper entry #".($idx+1);
+        }
+
+        // Abstract (optional)
+        if (preg_match('/<div class="abstract">(.*?)<\/div>/s', $li, $m)) {
+            $abstract = html_entity_decode(trim(strip_tags($m[1])), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        } else {
+            $abstract = "";
+        }
+
+        $papers[$arxiv_id] = [
+            'title' => $title,
+            'authors' => $authors,
+            'abstract' => $abstract,
+        ];
+    }
+
+    return [
+        'papers' => $papers,
+        'has_next_page' => (bool)preg_match('/<a[^>]*class="next_page"[^>]*href="[^"]+"/si', $html)
+    ];
+}
