@@ -259,6 +259,67 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }
         $command_manager = new CommandManager($categories);
 
+        // Shortcuts for models
+        $shortcuts_medium = array(
+            "/claude45sonnet" => "claude-sonnet-4-5",
+            "/claude4sonnet" => "claude-sonnet-4-20250514",
+            "/claude4sonnetthinking" => "claude-sonnet-4-20250514-thinking",
+            "/gpt41" => "gpt-4.1",
+            "/claude37sonnet" => "claude-3-7-sonnet-latest",
+            "/claude37sonnetthinking" => "claude-3-7-sonnet-latest-thinking",
+            "/claude35sonnet" => "claude-3-5-sonnet-20240620",
+            "/gpt52" => "gpt-5.2-2025-12-11-medium",
+            "/gpt51" => "gpt-5.1-2025-11-13-medium",
+            "/gpt5" => "gpt-5-medium",
+            "/o4mini" => "o4-mini-high",  // o4-mini default: "high"
+            "/o4minilow" => "o4-mini-low",
+            "/o4minimedium" => "o4-mini-medium",
+            "/o4minihigh" => "o4-mini-high",
+            "/o3" => "o3-medium",  // o3 default: "medium"  # 200b
+            "/o3low" => "o3-low",
+            "/o3medium" => "o3-medium",
+            "/o3high" => "o3-high",
+            // "/o3mini" => "o3-mini",
+            "/mistralmedium31" => "mistralai/mistral-medium-3.1",
+            "/mistralmedium3" => "mistralai/mistral-medium-3",
+            "/mistrallarge3" => "mistralai/mistral-large-2512",
+            "/mistrallarge2" => "mistralai/mistral-large-2411",  # 123b
+            "/gpt4o" => "gpt-4o",
+            "/qwen3" => "qwen/qwen3-235b-a22b-2507",  # 235b
+            "/glm45" => "z-ai/glm-4.5",  # 355b
+            "/llama4scout" => "meta-llama/llama-4-scout",  # 109b
+            "/qwen25" => "qwen/qwen2.5-vl-72b-instruct"  # 72b
+            // "/bloom" => "bigscience/bloom"
+        );
+
+        $shortcuts_large = array(
+            "/claude45opus" => "claude-opus-4-5",  # ?
+            "/claude45opusthinking" => "claude-opus-4-5-thinking",  # 2T ?
+            "/claude4opus" => "claude-opus-4-0",  # 2T ?
+            "/claude41opus" => "claude-opus-4-1",  # 2T ?
+            "/claude41opusthinking" => "claude-opus-4-1-thinking",
+            // "/o3pro" => "o3-pro",  # 1T
+            "/gemini25pro" => "google/gemini-2.5-pro",  # 300-700b range
+            "/depseekr1" => "deepseek/deepseek-r1-0528",  # 671b
+            "/deepseekv32" => "deepseek/deepseek-v3.2",  #
+            "/deepseekv3" => "deepseek/deepseek-chat-v3-0324",  # 671b
+            "/llama4maverick" => "meta-llama/llama-4-maverick",  # 400b
+            "/kimik2" => "moonshotai/kimi-k2",  # 1T
+            "/gpt45" => "gpt-4.5-preview",  # 2T ?
+        );
+
+        $shortcuts_small = array(
+            "/claude45haiku" => "claude-haiku-4-5",
+            "/gpt41mini" => "gpt-4.1-mini",
+            "/gpt5mini" => "gpt-5-mini-medium",
+            "/gpt41nano" => "gpt-4.1-nano",
+            "/gpt5nano" => "gpt-5-nano-medium",
+            "/mistralsmall32" => "mistralai/mistral-small-3.2-24b-instruct",
+            "/geminiflash25" => "google/gemini-2.5-flash",  # 5b
+            "/geminiflash20" => "google/gemini-2.0-flash-001",  # 20b
+            "/mercury" => "inception/mercury"
+        );
+
         // #########################
         // ### Commands: Presets ###
         // #########################
@@ -1119,45 +1180,6 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // ##########################
         // ### Commands: Settings ###
         // ##########################
-
-        // Shortcuts for models
-        $shortcuts_medium = array(
-            "/claude4sonnet" => "claude-sonnet-4-20250514",
-            "/claude4sonnetthinking" => "claude-sonnet-4-20250514-thinking",
-            "/gpt41" => "gpt-4.1",
-            "/claude37sonnet" => "claude-3-7-sonnet-latest",
-            "/claude37sonnetthinking" => "claude-3-7-sonnet-latest-thinking",
-            "/claude35sonnet" => "claude-3-5-sonnet-20240620",
-            "/o4mini" => "o4-mini-high",  // o4-mini default: "high"
-            "/o4minilow" => "o4-mini-low",
-            "/o4minimedium" => "o4-mini-medium",
-            "/o4minihigh" => "o4-mini-high",
-            "/o3" => "o3-medium",  // o3 default: "medium"
-            "/o3low" => "o3-low",
-            "/o3medium" => "o3-medium",
-            "/o3high" => "o3-high",
-            // "/o3mini" => "o3-mini",
-            "/gemini25pro" => "google/gemini-2.5-pro",
-            "/mistralmedium3" => "mistralai/mistral-medium-3",
-            "/gpt4o" => "gpt-4o",
-        );
-
-        $shortcuts_large = array(
-            "/claude4opus" => "claude-opus-4-20250514",
-            "/claude4opusthinking" => "claude-opus-4-20250514-thinking",
-            // "/o3pro" => "o3-pro",
-            "/gpt45" => "gpt-4.5-preview",
-        );
-
-        $shortcuts_small = array(
-            "/deepseekv3" => "deepseek/deepseek-chat-v3-0324",
-            "/claude35haiku" => "claude-3-5-haiku-latest",
-            "/gpt41mini" => "gpt-4.1-mini",
-            "/gpt41nano" => "gpt-4.1-nano",
-            "/mistralsmall31" => "mistralai/mistral-small-3.1-24b-instruct",
-            "/geminiflash25" => "google/gemini-2.5-flash",
-            "/geminiflash20" => "google/gemini-2.0-flash-001"
-        );
 
         // The command /model shows the current model and allows to change it
         $command_manager->add_command(array_merge(

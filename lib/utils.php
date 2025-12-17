@@ -153,7 +153,7 @@ function get_usage_string($user, $month, $show_info) {
     $message .= "$cnt_prompt + $cnt_completion tokens (~".$price_estimate."€)";
     if ($show_info) {
         $message .= "\n\nCosts are rough estimates based on ".$input_cost."€ / 1M input and ".$output_cost."€ / 1M output tokens. "
-        ."Actual costs are different (likely lower), since prices depend on the model and are constantly changing. See /model for more details.";
+        ."Actual costs are different, since prices depend on the model and are constantly changing. See /model for more details.";
     }
     $message .= "\nTotal web search requests: $web_search_requests";
     return $message;
