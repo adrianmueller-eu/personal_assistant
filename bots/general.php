@@ -676,6 +676,51 @@ END:VTIMEZONE"));
             exit;
         }, "Presets", "Start a Chinese language tutoring session with natural conversation practice.");
 
+        // The command /fi gives a finnish langauge tutor
+        $command_manager->add_command(array("/fi"), function($command, $_) use ($user_config_manager, $telegram, $reset) {
+            $reset(false);
+            $prompt = "Olet ystävällinen ja kannustava suomen kielen opettaja. Keskustele käyttäjän kanssa luonnollisesti suomeksi, mutta käytä englantia vain selittääksesi kielioppia, sanojen merkityksiä tai kulttuurisia seikkoja. Vastaa suomeksi aina kun käyttäjä kirjoittaa suomeksi, ja lisää englanninkielinen käännös sekä tarvittaessa lyhyt selitys. Korjaa käyttäjän virheet lempeästi ja anna vinkkejä parempaan ilmaisuun. Pidä vastaukset lyhyinä ja keskity käytännölliseen kieleen, joka auttaa käyttäjää pärjäämään arjessa. Jos käyttäjä kirjoittaa englanniksi, rohkaise häntä siirtymään suomen kieleen.";
+            $user_config_manager->add_message("system", $prompt);
+            $mes = "Hei! Olen suomen kielen opettajasi. Kirjoita vapaasti suomeksi, ja autan sinua oppimaan lisää. Mistä haluaisit keskustella tänään?";
+            $user_config_manager->add_message("assistant", $mes);
+            $telegram->send_message($mes);
+            exit;
+        }, "Presets", "Start a Finnish language tutoring session with natural conversation practice.");
+
+        // The command /shop helps with shopping decisions by analyzing product ingredients and nutrition labels
+        $command_manager->add_command(array("/shop"), function($command, $description) use ($telegram, $user_config_manager, $reset) {
+            $reset(false);
+            $prompt = "You are my \"Shopping Decider.\"\n"
+                ."I will send minimal text and/or a photo of a product's ingredient or nutrition label taken in a Finnish grocery store.\n"
+                ."Apply these standing rules:\n"
+                ."1. Highlight any major health concerns (e.g. very high sugar or salt, trans-fats, carcinogenic additives, high pesticide risk).\n"
+                ."2. Flag ethical issues such as animal torture, exploitative labour, child labour, heavy pesticide use, high carbon footprint, or wasteful packaging if evident.\n"
+                ."3. Always state the product's glycaemic index (GI), based on a well-sourced typical GI range for that food category and note the uncertainty.\n"
+                ."4. Keep the response very concise. Do NOT offload reasoning to the user — no conditional chains, no fluff.\n"
+                ."\n"
+                ."Output—nothing else:\n"
+                ."*<clear one-phrase pick or warning>*\n"
+                ."Reasoning: <a few concise points or sentences>\n"
+                ."\n"
+                ."Example input:\n"
+                ."> Pretzel or banana?"
+                ."Example output:\n"
+                ."*Pick the banana*"
+                ."Reasoning: No additives or excessive salt, plus potassium and fiber, while pretzels are refined-flour with very high sodium and GI. Some plantation labour issues exist but still preferable to processed wheat snack. GI ≈ 50–60 (medium).";
+            $user_config_manager->add_message("system", $prompt);
+
+            if ($description != "") {
+                $user_config_manager->add_message("user", $description);
+            }
+            else {
+                $mes = "Shopping Decider ready. What decision do you need to make?";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
+            }
+        }, "Presets", "Helps to make quick shopping decisions.");
+
+
         // The command /anki adds a command to create an Anki flashcard from the previous text
         $command_manager->add_command(array("/anki"), function($command, $topic) use ($user_config_manager) {
             // Prompt the model to write an Anki flashcard
