@@ -40,11 +40,12 @@ class Log {
         else
             $message = json_encode($message, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE).PHP_EOL;
 
-        if ($echo_level > 1) {
-            file_put_contents("php://stdout", $message);
-        } else {
-            file_put_contents("php://stderr", $message);
-        }
+        echo "$message";
+        // if ($echo_level > 1) {
+        //     file_put_contents("php://stdout", $message);
+        // } else {
+        //     file_put_contents("php://stderr", $message);
+        // }
     }
 
     /**

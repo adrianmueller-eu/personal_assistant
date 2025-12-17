@@ -34,8 +34,12 @@ class GlobalConfigManager {
     }
 
     private function load() {
-        // Check if the file exists
-        if (!file_exists($this->global_config_file)){
+        if (file_exists($this->global_config_file)) {
+            $this->global_config = json_decode(file_get_contents($this->global_config_file), false);
+            $this->global_config !== null || Log::die("JSON error: ".json_last_error_msg());
+            $this->global_config !== false || Log::die("Could not read file: $this->global_config_file");
+        }
+        else {
             // Copy the template file
             if (copy(dirname($this->global_config_file)."/config_template.json", $this->global_config_file)) {
                 $error_message = "Global config file not found. A new one has been created at $this->global_config_file. Please edit it and restart the assistant.";
@@ -44,7 +48,6 @@ class GlobalConfigManager {
             }
             Log::die($error_message);
         }
-        $this->global_config = json_decode(file_get_contents($this->global_config_file), false);
     }
 
     private function save() {
