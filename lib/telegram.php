@@ -171,7 +171,15 @@ class Telegram {
                 $data->parse_mode = $this->post_processing ? "MarkdownV2" : "Markdown";
             }
             $server_output = $this->send("sendMessage", $data);
-            if ($server_output != null && !$server_output->ok) {
+            if ($this->RETRY_CNT == $this->MAX_RETRY) {
+                Log::error(array(
+                    "interface" => "telegram",
+                    "message" => "Max retry count reached for send_message.",
+                    "data" => $data,
+                    "server_response" => $server_output,
+                ));
+            }
+            elseif ($server_output != null && !is_string($server_output) && !$server_output->ok) {
                 // Try again without parse mode if $server_output is a string that contains "can't parse entities"
                 if (strpos($server_output->description, "can't parse entities") !== false) {
                     if ($this->DEBUG) {
@@ -181,6 +189,7 @@ class Telegram {
                 }
                 // Try again after a few seconds
                 else if ($this->RETRY_CNT < $this->MAX_RETRY) {
+                    // echo "Retry number: " . ($this->RETRY_CNT + 1) . "\n";
                     $this->RETRY_CNT++;
                     sleep(5*$this->RETRY_CNT);
                     if ($this->DEBUG) {
