@@ -1378,21 +1378,21 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             if ($message == "") {
                 $hellos = $user_config_manager->get_hellos();
                 if (count($hellos) == 0) {
-                    $telegram->send_message("You have not set any hello messages yet. To set your hello messages, you can provide a list of messages with the command, "
-                        ."from which one is drawn at random at every reset. Use \"/hellos reset\" to have no hello messages.");
+                    $telegram->send_message("You have not set any hello messages yet. To set your hello messages, you can provide a list of messages with the command, for example:\n```\n/hellos\nHave a wonderful day!\nSee you later!\n```"
+                        ."from which one is drawn at random at every `/reset`. Use `/hellos reset` to revert to no hello messages.");
                 } else {
                     $message = "/hellos\n";
                     foreach ($hellos as $hello) {
                         $message .= $hello."\n";
                     }
                     $telegram->send_message($message);
-                    $telegram->send_message("You can change your hello messages by providing a list of messages after the /hellos command. Use \"/hellos reset\" to have no hello messages.");
+                    $telegram->send_message("You can change your hello messages by providing a list of messages with the /hellos command.\n\nFor example:\n```\n/hellos\nHave a wonderful day!\nSee you later!\n```\n\nUse `/hellos reset` to have no hello messages.");
                 }
             }
             // if message is "reset", reset the hellos
             else if ($message == "reset") {
                 $user_config_manager->set_hellos(array());
-                $telegram->send_message("Your hello messages have been reset. You can set new hello messages by providing a list of messages after the /hellos command.");
+                $telegram->send_message("Your hello messages have been reset.");
             }
             // split $message by newlines and set the hellos
             else {
