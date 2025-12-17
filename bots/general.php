@@ -308,18 +308,21 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             ."You can use Markdown and emojis to format and enrich your messages. "
             ."Spread love! ❤️✨";
 
-        $reset = function($command) use ($user_config_manager, $default_intro) {
-            $user_config_manager->save_session();
+        $reset = function($add_intro=true, $save_session=true) use ($user_config_manager, $default_intro) {
+            if ($save_session)
+                $user_config_manager->save_session();
             $user_config_manager->clear_messages();
-            # Add intro as system message
-            $intro = $user_config_manager->get_intro();
-            // Replace <datetime></datetime> with the current date
-            $intro = preg_replace(
-                '#<datetime>.*?</datetime>#',
-                '<datetime>'.date("l, j.n.Y").'</datetime>',
-                $intro
-            );
-            $user_config_manager->add_message("system", $intro ?: $default_intro);
+            if ($add_intro) {
+                # Add intro as system message
+                $intro = $user_config_manager->get_intro();
+                // Replace <datetime></datetime> with the current date
+                $intro = preg_replace(
+                    '#<datetime>.*?</datetime>#',
+                    date("l, j.n.Y"),
+                    $intro
+                );
+                $user_config_manager->add_message("system", $intro ?: $default_intro);
+            }
         };
 
         $invite = function($new_characters) use ($telegram, $user_config_manager, $llm, $get_character_description) {
@@ -401,7 +404,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // The command is /start or /reset resets the bot and sends a welcome message
         $command_manager->add_command(array("/start", "/reset", "/r"), function($command, $description) use ($reset, $invite, $user_config_manager, $telegram) {
-            $reset($command);
+            $reset(true);
             if ($description == "") {
                 $hello = $user_config_manager->hello();
                 $telegram->send_message($hello);
@@ -468,50 +471,59 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }, "Presets", "Show the current character descriptions.");
 
         // The command /responder writes a response to a given message
-        $command_manager->add_command(array("/responder", "/re"), function($command, $message) use ($telegram, $user_config_manager, $llm) {
-            $chat = UserConfigManager::$default_config;
-            $chat["temperature"] = 0.7;
-            $chat["messages"] = array(array("role" => "system", "content" => "Your task is to generate responses to messages sent to me, "
-                    ."carefully considering the context and my abilities as a human. Use a casual, calm, and kind voice. Keep your responses "
-                    ."concise and focus on understanding the message before responding."));
+        $command_manager->add_command(array("/responder", "/re"), function($command, $message) use ($telegram, $user_config_manager, $llm, $reset) {
+            $prompt = "Your task is to generate responses to messages sent to me, "
+                ."carefully considering the context and my abilities as a human. Use a casual, calm, and kind voice. Keep your responses "
+                ."concise and focus on understanding the message before responding.";
             // If the message is not empty, process the request one-time without saving the config
             if ($message != "") {
-                $chat["messages"][] = array("role" => "user", "content" => $message);
+                $chat = $user_config_manager->get_config();
+                $chat = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
+                $chat->messages = [
+                    ["role" => "system", "content" => $prompt],
+                    ["role" => "user", "content" => $message]
+                ];
                 $response = $llm->message($chat);
                 $telegram->send_message($response, !has_error($response));
+                exit;
             } else {
-                $user_config_manager->save_session();
-                $user_config_manager->save_config($chat);
-                $telegram->send_message("Chat history reset. I am now a message responder.");
+                $reset(false);
+                $user_config_manager->add_message("system", $prompt);
+                $mes = "Chat history reset. I am now a message responder.";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
             }
-            exit;
         }, "Presets", "Suggests responses to messages from others. Give a message with the command to preserve the previous conversation.");
 
         // The command /translator translates a given text
-        $command_manager->add_command(array("/trans"), function($command, $text) use ($telegram, $user_config_manager, $llm) {
-            $chat = UserConfigManager::$default_config;
-            $chat["temperature"] = 0.7;
-            $chat["messages"] = array(array("role" => "system", "content" => "Translate the messages sent to you into English, ensuring "
-                ."accuracy in grammar, verb tenses, and context. Identify the language or encoding of the text you translate from."));
+        $command_manager->add_command(array("/trans"), function($command, $text) use ($telegram, $user_config_manager, $llm, $reset) {
+            $prompt = "Translate the messages sent to you into English, ensuring accuracy in grammar, verb tenses, and context. Identify the language or encoding of the text you translate from.";
             // If the text is not empty, process the request one-time without saving the config
             if ($text != "") {
-                $chat["messages"][] = array("role" => "user", "content" => $text);
+                $chat = $user_config_manager->get_config();
+                $chat = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
+                $chat->messages = [
+                    ["role" => "system", "content" => $prompt],
+                    ["role" => "user", "content" => $text]
+                ];
                 $response = $llm->message($chat);
                 $telegram->send_message($response, !has_error($response));
+                exit;
             } else {
-                $user_config_manager->save_session();
-                $user_config_manager->save_config($chat);
-                $telegram->send_message("Chat history reset. I am now a translator.");
+                $reset(false);
+                $user_config_manager->add_message("system", $prompt);
+                $mes = "Chat history reset. I am now a translator.";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
             }
-            exit;
         }, "Presets", "Translate messages into English. Give the text with the command to preserve the previous conversation.");
 
         // The command /event converts event descriptions to an iCalendar file
-        $command_manager->add_command(array("/event"), function($command, $description) use ($telegram, $user_config_manager, $llm) {
+        $command_manager->add_command(array("/event"), function($command, $description) use ($telegram, $user_config_manager, $llm, $reset) {
             $timezone = date("e");
-            $chat = UserConfigManager::$default_config;
-            $chat["temperature"] = 0;
-            $chat["messages"] = array(array("role" => "system", "content" => "Extract details about events from the provided text and output an "
+            $prompt = "Extract details about events from the provided text and output an "
                 ."event in iCalendar format. Try to infer the time zone from the location. Use can use the example for the timezone below as "
                 ."a template. Ensure that the code is valid. Output the code only, and do NOT enclose the output in backticks. Today is ".date("l, j.n.Y").".\n\n"
 ."BEGIN:VTIMEZONE
@@ -519,7 +531,12 @@ TZID:$timezone
 END:VTIMEZONE"));
             // If the description is not empty, process the request one-time without saving the config
             if ($description != "") {
-                $chat["messages"][] = array("role" => "user", "content" => $description);
+                $chat = $user_config_manager->get_config();
+                $chat = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
+                $chat->messages = [
+                    ["role" => "system", "content" => $prompt],
+                    ["role" => "user", "content" => $description]
+                ];
                 $response = $llm->message($chat);
 
                 // If the response starts with "Error: ", it is an error message
@@ -538,58 +555,73 @@ END:VTIMEZONE"));
                 } else {
                     $telegram->send_message($response);
                 }
+                exit;
             } else {
-                $user_config_manager->save_session();
-                $user_config_manager->save_config($chat);
-                $telegram->send_message("Chat history reset. I am now a calendar bot. Give me an invitation or event description!");
+                $reset(false);
+                $user_config_manager->add_message("system", $prompt);
+                $mes = "Chat history reset. I am now a calendar bot. Give me an invitation or event description!";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
             }
-            exit;
         }, "Presets", "Converts an event description to iCalendar format. Provide a description with the command to preserve the previous conversation.");
 
         // The command /code is a programming assistant
-        $command_manager->add_command(array("/code"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
-            $chat = UserConfigManager::$default_config;
-            $chat["temperature"] = 0.5;
-            $chat["messages"] = array(array("role" => "system", "content" => "You are a programming and system administration assistant. "
+        $command_manager->add_command(array("/code"), function($command, $query) use ($telegram, $user_config_manager, $llm, $reset) {
+            $prompt = "You are a programming and system administration assistant. "
                 ."If there is a lack of details, state your uncertainty and ask for clarification. Do not show any warnings or information "
-                ."regarding your capabilities. Keep your response short and avoid unnecessary explanations. If you provide code, ensure it is valid."));
+                ."regarding your capabilities. Keep your response short and avoid unnecessary explanations. If you provide code, ensure it is valid.";
             // If the query is not empty, process the request one-time without saving the config
             if ($query != "") {
-                $chat["messages"][] = array("role" => "user", "content" => $query);
+                $chat = $user_config_manager->get_config();
+                $chat = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
+                $chat->messages = [
+                    ["role" => "system", "content" => $prompt],
+                    ["role" => "user", "content" => $query]
+                ];
                 $response = $llm->message($chat);
                 $telegram->send_message($response, !has_error($response));
+                exit;
             } else {
-                $user_config_manager->save_session();
-                $user_config_manager->save_config($chat);
-                $telegram->send_message("Chat history reset. I will support you in writing code.");
+                $reset(false);
+                $user_config_manager->add_message("system", $prompt);
+                $mes = "Chat history reset. I will support you in writing code.";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
             }
-            exit;
         }, "Presets", "Programming assistant. Add a query to ignore and preserve the previous conversation.");
 
         // The command /typo is a typo and grammar assistant
-        $command_manager->add_command(array("/typo"), function($command, $text) use ($telegram, $user_config_manager, $llm) {
+        $command_manager->add_command(array("/typo"), function($command, $text) use ($telegram, $user_config_manager, $llm, $reset) {
             $prompt = "Please review the following scientific text and provide specific feedback on areas that could be improved. "
                 ."Correct any typos, grammatical errors, or whatever else you notice. Do NOT repeat or write a corrected verison of the entire text. "
                 ."Keep your answer concise and ensure the correctness of each suggestion.";
-            $chat = (object) UserConfigManager::$default_config;
-            $chat->messages = array(array("role" => "system", "content" => $prompt));
             // If the text is not empty, process the request one-time without saving the config
             if ($text != "") {
-                $chat->messages[] = array("role" => "user", "content" => $text);
+                $chat = $user_config_manager->get_config();
+                $chat = json_decode(json_encode($chat, JSON_UNESCAPED_UNICODE));
+                $chat->messages = [
+                    ["role" => "system", "content" => $prompt],
+                    ["role" => "user", "content" => $text]
+                ];
                 $response = $llm->message($chat);
                 $telegram->send_message($response, !has_error($response));
+                exit;
             } else {
-                $user_config_manager->save_session();
-                $user_config_manager->save_config($chat);
-                $telegram->send_message("Chat history reset. I am now a typo and grammar assistant.");
+                $reset(false);
+                $user_config_manager->add_message("system", $prompt);
+                $mes = "Chat history reset. I am now a typo and grammar assistant.";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
             }
-            exit;
         }, "Presets", "Typo and grammar assistant. Provide a text to ignore and preserve the previous conversation.");
 
         // The command /task helps the user to break down a task and track progress
         $command_manager->add_command(array("/task"), function($command, $task) use ($telegram, $user_config_manager, $reset) {
             $task != "" || $telegram->die("Please provide a task with the command.");
-            $reset($command);  // general prompt
+            $reset(true);  // general prompt
             $prompt = "Your task is to help the user achieve the following goal: \"$task\". "
                 ."Break down it into subtasks, negotiate a schedule, and provide live accountabilty at each step. "
                 ."Avoid generic advice, but instead find specific, actionable steps. "
@@ -598,7 +630,8 @@ END:VTIMEZONE"));
         }, "Presets", "Helps the user to break down a task and track immediate progress.");
 
         // The command /reframe helps the user find better reframing of their current stories
-        $command_manager->add_command(array("/reframe"), function($command, $_) use ($user_config_manager, $telegram) {
+        $command_manager->add_command(array("/reframe"), function($command, $_) use ($user_config_manager, $telegram, $reset) {
+            $reset(false);
             $prompt = "The task is to lead me to find a better reframing of my current stories. For every new proposal I make, "
                     ."answer with a validation of it and end in the question \"Can you find a frame that is even more helpful?\"\n\n"
                     ."For example\n"
@@ -609,8 +642,6 @@ END:VTIMEZONE"));
                     ."Your responses should acknowledge the user's reframing efforts positively while consistently encouraging them to explore "
                     ."even more constructive perspectives. Keep responses supportive and focused on guiding the user toward increasingly helpful "
                     ."cognitive reframes. Always end with the question \"Can you find a frame that is even more helpful?\"";
-            $user_config_manager->save_session();
-            $user_config_manager->clear_messages();
             $user_config_manager->add_message("system", $prompt);
             $mes = "I'll help you reframe your thoughts to find more helpful perspectives. Please share a situation or thought you'd like to reframe, and I'll guide you through the process.";
             $user_config_manager->add_message("assistant", $mes);
@@ -618,8 +649,9 @@ END:VTIMEZONE"));
             exit;
         }, "Presets", "Start a cognitive reframing exercise to develop more helpful perspectives.");
 
-        // The command /chinesetutor creates a Chinese language tutor
-        $command_manager->add_command(array("/chinesetutor"), function($command, $_) use ($user_config_manager, $telegram) {
+        // The command /chinese creates a Chinese language tutor
+        $command_manager->add_command(array("/chinese"), function($command, $_) use ($user_config_manager, $telegram, $reset) {
+            $reset(false);
             $prompt = "You are a helpful language assistant teaching the Chinese langauge through natural conversation. "
                     ."We use English as meta language to discuss language usage. It make me used to replace parts in a "
                     ."Chinese sentence we don't know the character of, but it is never used to actually discuss the "
@@ -638,8 +670,6 @@ END:VTIMEZONE"));
                     ."gradually build reading confidence. When the user shares their attempts, provide gentle corrections "
                     ."focusing only on critical errors. Track common mistakes and occasionally suggest patterns to practice. "
                     ."Respond conversationally without formal lesson structures.";
-            $user_config_manager->save_session();
-            $user_config_manager->clear_messages();
             $user_config_manager->add_message("system", $prompt);
             $mes = "你好！I'm your Chinese language tutor. Feel free to write in Chinese (even just a few words) and I'll help you learn through conversation. What is on your mind today?";
             $user_config_manager->add_message("assistant", $mes);
@@ -940,7 +970,7 @@ END:VTIMEZONE"));
             array_keys($shortcuts_medium),
             array_keys($shortcuts_small),
             array_keys($shortcuts_large)
-        ), function($command, $model) use ($telegram, $user_config_manager,
+        ), function($command, $model) use ($telegram, $user_config_manager, $reset,
             $shortcuts_medium, $shortcuts_small, $shortcuts_large) {
             $chat = $user_config_manager->get_config();
             if (isset($shortcuts_medium[$command])) {
@@ -973,6 +1003,9 @@ END:VTIMEZONE"));
             } else {
                 $chat->model = $model;
                 $telegram->send_message("You are now talking to `$chat->model`.");
+            }
+            if (count($chat->messages) == 1 && $chat->messages[0]->role == "system") {  // assume intro prompt
+                $reset(true, false);
             }
             exit;
         }, "Settings", "Model selection (default: `".UserConfigManager::$default_config["model"]."`)");
