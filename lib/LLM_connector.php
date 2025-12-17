@@ -300,6 +300,7 @@ class LLMConnector {
         $data->reasoning = (object) array(
             "effort" => "high"
         );
+        $data->data_collection = "deny";
         $message = $openrouter->message($data);
         if (is_string($message)) {
             return $message;
