@@ -538,11 +538,7 @@ END:VTIMEZONE"));
                     ["role" => "user", "content" => $description]
                 ];
                 $response = $llm->message($chat);
-
-                // If the response starts with "Error: ", it is an error message
-                if (has_error($response)) {
-                    $telegram->send_message($response, false);
-                }
+                $telegram->die_if_error($response);
                 // If the response starts with "BEGIN:VCALENDAR", send as iCalendar
                 if (preg_match('/^```\\n?BEGIN:VCALENDAR/', $response)) {
                     $response = preg_replace('/^```\\n?|```$/', '', $response);
