@@ -359,14 +359,17 @@ class Telegram {
             return $response;
         }
 
-        // Replace "```\n$$" or "```\n\[" with "```"
-        $response = preg_replace('/```(.*)\n *(\$\$?|\\\\\[|\\\\\()\s*\n/', "```$1\n", $response);
-        // Same with "$$\n```" and "\[\n```"
-        $response = preg_replace('/(\$\$?|\\\\\[|\\\\\()\s*\n\s*```\s*/', "```\n", $response);
-        // Replace "`$$" or "`\[" with "$$" or "\["
-        $response = preg_replace('/`(\$\$?|\\\\\[|\\\\\()/', "$1", $response);
-        // Replace "$$`" or "\]`" with "$$" or "\]"
-        $response = preg_replace('/(\$\$?|\\\\\]|\\\\\))`/', "$1", $response);
+        // Remove LaTeX delimiters from code blocks
+        $response = preg_replace('/```(.*?)\n\s*\$\$\s*\n(.*?)\n\s*\$\$\s*\n```/s', "```$1\n$2\n```", $response);  // Code block with $$...$$ block math
+        $response = preg_replace('/```(.*?)\n\s*\$\s*\n(.*?)\n\s*\$\s*\n```/s', "```$1\n$2\n```", $response);  // Code block with $...$ inline math
+        $response = preg_replace('/```(.*?)\n\s*\\\\\[\s*\n(.*?)\n\s*\\\\\]\s*\n```/s', "```$1\n$2\n```", $response);  // Code block with \[...\] display math
+        $response = preg_replace('/```(.*?)\n\s*\\\\\(\s*\n(.*?)\n\s*\\\\\)\s*\n```/s', "```$1\n$2\n```", $response);  // Code block with \(...\) inline math
+
+        // Remove backticks around LaTeX expressions
+        $response = preg_replace('/`(\$\$(.*?)\$\$)`/s', "$1", $response);  // Block math $$...$$
+        $response = preg_replace('/`(\$(.*?)\$)`/s', "$1", $response);   // Inline math $...$
+        $response = preg_replace('/`(\\\\\[(.*?)\\\\\])`/s', "$1", $response);  // Display math \[...\]
+        $response = preg_replace('/`(\\\\\((.*?)\\\\\))`/s', "$1", $response);  // Inline math \(...\)
 
         // For each \[ find the corresponding \] (might be on later lines) and replace both by ```
         $start = 0;
