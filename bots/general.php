@@ -1871,7 +1871,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
     // $telegram->send_message("Sending message: ".$message);
     $chat = $user_config_manager->get_config();
     $response = $llm->message($chat);
-    $telegram->die_if_error($response, $user_config_manager);
+    if ($message === "/continue" || $message === "/c") {
+        $telegram->die_if_error($response);
+    } else {
+        $telegram->die_if_error($response, $user_config_manager);
+    }
 
     // If the response starts with "MAIL", parse the response and build a mailto link
     if (substr($response, 0, 5) == "MAIL\n") {
