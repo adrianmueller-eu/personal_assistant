@@ -526,9 +526,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $prompt = "Extract details about events from the provided text and output an "
                 ."event in iCalendar format. Try to infer the time zone from the location. Use can use the example for the timezone below as "
                 ."a template. Ensure that the code is valid. Output the code only, and do NOT enclose the output in backticks. Today is ".date("l, j.n.Y").".\n\n"
-."BEGIN:VTIMEZONE
-TZID:$timezone
-END:VTIMEZONE"));
+                ."BEGIN:VTIMEZONE\nTZID:$timezone\nEND:VTIMEZONE";
             // If the description is not empty, process the request one-time without saving the config
             if ($description != "") {
                 $chat = $user_config_manager->get_config();
@@ -781,7 +779,7 @@ END:VTIMEZONE"));
 
         // The command /search enables web search for a single query
         $command_manager->add_command(array("/search"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
-            $user_config_manager->add_message("user", $query == "" ? "Please perform the web search." : $query);
+            $user_config_manager->add_message("user", $query ?: "Please perform the web search.");
 
             $chat = $user_config_manager->get_config();
             $response = $llm->message($chat, true);
@@ -793,7 +791,7 @@ END:VTIMEZONE"));
             }
             $telegram->send_message($response);
             exit;
-        }, "Shortcuts", "Allow to perform a web search based on the chat history (and optional additional query).");
+        }, "Shortcuts", "Perform a web search based on the chat history (and optional additional query).");
 
         // The command /p generates a search prompt for research tools
         $command_manager->add_command(array("/p"), function($command, $query) use ($telegram, $user_config_manager, $llm) {
@@ -1029,15 +1027,15 @@ END:VTIMEZONE"));
                 ."You can change the model by providing the model name after the /model command. "
                 ."The following shortcuts are available:\n\n"
                 .implode("\n", array_map(function($key, $value) {
-                    return "$key -> `$value`";
+                    return "$key → `$value`";
                 }, array_keys($shortcuts_medium), $shortcuts_medium))."\n\n"
                 ."for some smaller and cheaper models:\n"
                 .implode("\n", array_map(function($key, $value) {
-                    return "$key -> `$value`";
+                    return "$key → `$value`";
                 }, array_keys($shortcuts_small), $shortcuts_small))."\n\n"
                 ."for the largest and most capable models:\n"
                 .implode("\n", array_map(function($key, $value) {
-                    return "$key -> `$value`";
+                    return "$key → `$value`";
                 }, array_keys($shortcuts_large), $shortcuts_large))."\n\n"
                 ."Other options are other [OpenRouter models](https://openrouter.ai/models), "
                 ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models), "
@@ -1191,7 +1189,7 @@ END:VTIMEZONE"));
 
         // The command /openaiapikey allows the user to set their custom OpenAI API key
         $command_manager->add_command(array("/openaiapikey"), function($command, $key) use ($telegram, $user_config_manager) {
-            $key != "" || $telegram->die("Provide an API key with the command, e.g. \"/openaiapikey abc123\".");
+            $key != "" || $telegram->die("Provide an API key with the command, e.g. `/openaiapikey abc123`.");
             $user_config_manager->set_openai_api_key($key);
             $telegram->send_message("Your new OpenAI API key has been set.");
             exit;
@@ -1199,7 +1197,7 @@ END:VTIMEZONE"));
 
         // The command /anthropicapikey allows the user to set their custom Anthropic API key
         $command_manager->add_command(array("/anthropicapikey"), function($command, $key) use ($telegram, $user_config_manager) {
-            $key != "" || $telegram->die("Provide an API key with the command, e.g. \"/anthropicapikey abc123\".");
+            $key != "" || $telegram->die("Provide an API key with the command, e.g. `/anthropicapikey abc123`.");
             $user_config_manager->set_anthropic_api_key($key);
             $telegram->send_message("Your new Anthropic API key has been set.");
             exit;
@@ -1207,7 +1205,7 @@ END:VTIMEZONE"));
 
         // The command /openrouterapikey allows the user to set their custom OpenRouter API key
         $command_manager->add_command(array("/openrouterapikey"), function($command, $key) use ($telegram, $user_config_manager) {
-            $key != "" || $telegram->die("Provide an API key with the command, e.g. \"/openrouterapikey abc123\".");
+            $key != "" || $telegram->die("Provide an API key with the command, e.g. `/openrouterapikey abc123`.");
             $user_config_manager->set_openrouter_api_key($key);
             $telegram->send_message("Your new OpenRouter API key has been set.");
             exit;
@@ -1346,7 +1344,7 @@ END:VTIMEZONE"));
 
                 preg_match("/^[0-9]{4}$/", $month) || $telegram->die("Please provide a month in the format \"YYMM\".");
                 $usage = get_usage_string($user_config_manager, $month, true);
-                $telegram->send_message("Your usage statistics for ".($month == "" ? "this month" : $month).":\n\n$usage");
+                $telegram->send_message("Your usage statistics for $month:\n\n$usage");
                 exit;
             }, "Chat history management", "Show your usage statistics");
         }
