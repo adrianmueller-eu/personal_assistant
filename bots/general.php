@@ -545,7 +545,6 @@ END:VTIMEZONE"));
                     $response = trim($response);
                 }
                 if (substr($response, 0, 15) == "BEGIN:VCALENDAR") {
-                    $user_config_manager->add_message("assistant", $response);
                     $file_name = "event.ics";
                     $telegram->send_document($file_name, $response);
                 } else {
@@ -623,6 +622,10 @@ END:VTIMEZONE"));
                 ."Avoid generic advice, but instead find specific, actionable steps. "
                 ."As soon as the steps are clear, walk the user through them one by one to ensure they are completed. ";
             $user_config_manager->add_message("system", $prompt);
+            $mes = "Let's break down your goal into manageable steps. I'll help you clarify the task, create a checklist, and keep you on track. What is the first thing you think needs to be done?";
+            $user_config_manager->add_message("assistant", $mes);
+            $telegram->send_message($mes);
+            exit;
         }, "Presets", "Helps the user to break down a task and track immediate progress.");
 
         // The command /reframe helps the user find better reframing of their current stories
