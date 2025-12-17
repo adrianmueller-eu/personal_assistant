@@ -25,6 +25,20 @@ class LLMConnector {
     }
 
     /**
+     * Check if a string is a model identifier.
+     *
+     * @param string $model_string The string to check.
+     * @return bool True if the string is a model identifier, false otherwise.
+     */
+    public function check_model(string $model_string): bool {
+        // Check if the model string starts with "o" followed by digits, "gpt-", "claude-" or contains a slash "/"
+        return preg_match('/^o\d?$/', $model_string) === 1 ||
+               str_starts_with($model_string, "gpt-") ||
+               str_starts_with($model_string, "claude-") ||
+               strpos($model_string, "/") !== false;
+    }
+
+    /**
      * Send a request to create a chat completion with the model specified in the data.
      *
      * @param object|array $data The data to send.

@@ -1272,29 +1272,104 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }, "Settings", "Set your language");
 
         // The command /intro allows to read out or set the intro prompt
-        $command_manager->add_command(array("/intro"), function($command, $message) use ($telegram, $user_config_manager, $default_intro) {
-            if ($message == "") {
-                $intro = $user_config_manager->get_intro();
-                if ($intro == "") {
-                    $telegram->send_message("You are using the default introductory system prompt:\n\n`/intro $default_intro`\n\n"
-                        ."To set a custom intro prompt, please provide it with the command as /intro <your prompt>. If you want to reset it back to the default, you can use `/intro reset`.");
+        $command_manager->add_command(array("/intro"), function($command, $message) use ($telegram, $user_config_manager, $default_intro, $llm) {
+            if (empty($message)) {
+                // Return overview of configured intro prompts
+                $intros = $user_config_manager->get_intros();
+                if (empty($intros)) {
+                    $stats = get_message_stats($default_intro);
+                    $telegram->die("You don't have any custom intro prompts configured. You're using the general default prompt:\n\n`/intro $default_intro`\n\n({$stats['words']} words, {$stats['tokens']} tokens)");
+                }
+
+                $overview = "Your configured intro prompts:\n\n";
+                foreach ($intros as $key => $value) {
+                    $stats = get_message_stats($value);
+                    $first_words = substr($value, 0, 40) . (strlen($value) > 40 ? "..." : "");
+                    $overview .= "*$key*: \"$first_words\" ({$stats['words']} words, {$stats['tokens']} tokens)\n";
+                }
+                $overview .= "\nUse `/intro <specifier>` to see the full prompts.";
+                $telegram->send_message($overview);
+                exit;
+            }
+
+            // unpack model and message
+            $parts = explode(' ', $message, 2);
+            $model = $parts[0];
+            if ($model == "prefix" || $model == "default" || $model == "reset" || $llm->check_model($model)) {
+                $message = $parts[1] ?? "";
+            } else {
+                $telegram->die("`$model` is not a valid specifier. Please provide \"default\", \"prefix\" or a (partial) model name.", true);
+            }
+            $prefix_mes = "";
+            if (!empty($user_config_manager->get_intro("prefix"))) {
+                $prefix_mes = " with a custom prefix (read out with `/intro prefix`)";
+            }
+            // assert !empty($model)
+
+            // special case for prefix and default
+            if ($model == "prefix" || $model == "default" || $model == "reset") {
+                if ($model == "reset") {
+                    $telegram->die("`reset` is not a valid specifier. Please use `/intro <specifier> reset` to reset a prompt.", true);
+                }
+                $is_prefix = ($model == "prefix");
+                $type_label = $is_prefix ? "intro prefix" : "default intro prompt";
+                $reset_action = $is_prefix ? "delete it" : "revert to the general default prompt";
+
+                // Handle reset or set new value
+                if ($message == "reset") {
+                    $user_config_manager->set_intro("", $model);
+                    $telegram->send_message("Your $type_label has been reset. You can set a new $type_label by providing it as `/intro $model <your prompt>`.");
+                    exit;
+                } elseif ($message != "") {
+                    $user_config_manager->set_intro($message, $model);
+                    $stats = get_message_stats($message);
+                    $telegram->send_message("Your $type_label has been set ({$stats['words']} words, {$stats['tokens']} tokens).\n\nYou can change it by providing a new $type_label with the command `/intro $model <new $type_label>`. Use `/intro $model reset` to $reset_action.");
+                    exit;
+                }
+
+                // Display current value
+                $current_value = $user_config_manager->get_intro($model);
+                if (empty($current_value)) {
+                    $general = $is_prefix ? "" : "You are using the general default introductory system prompt$prefix_mes:\n\n`/intro $default_intro`\n\n";
+                    $telegram->send_message("You don't have a custom $type_label set. {$general}To set a custom $type_label, you can use the command `/intro $model <your prompt>`");
                 } else {
-                    if (strpos($intro, "`") === false) {
-                        $intro = "`/intro $intro`";
-                    } else {
-                        $intro = "/intro $intro";
-                    }
-                    $telegram->send_message("Your current intro prompt is:\n\n$intro\n\nYou can change it by providing a new prompt with the command as /intro <new prompt>. Use `/intro reset` to revert to the default prompt.");
+                    $intro_display = "/intro $model $current_value";
+                    if (strpos($intro_display, "`") === false) $intro_display = "`$intro_display`";
+                    $telegram->send_message("You've set a custom $type_label".($is_prefix ? "" : $prefix_mes).":\n\n$intro_display\n\n"
+                        ."You can change it by providing a new $type_label with the command `/intro $model <new $type_label>`. Use `/intro $model reset` to $reset_action.");
                 }
                 exit;
             }
-            if ($message == "reset") {
-                $user_config_manager->set_intro("");
-                $telegram->send_message("Your intro prompt has been reset. You can set a new intro prompt by providing it after the /intro command.");
+
+            if (empty($message)) {
+                $intro = $user_config_manager->get_intro($model);
+                if (empty($intro)) {
+                    $default_intro_user = $user_config_manager->get_intro("default");
+                    if (empty($default_intro_user)) {
+                        $telegram->send_message("You don't have a specific intro prompt for model `$model` nor a custom default intro prompt, so you're using the general default prompt$prefix_mes:\n```\n$default_intro\n```\n\n"
+                            ."To set a model-specific or default intro prompt, please provide it with the command as `/intro $model <your prompt>` or `/intro default <your prompt>`. Use `/intro $model reset` or `/intro default reset` to revert your changes.");
+                    } else {
+                        $telegram->send_message("You don't have a specific intro prompt for model `$model`, so you're using your custom default intro prompt (read out with `/intro default`)$prefix_mes. "
+                            ."To set a model-specific intro prompt, provide it with `/intro $model <your prompt>`. Use `/intro $model reset` to revert to the default intro prompt.");
+                    }
+                } else {
+                    $intro_display = "/intro $model $intro";
+                    if (strpos($intro_display, "`") === false) $intro_display = "`$intro_display`";
+                    $telegram->send_message("You're using a custom intro prompt for model `$model`$prefix_mes:\n\n$intro_display\n\nYou can change it by providing a new prompt with the command as `/intro $model <new prompt>`. Use `/intro $model reset` to revert to the default prompt.");
+                }
                 exit;
             }
-            $user_config_manager->set_intro($message);
-            $telegram->send_message("Your intro prompt has been updated.");
+            // assert !empty($model) and !empty($message)
+
+            if ($message == "reset") {
+                $user_config_manager->set_intro("", $model);
+                $telegram->send_message("Your intro prompt for model `$model` has been reset.", true);
+                exit;
+            }
+
+            $user_config_manager->set_intro($message, $model);
+            $stats = get_message_stats($message);
+            $telegram->send_message("Your intro prompt for model `$model` has been updated ({$stats['words']} words, {$stats['tokens']} tokens).");
             exit;
         }, "Settings", "Set your initial system prompt");
 

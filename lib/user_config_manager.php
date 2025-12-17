@@ -39,7 +39,10 @@ require_once __DIR__."/utils.php";
  *         "voice": "shimmer",
  *         "speed": 1.0
  *     },
- *     "intro": "Please always add emojis to your messages.",
+ *     "intro": {
+ *         "default": "Please always add emojis to your messages.",
+ *         "gpt-4": "You are GPT-4, please always add emojis to your messages."
+ *     },
  *     "openrouter_api_key": "sk-1234567890",
  *     "openai_api_key": "sk-1234567890",
  *     "anthropic_api_key": "sk-1234567890",
@@ -115,7 +118,9 @@ class UserConfigManager {
                 "username" => $username,
                 "name" => $name,
                 "lang" => $lang,
-                "intro" => "",
+                "intro" => (object) array(
+                    "default" => ""
+                ),
                 "hellos" => array(),
                 "config" => (object) self::$default_config,
                 "sessions" => (object) array(),
@@ -373,9 +378,58 @@ class UserConfigManager {
     /**
      * Get the intro text of the user.
      *
-     * @return string The intro text of the user.
+     * @param string $model Optional model identifier to get model-specific intro
+     * @return string The intro text of the user for the specified model or default intro.
      */
-    public function get_intro(): string {
+    public function get_intro(string $model = ""): string {
+        // Check if intro is still a string (backward compatibility)
+        if (is_string($this->user_data->intro)) {
+            // Convert to new object format
+            $intro_text = $this->user_data->intro;
+            $this->user_data->intro = (object) array(
+                "default" => $intro_text
+            );
+        }
+
+        // If no model specified, use the one from the config
+        $infer = empty($model);
+        if ($infer)
+            $model = $this->user_data->config->model;
+
+        // Find the longest (non-empty) key that matches the start of $model
+        $best_key = null;
+        $best_len = 0;
+        foreach ($this->user_data->intro as $key => $value) {
+            if (strpos($model, $key) === 0 && strlen($key) > $best_len) {
+                $best_key = $key;
+                $best_len = strlen($key);
+            }
+        }
+
+        if (!$infer)
+            return $this->user_data->intro->$best_key ?? "";
+
+        $intro_text = $this->user_data->intro->$best_key ?? ($this->user_data->intro->default ?? "");
+        $prefix = $this->user_data->intro->prefix ?? "";
+        if ($prefix !== "") $prefix .= "\n\n";
+        return $prefix.$intro_text;
+    }
+
+    /**
+     * Get all intro prompts of the user.
+     *
+     * @return object Object containing all intro prompts keyed by model identifiers
+     */
+    public function get_intros(): object {
+        // Check if intro is still a string (backward compatibility)
+        if (is_string($this->user_data->intro)) {
+            // Convert to new object format
+            $intro_text = $this->user_data->intro;
+            $this->user_data->intro = (object) array(
+                "default" => $intro_text
+            );
+        }
+
         return $this->user_data->intro;
     }
 
@@ -383,9 +437,20 @@ class UserConfigManager {
      * Set the intro text of the user.
      *
      * @param string $intro The intro text of the user.
+     * @param string $model Optional model identifier for model-specific intro.
      */
-    public function set_intro($intro): void {
-        $this->user_data->intro = $intro;
+    public function set_intro($intro, $model = "default"): void {
+        // Check if intro is still a string (backward compatibility)
+        if (is_string($this->user_data->intro)) {
+            $this->user_data->intro = (object) array(
+                "default" => $this->user_data->intro
+            );
+        }
+        if (empty($intro)) {
+            unset($this->user_data->intro->$model);
+        } else {
+            $this->user_data->intro->$model = $intro;
+        }
     }
 
     /**
