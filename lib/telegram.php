@@ -419,6 +419,11 @@ class Telegram {
             if ($is_in_code_block) {
                 // Replace \ with \\
                 $line = preg_replace('/\\\\/', '\\\\\\\\', $line);
+                // Escape backticks
+                $line = preg_replace_callback('/`([^`]+)`/', function($m) {
+                    // Escape the backticks
+                    return '\`' . $m[1] . '\`';
+                }, $line);
             } else {
                 // For each \( find the corresponding \) and replace both by `
                 $line = preg_replace('/`?\\\\\( ?(.*?) ?\\\\\)`?/', '`$1`', $line);
