@@ -379,7 +379,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 // Replace <datetime></datetime> with the current date
                 $intro = preg_replace(
                     '#<datetime>.*?</datetime>#',
-                    date("l, j.n.Y"),
+                    date("l, j.n.Y, g:ia"),
                     $intro
                 );
                 $user_config_manager->add_message("system", $intro ?: $default_intro);
