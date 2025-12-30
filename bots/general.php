@@ -716,7 +716,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         }, "Presets", "Start a cognitive reframing exercise to develop more helpful perspectives.");
 
         // The command /chinese creates a Chinese language tutor
-        $command_manager->add_command(array("/chinese"), function($command, $_) use ($user_config_manager, $telegram, $reset) {
+        $command_manager->add_command(array("/chinese"), function($command, $message) use ($user_config_manager, $telegram, $reset) {
             $reset(false);
             $prompt = "You are a helpful language assistant teaching the Chinese language through natural conversation. "
                     ."We use English as meta language to discuss language usage. It may be used to replace parts in a "
@@ -737,22 +737,32 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                     ."focusing only on critical errors. Track common mistakes and occasionally suggest patterns to practice. "
                     ."Respond conversationally without formal lesson structures.";
             $user_config_manager->add_message("system", $prompt);
-            $mes = "你好！I'm your Chinese language tutor. Feel free to write in Chinese (even just a few words) and I'll help you learn through conversation. What is on your mind today?";
-            $user_config_manager->add_message("assistant", $mes);
-            $telegram->send_message($mes);
-            exit;
-        }, "Presets", "Start a Chinese language tutoring session with natural conversation practice.");
+            if ($message == "") {
+                $mes = "你好！I'm your Chinese language tutor. Feel free to write in Chinese (even just a few words) and I'll help you learn through conversation. What is on your mind today?";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
+            }
+            $user_config_manager->add_message("user", $message);
+        }, "Presets", "Start a Chinese language tutoring session");
 
         // The command /fi gives a finnish langauge tutor
-        $command_manager->add_command(array("/fi"), function($command, $_) use ($user_config_manager, $telegram, $reset) {
+        $command_manager->add_command(array("/fi"), function($command, $message) use ($user_config_manager, $telegram, $reset) {
             $reset(false);
-            $prompt = "Olet ystävällinen ja kannustava suomen kielen opettaja. Keskustele käyttäjän kanssa luonnollisesti suomeksi, mutta käytä englantia vain selittääksesi kielioppia, sanojen merkityksiä tai kulttuurisia seikkoja. Vastaa suomeksi aina kun käyttäjä kirjoittaa suomeksi, ja lisää englanninkielinen käännös sekä tarvittaessa lyhyt selitys. Korjaa käyttäjän virheet lempeästi ja anna vinkkejä parempaan ilmaisuun. Pidä vastaukset lyhyinä ja keskity käytännölliseen kieleen, joka auttaa käyttäjää pärjäämään arjessa. Jos käyttäjä kirjoittaa englanniksi, rohkaise häntä siirtymään suomen kieleen.";
+            $prompt = "Olet ystävällinen ja kannustava suomen kielen opettaja. Keskustele käyttäjän kanssa luonnollisesti suomeksi,"
+                    ."mutta käytä englantia vain selittääksesi kielioppia, sanojen merkityksiä tai kulttuurisia seikkoja. "
+                    ."Vastaa suomeksi aina kun käyttäjä kirjoittaa suomeksi, ja lisää englanninkielinen käännös sekä tarvittaessa lyhyt selitys. "
+                    ."Korjaa käyttäjän virheet lempeästi ja anna vinkkejä parempaan ilmaisuun. Pidä vastaukset lyhyinä ja keskity käytännölliseen kieleen, "
+                    ."joka auttaa käyttäjää pärjäämään arjessa. Jos käyttäjä kirjoittaa englanniksi, rohkaise häntä siirtymään suomen kieleen.";
             $user_config_manager->add_message("system", $prompt);
-            $mes = "Hei! Olen suomen kielen opettajasi. Kirjoita vapaasti suomeksi, ja autan sinua oppimaan lisää. Mistä haluaisit keskustella tänään?";
-            $user_config_manager->add_message("assistant", $mes);
-            $telegram->send_message($mes);
-            exit;
-        }, "Presets", "Start a Finnish language tutoring session with natural conversation practice.");
+            if ($message == "") {
+                $mes = "Hei! Olen suomen kielen opettajasi. Kirjoita vapaasti suomeksi, ja autan sinua oppimaan lisää. Mistä haluaisit keskustella tänään?";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
+            }
+            $user_config_manager->add_message("user", $message);
+        }, "Presets", "Start a Finnish language tutoring session");
 
         // The command /shop helps with shopping decisions by analyzing product ingredients and nutrition labels
         $command_manager->add_command(array("/shop"), function($command, $description) use ($telegram, $user_config_manager, $reset) {
