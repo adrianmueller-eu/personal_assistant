@@ -165,6 +165,7 @@ class Telegram {
             $data = (object) array(
                 "chat_id" => $this->chat_id,
                 "text" => $is_markdown ? $this->format_message($message, $this->post_processing) : $message,
+                // "text" => $message,
                 "disable_web_page_preview" => "true",
             );
             if ($is_markdown) {
@@ -183,7 +184,9 @@ class Telegram {
                 // Try again without parse mode if $server_output is a string that contains "can't parse entities"
                 if (strpos($server_output->description, "can't parse entities") !== false) {
                     if ($this->DEBUG) {
-                        $message = $this->format_message($message)."\n".json_encode($server_output->description, JSON_UNESCAPED_UNICODE);
+                        $message = "[DEBUG: Failed with `".json_encode($server_output->description, JSON_UNESCAPED_UNICODE)."`\n"
+                            ."The following is the output of ".'$this->format_message'."].\n\n".
+                            $this->format_message($message);
                     }
                     $this->send_message($message, false);
                 }
