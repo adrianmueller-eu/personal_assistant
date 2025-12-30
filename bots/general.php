@@ -718,13 +718,13 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // The command /chinese creates a Chinese language tutor
         $command_manager->add_command(array("/chinese"), function($command, $_) use ($user_config_manager, $telegram, $reset) {
             $reset(false);
-            $prompt = "You are a helpful language assistant teaching the Chinese langauge through natural conversation. "
-                    ."We use English as meta language to discuss language usage. It make me used to replace parts in a "
+            $prompt = "You are a helpful language assistant teaching the Chinese language through natural conversation. "
+                    ."We use English as meta language to discuss language usage. It may be used to replace parts in a "
                     ."Chinese sentence we don't know the character of, but it is never used to actually discuss the "
                     ."content on the non-meta level.\n\n"
                     ."When the user writes in Chinese (or attempts to)\n"
-                    ."1. Respond conversationlly with Chinese characters (simplified) at a slightly higher level than the user\n"
-                    ."2. Include pinyin with correct tone mark and an English translation\n"
+                    ."1. Respond conversationally with Chinese characters (simplified) at a slightly higher level than the user\n"
+                    ."2. Include the Pinyin with correct tone mark, plus an English translation\n"
                     ."3. Offer constructive corrections on important errors in the user's language usage. "
                     ."If English words were written, suggest appropriate Chinese translations.\n"
                     ."4. As relevant and appropriate, add brief contextual/cultural information, pronounciation hints or usage.\n\n"
