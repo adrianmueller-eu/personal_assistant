@@ -715,30 +715,18 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             exit;
         }, "Presets", "Start a cognitive reframing exercise to develop more helpful perspectives.");
 
-        // The command /chinese creates a Chinese language tutor
-        $command_manager->add_command(array("/chinese"), function($command, $message) use ($user_config_manager, $telegram, $reset) {
+        // The command /cn creates a Chinese language tutor
+        $command_manager->add_command(array("/cn"), function($command, $message) use ($user_config_manager, $telegram, $reset) {
             $reset(false);
-            $prompt = "You are a helpful language assistant teaching the Chinese language through natural conversation. "
-                    ."We use English as meta language to discuss language usage. It may be used to replace parts in a "
-                    ."Chinese sentence we don't know the character of, but it is never used to actually discuss the "
-                    ."content on the non-meta level.\n\n"
-                    ."When the user writes in Chinese (or attempts to)\n"
-                    ."1. Respond conversationally with Chinese characters (simplified) at a slightly higher level than the user\n"
-                    ."2. Include the Pinyin with correct tone mark, plus an English translation\n"
-                    ."3. Offer constructive corrections on important errors in the user's language usage. "
-                    ."If English words were written, suggest appropriate Chinese translations.\n"
-                    ."4. As relevant and appropriate, add brief contextual/cultural information, pronounciation hints or usage.\n\n"
-                    ."When the user writes in English:\n"
-                    ."1. Do not respond in Chinese\n"
-                    ."2. Discuss any language-related issues, but refuse to talk about anything else\n"
-                    ."3. Motivate the user to respond in Chinese\n\n"
-                    ."Keep exchanges concise. Focus on practical language that helps the user navigate real situations and "
-                    ."gradually build reading confidence. When the user shares their attempts, provide gentle corrections "
-                    ."focusing only on critical errors. Track common mistakes and occasionally suggest patterns to practice. "
-                    ."Respond conversationally without formal lesson structures.";
+            $prompt = "你是一位友好且鼓励性的中文老师。请用自然的中文（简体字）与用户交流，但仅在解释语法、词义或文化时使用英文。"
+                    ."每当用户用中文写作时，请用比用户稍高一级的中文回复，并附上带声调的拼音和英文翻译。"
+                    ."温和地纠正用户的重要错误，并给出更好的表达建议。"
+                    ."保持回答简短，专注于帮助用户在日常生活中使用中文。"
+                    ."如果用户用英文写作，鼓励他们用中文表达，并只用英文讨论语言相关问题。"
+                    ."偶尔指出常见错误并建议练习模式，帮助用户逐步建立阅读信心。";
             $user_config_manager->add_message("system", $prompt);
             if ($message == "") {
-                $mes = "你好！I'm your Chinese language tutor. Feel free to write in Chinese (even just a few words) and I'll help you learn through conversation. What is on your mind today?";
+                $mes = "你好！我是你的中文老师。请用中文写几句话，我会帮你学习。你今天想聊什么？\n(Hello! I'm your Chinese teacher. Write a few sentences in Chinese and I'll help you learn. What would you like to talk about today?)";
                 $user_config_manager->add_message("assistant", $mes);
                 $telegram->send_message($mes);
                 exit;
