@@ -764,6 +764,24 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             $user_config_manager->add_message("user", $message);
         }, "Presets", "Start a Finnish language tutoring session");
 
+        // The command /fr gives a French language tutor
+        $command_manager->add_command(array("/fr"), function($command, $message) use ($user_config_manager, $telegram, $reset) {
+            $reset(false);
+            $prompt = "Tu es un professeur de français amical et encourageant. Discute naturellement en français avec l'utilisateur,"
+                    ."mais utilise l'anglais uniquement pour expliquer la grammaire, le sens des mots ou des aspects culturels. "
+                    ."Réponds toujours en français lorsque l'utilisateur écrit en français, et ajoute une traduction anglaise ainsi qu'une brève explication si nécessaire. "
+                    ."Corrige les erreurs de l'utilisateur avec bienveillance et donne des conseils pour mieux s'exprimer. Garde les réponses courtes et concentre-toi sur le langage pratique "
+                    ."qui aide l'utilisateur à se débrouiller au quotidien. Si l'utilisateur écrit en anglais, encourage-le à passer au français.";
+            $user_config_manager->add_message("system", $prompt);
+            if ($message == "") {
+                $mes = "Bonjour ! Je suis ton professeur de français. Écris librement en français et je t'aiderai à progresser. De quoi aimerais-tu parler aujourd'hui ?";
+                $user_config_manager->add_message("assistant", $mes);
+                $telegram->send_message($mes);
+                exit;
+            }
+            $user_config_manager->add_message("user", $message);
+        }, "Presets", "Start a French language tutoring session");
+
         // The command /shop helps with shopping decisions by analyzing product ingredients and nutrition labels
         $command_manager->add_command(array("/shop"), function($command, $description) use ($telegram, $user_config_manager, $reset) {
             $reset(false);
