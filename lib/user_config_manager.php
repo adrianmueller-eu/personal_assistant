@@ -197,7 +197,7 @@ class UserConfigManager {
         }
 
         // If content is string and starts with an image URL, convert to array format
-        // This is important for role commands to work with images (e.g. "/user", "/assistant")
+        // This is important, for example, for role commands to work with images (e.g. "/user", "/assistant")
         // and allows us to handle images consistently by simply concatenating URL and caption
         if (is_string($content) && preg_match('/^(https?:\/\/.*?\.(?:jpg|jpeg|png))/i', $content, $matches)) {
             $image_url = $matches[1];

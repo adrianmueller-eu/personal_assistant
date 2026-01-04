@@ -118,7 +118,16 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         $file_url = $telegram->get_file_url($file_id);
         $file_url != null || $telegram->die("Error: Could not get the file URL from Telegram.");
 
-        $message = "$file_url $caption";
+        // If caption starts with a command, move it to the beginning
+        if (preg_match('/^(\/[a-zA-Z0-9_]+)(\b.*)?$/', $caption, $cmd_matches)) {
+            $command = $cmd_matches[1];
+            $message = "$command $file_url";
+            if (!empty($cmd_matches[2])) {
+                $message .= " ".$cmd_matches[2];
+            }
+        } else {
+            $message = "$file_url $caption";
+        }
     } else if (isset($update->document)) {
         $file_name = $update->document->file_name;
         $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
