@@ -287,6 +287,11 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
         // Shortcuts for models
         $shortcuts_medium = array(
             "/gemma4" => "google/gemma-4-31b-it",                  #  31/ 31b  0.13/0.38
+            "/museglimmer" => "meta/muse-glimmer-30b",             #  30/ 30b  0.30/1.20
+            "/qwen3827b" => "qwen/qwen3.8-27b",                    #  27/ 27b  0.45/3.20
+            "/qwen3627b" => "qwen/qwen3.6-27b",                    #  27/ 27b  0.50/2.40
+            "/qwen3527b" => "qwen/qwen3.5-27b",                    #  27/ 27b  0.30/2.40
+            "/gemini37flash" => "google/gemini-3.7-flash",         #           0.75/3.75
             "/gemini36flash" => "google/gemini-3.6-flash",         #           1.50/7.50
             "/mistralsmall32" => "mistralai/mistral-small-3.2-24b-instruct",  # 24/24b  0.10/0.30
             "/mistralmedium35" => "mistralai/mistral-medium-3-5",  # 128/128b  1.50/7.50
@@ -297,8 +302,6 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             "/minimaxm3" => "minimax/minimax-m3",                  #  22/428b  0.30/1.20
             "/qwen37plus" => "qwen/qwen3.7-plus",                  #
             "/qwen36plus" => "qwen/qwen3.6-plus",                  #  18/ 72b  0.50/3.00
-            "/qwen3627b" => "qwen/qwen3.6-27b",                    #  27/ 27b  0.50/2.40
-            "/qwen3527b" => "qwen/qwen3.5-27b",                    #  27/ 27b  0.30/2.40
             "/qwen35a17" => "qwen/qwen3.5-397b-a17b",              #  17/397b  0.40/2.40
             // "/qwen35a10" => "qwen/qwen3.5-122b-a10b",              #  10/122b  0.30/2.40
             "/inkling" => "thinkingmachines/inkling",              #  41/975b  1.00/4.05
@@ -310,6 +313,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             "/deepseekr1" => "deepseek/deepseek-r1-0528",          #  37/671b
             "/deepseekv32" => "deepseek/deepseek-v3.2",            #  37/671b  0.26/0.38
             "/deepseekv3" => "deepseek/deepseek-chat-v3-0324",     #  37/671b  0.20/0.80
+            "/hy3" => "tencent/hy3",                               #  21/295b  0.14/0.58
             "/llama4maverick" => "meta-llama/llama-4-maverick",    #  17/400b  0.15/0.60
             "/llama4scout" => "meta-llama/llama-4-scout",          #  17/109b  0.08/0.30
             "/claudesonnet5" => "anthropic/claude-sonnet-5",       #           2.00/10.00
@@ -331,25 +335,27 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
 
         // 1T+ total parameters
         $shortcuts_large = array(
-            "/ling26" => "inclusionai/ling-2.6-1t",                #  63/  1T  0.30/2.50
-            "/ring26" => "inclusionai/ring-2.6-1t",                #  63/  1T  0.08/0.63
-            "/deepseekv4pro" => "deepseek/deepseek-v4-pro",        #  49/1.6T  1.30/2.60
-            "/mimo25pro" => "xiaomi/mimo-v2.5-pro",                #  42/  1T  0.44/0.87
-            "/qwen37max" => "qwen/qwen3.7-max",                    #  22/  1T  2.50/7.50
-            "/qwen36max" => "qwen/qwen3.6-max-preview",            #    /  1T  1.30/7.80
+            "/ling26" => "inclusionai/ling-2.6-1t",                #  63/  1T  0.30/ 2.50
+            "/ring26" => "inclusionai/ring-2.6-1t",                #  63/  1T  0.08/ 0.63
+            "/deepseekv4pro" => "deepseek/deepseek-v4-pro",        #  49/1.6T  1.30/ 2.60
+            "/mimo25pro" => "xiaomi/mimo-v2.5-pro",                #  42/  1T  0.44/ 0.87
+            "/qwen38max" => "qwen/qwen3.8-max",                    #  95/2.4T  2.00/ 6.00
+            "/qwen37max" => "qwen/qwen3.7-max",                    #  22/  1T  2.50/ 7.50
+            "/qwen36max" => "qwen/qwen3.6-max-preview",            #    /  1T  1.30/ 7.80
             "/kimik3" => "moonshotai/kimi-k3",                     # 104/2.8T  3.00/15.00
-            "/kimik27code" => "moonshotai/kimi-k2.7-code",         #  32/  1T  0.75/3.50
-            "/kimik26" => "moonshotai/kimi-k2.6",                  #  32/  1T  0.75/3.50
-            "/kimik25" => "moonshotai/kimi-k2.5",                  #  32/  1T  0.44/2.00
-            "/kimik2" => "moonshotai/kimi-k2-0905",                #  32/  1T  0.40/2.00
+            "/kimik27code" => "moonshotai/kimi-k2.7-code",         #  32/  1T  0.75/ 3.50
+            "/kimik26" => "moonshotai/kimi-k2.6",                  #  32/  1T  0.75/ 3.50
+            "/kimik25" => "moonshotai/kimi-k2.5",                  #  32/  1T  0.44/ 2.00
+            "/kimik2" => "moonshotai/kimi-k2-0905",                #  32/  1T  0.40/ 2.00
+            "/grok46" => "x-ai/grok-4.6",                          #    /  2T  2.00/ 6.00
             "/claudeopus5" => "anthropic/claude-opus-5",           #           5.00/25.00
             "/claude5fable" => "anthropic/claude-fable-5",         #          10.00/50.00
             "/claude48opus" => "anthropic/claude-opus-4.8",        #           5.00/25.00
             "/claude47opus" => "anthropic/claude-opus-4.7",        #           5.00/25.00
             "/claude46opus" => "anthropic/claude-opus-4.6",        #           5.00/25.00
             "/claude45opus" => "anthropic/claude-opus-4.5",        #           5.00/25.00
-            "/claude41opus" => "anthropic/claude-opus-4.1",        #           15.00/75.00
-            "/claude40opus" => "anthropic/claude-opus-4.0",        #           15.00/75.00
+            "/claude41opus" => "anthropic/claude-opus-4.1",        #          15.00/75.00
+            "/claude40opus" => "anthropic/claude-opus-4.0",        #          15.00/75.00
             // "/claude47opus" => "claude-opus-4-7",                  #          5.00/25.00
             // "/claude46opus" => "claude-opus-4-6",                  #          5.00/25.00
             // "/claude45opus" => "claude-opus-4-5",                  #          5.00/25.00
@@ -369,7 +375,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
             "/ling30flash" => "inclusionai/ling-3.0-flash:free", #   5/124b
             "/gptoss120b" => "openai/gpt-oss-120b",              #   5/117b  0.05/0.20
             "/ibmgranite41" => "ibm-granite/granite-4.1-8b",     #   8/  8b  0.05/0.10
-            "/deepseekv4flash" => "deepseek/deepseek-v4-flash",  #  13/284b  0.14/0.28
+            "/deepseekv4flash" => "deepseek/deepseek-v4-flash-0731",  #  13/284b  0.14/0.28
             "/mistralsmall4" => "mistralai/mistral-small-2603",  #   7/119b  0.15/0.60
             "/mercury2" => "inception/mercury-2",                # diffusion 0.25/0.75
             "/mercury" => "inception/mercury",
@@ -1262,9 +1268,7 @@ function run_bot($update, $user_config_manager, $telegram, $llm, $telegram_admin
                 .implode("\n", array_map(function($key, $value) {
                     return "$key → `$value`";
                 }, array_keys($shortcuts_large), $shortcuts_large))."\n\n"
-                ."Other options are other [OpenRouter models](https://openrouter.ai/models), "
-                ."[Anthropic models](https://docs.anthropic.com/en/docs/about-claude/models), "
-                ."and [OpenAI models](https://platform.openai.com/docs/models) ([pricing](https://platform.openai.com/docs/pricing)).");
+                ."Browse [OpenRouter models](https://openrouter.ai/models) for other options.");
             } else if ($chat->model == $model) {
                 $telegram->send_message("You are already talking to `$chat->model`.");
             } else {
